@@ -8,17 +8,24 @@ public class PlayerMovement : MonoBehaviour
 
     private CharacterController characterController;
 
+    private Animator animator;
+
     // SerializeField lets you see Private fields in the editor.
     [Header("Movement Info")]
-    [SerializeField] private float walkSpeed = 1f;
-    [SerializeField] private float sprintMultiplier = 2f;
+    [SerializeField]
+    private float walkSpeed = 1f;
+
+    [SerializeField]
+    private float sprintMultiplier = 2f;
 
     [Header("Aim Info")]
-    [SerializeField] private LayerMask aimLayerMask;
-    [SerializeField] private Transform aim;
+    [SerializeField]
+    private LayerMask aimLayerMask;
+
+    [SerializeField]
+    private Transform aim;
 
     private Vector3 lookingDirection;
-
 
     private float speedMultiplier = 1f;
     private float verticalVelocity = 0f;
@@ -32,8 +39,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        characterController = GetComponent<CharacterController>();
-
         controls = new PlayerControls();
         controls.Character.Movement.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         controls.Character.Movement.canceled += ctx => moveInput = Vector2.zero;
@@ -42,16 +47,23 @@ public class PlayerMovement : MonoBehaviour
         controls.Character.Aim.canceled += ctx => aimInput = Vector2.zero;
 
         controls.Character.Sprint.performed += ctx => speedMultiplier = sprintMultiplier;
-        controls.Character.Sprint.canceled  += ctx => speedMultiplier = 1f;
+        controls.Character.Sprint.canceled += ctx => speedMultiplier = 1f;
 
         controls.Character.Jump.performed += ctx => SafeJump();
     }
 
+    private void Start()
+    {
+        characterController = GetComponent<CharacterController>();
+        animator = GetComponentInChildren<Animator>();
+    }
+
     private void SafeJump()
     {
-        if(characterController.isGrounded == true)
+        if (characterController.isGrounded == true)
         {
             justJumped = true;
+            animator.SetTrigger("Jump");
         }
     }
 
@@ -64,6 +76,17 @@ public class PlayerMovement : MonoBehaviour
         ApplyJumpVelocity();
         ApplyMovement();
         AimTowardsMouse();
+        AnimatorControllers();
+    }
+
+    private void AnimatorControllers()
+    {
+        float xVelocity = Vector3.Dot(movementDirection.normalized, transform.right);
+        float zVelocity = Vector3.Dot(movementDirection.normalized, transform.forward);
+
+        animator.SetFloat("xVelocity", xVelocity, .1f, Time.deltaTime);
+        animator.SetFloat("zVelocity", zVelocity, .1f, Time.deltaTime);
+        animator.SetBool("IsGrounded", characterController.isGrounded);
     }
 
     private void AimTowardsMouse()
@@ -78,13 +101,13 @@ public class PlayerMovement : MonoBehaviour
 
             transform.forward = lookingDirection;
 
-            aim.position = new Vector3 (hitInfo.point.x, hitInfo.point.y, hitInfo.point.z);
+            aim.position = new Vector3(hitInfo.point.x, hitInfo.point.y, hitInfo.point.z);
         }
     }
 
     private void ApplyJumpVelocity()
     {
-        if(justJumped == true)
+        if (justJumped == true)
         {
             verticalVelocity += 5f;
             justJumped = false;
@@ -93,7 +116,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void ApplyMovement()
     {
-        // We times by delta time because update is called every frame. 
+        // We times by delta time because update is called every frame.
         // Delta time is the time between frames which kind of averages it out.
         Vector3 velocity = speedMultiplier * walkSpeed * movementDirection;
         velocity.y = verticalVelocity;
@@ -116,7 +139,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnEnable()
     {
-        controls.Enable();   
+        controls.Enable();
     }
 
     private void OnDisable()
