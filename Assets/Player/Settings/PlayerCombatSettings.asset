@@ -1,0 +1,199 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ed164ea179c9b58eb643e91afc00d34, type: 3}
+  m_Name: PlayerCombatSettings
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatSettings
+  attacks:
+  - stateName: Slash1
+    damage: 12
+    staminaCost: 12
+    hitStart: 0.5
+    hitEnd: 0.66
+    comboWindow: 0.66
+    recoveryEnd: 0.95
+  - stateName: Slash2
+    damage: 20
+    staminaCost: 18
+    hitStart: 0.66
+    hitEnd: 0.92
+    comboWindow: 0.95
+    recoveryEnd: 1.25
+  criticalMultiplier: 1.5
+  comboBufferTime: 0.3
+  attackLunge: 0.5
+  attackTurnWindow: 0.15
+  attackSpeed: 1
+  drawSpeed: 1.3
+  drawGrabTime: 0.45
+  drawDuration: 1.2
+  sheathReleaseTime: 1.03
+  sheathDuration: 1.7
+  dodgeDistance: 3
+  dodgeDuration: 0.85
+  dodgeStaminaCost: 20
+  dodgeInvulnerableStart: 0.07
+  dodgeInvulnerableEnd: 0.43
+  dodgeBufferTime: 0.35
+  dodgeThroughEnemies: 0
+  dodgeTravelCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.071
+      value: 0.079
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.143
+      value: 0.182
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.214
+      value: 0.286
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.286
+      value: 0.39
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.357
+      value: 0.494
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.429
+      value: 0.591
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 0.682
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.571
+      value: 0.772
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.643
+      value: 0.847
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.714
+      value: 0.912
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.786
+      value: 0.958
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.857
+      value: 0.985
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.929
+      value: 0.997
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  blockMoveMultiplier: 0.5
+  blockDamageReduction: 0.8
+  blockStaminaPerDamage: 1
+  blockAngle: 70
+  parryWindow: 0.2
+  parryCooldown: 0.4
+  hitStop: 0.06
+  parryHitStop: 0.12
+  hitShake: 0.08
+  hitStunDuration: 0.45
+  guardBreakDuration: 0.9
+  maxHealth: 100

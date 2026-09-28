@@ -2,60 +2,21 @@ using UnityEngine;
 
 // Angled top-down camera that follows the player, zooms with the scroll wheel
 // and pans toward the pointer when it is pushed against the screen edges.
+// Tuning values live in a PlayerCameraSettings asset.
 [RequireComponent(typeof(Camera))]
 public class PlayerCamera : MonoBehaviour
 {
     private PlayerControls controls;
 
-    [Header("Target Info")]
     [SerializeField]
     private Transform target;
 
-    // Point on the player the camera looks at, relative to their feet.
     [SerializeField]
-    private float targetHeight = 1f;
+    private PlayerCameraSettings settings;
 
-    [SerializeField]
-    private float followSmoothTime = 0.1f;
-
-    [Header("Angle Info")]
-    [SerializeField]
-    [Range(30f, 90f)]
-    private float pitch = 65f;
-
-    [SerializeField]
-    private float yaw = 0f;
-
-    [Header("Zoom Info")]
-    [SerializeField]
-    private float minDistance = 8f;
-
-    [SerializeField]
-    private float maxDistance = 25f;
-
-    [SerializeField]
-    private float startDistance = 15f;
-
-    // Distance changed per scroll notch.
-    [SerializeField]
-    private float zoomStep = 2f;
-
-    [SerializeField]
-    private float zoomSmoothTime = 0.1f;
-
-    [Header("Edge Look Info")]
-    // Width of the edge band as a fraction of the screen (0.1 = outer 10% on each side).
-    [SerializeField]
-    [Range(0.01f, 0.5f)]
-    private float edgeSize = 0.1f;
-
-    // How far (world units) the camera can pan away from the player at full edge push and max zoom.
-    // Scaled down with zoom so the player stays on screen when zoomed in.
-    [SerializeField]
-    private float maxEdgeOffset = 10f;
-
-    [SerializeField]
-    private float edgeSmoothTime = 0.3f;
+    // Turned off by the debug overlay so reaching for its panel doesn't pan the view.
+    [HideInInspector]
+    public bool edgeLookEnabled = true;
 
     private float distance;
     private float targetDistance;
@@ -67,9 +28,28 @@ public class PlayerCamera : MonoBehaviour
     private Vector3 edgeOffset;
     private Vector3 edgeOffsetVelocity;
 
+    private float shakeStrength = 0f;
+    private float shakeDuration = 0f;
+    private float shakeTimeLeft = 0f;
+
+    public PlayerCameraSettings Settings => settings;
+
+    // The zoom distance the camera is easing toward.
+    public float CurrentDistance
+    {
+        get => targetDistance;
+        set => targetDistance = Mathf.Clamp(value, settings.minDistance, settings.maxDistance);
+    }
+
     private void Awake()
     {
         controls = new PlayerControls();
+
+        if (settings == null)
+        {
+            Debug.LogWarning("PlayerCamera has no settings asset assigned, using defaults.", this);
+            settings = ScriptableObject.CreateInstance<PlayerCameraSettings>();
+        }
     }
 
     private void Start()
@@ -83,13 +63,13 @@ public class PlayerCamera : MonoBehaviour
             }
         }
 
-        targetDistance = Mathf.Clamp(startDistance, minDistance, maxDistance);
+        targetDistance = Mathf.Clamp(settings.startDistance, settings.minDistance, settings.maxDistance);
         distance = targetDistance;
 
         // Snap into place on the first frame instead of swooping in.
         if (target != null)
         {
-            focusPoint = target.position + Vector3.up * targetHeight;
+            focusPoint = target.position + Vector3.up * settings.targetHeight;
             ApplyTransform();
         }
     }
@@ -104,8 +84,8 @@ public class PlayerCamera : MonoBehaviour
         UpdateZoom();
         UpdateEdgeOffset();
 
-        Vector3 desiredFocus = target.position + Vector3.up * targetHeight;
-        focusPoint = Vector3.SmoothDamp(focusPoint, desiredFocus, ref focusVelocity, followSmoothTime);
+        Vector3 desiredFocus = target.position + Vector3.up * settings.targetHeight;
+        focusPoint = Vector3.SmoothDamp(focusPoint, desiredFocus, ref focusVelocity, settings.followSmoothTime);
 
         ApplyTransform();
     }
@@ -115,22 +95,23 @@ public class PlayerCamera : MonoBehaviour
         // Input System's scrollDeltaBehavior (UniformAcrossAllPlatforms) makes one notch = 1 on every platform.
         float scroll = controls.Character.Zoom.ReadValue<float>();
 
-        targetDistance = Mathf.Clamp(targetDistance - scroll * zoomStep, minDistance, maxDistance);
-        distance = Mathf.SmoothDamp(distance, targetDistance, ref zoomVelocity, zoomSmoothTime);
+        // Clamped every frame so min/max edits made while playing apply immediately.
+        targetDistance = Mathf.Clamp(targetDistance - scroll * settings.zoomStep, settings.minDistance, settings.maxDistance);
+        distance = Mathf.SmoothDamp(distance, targetDistance, ref zoomVelocity, settings.zoomSmoothTime);
     }
 
     private void UpdateEdgeOffset()
     {
-        Vector2 edgePush = GetEdgePush(controls.Character.Aim.ReadValue<Vector2>());
+        Vector2 edgePush = edgeLookEnabled ? GetEdgePush(controls.Character.Aim.ReadValue<Vector2>()) : Vector2.zero;
 
         // Map the screen direction onto the ground plane using only the camera's yaw.
-        Quaternion flatRotation = Quaternion.Euler(0f, yaw, 0f);
+        Quaternion flatRotation = Quaternion.Euler(0f, settings.yaw, 0f);
         Vector3 right = flatRotation * Vector3.right;
         Vector3 forward = flatRotation * Vector3.forward;
 
-        float offsetDistance = maxEdgeOffset * (distance / maxDistance);
+        float offsetDistance = settings.maxEdgeOffset * (distance / settings.maxDistance);
         Vector3 desiredOffset = (right * edgePush.x + forward * edgePush.y) * offsetDistance;
-        edgeOffset = Vector3.SmoothDamp(edgeOffset, desiredOffset, ref edgeOffsetVelocity, edgeSmoothTime);
+        edgeOffset = Vector3.SmoothDamp(edgeOffset, desiredOffset, ref edgeOffsetVelocity, settings.edgeSmoothTime);
     }
 
     // Returns how hard the pointer is pushed into each screen edge, from -1 to 1 per axis.
@@ -146,7 +127,7 @@ public class PlayerCamera : MonoBehaviour
         float x = pointer.x / Screen.width * 2f - 1f;
         float y = pointer.y / Screen.height * 2f - 1f;
 
-        float edgeStart = 1f - edgeSize * 2f;
+        float edgeStart = 1f - settings.edgeSize * 2f;
         Vector2 push = new Vector2(
             Mathf.Sign(x) * Mathf.InverseLerp(edgeStart, 1f, Mathf.Abs(x)),
             Mathf.Sign(y) * Mathf.InverseLerp(edgeStart, 1f, Mathf.Abs(y)));
@@ -154,18 +135,39 @@ public class PlayerCamera : MonoBehaviour
         return Vector2.ClampMagnitude(push, 1f);
     }
 
-    private void ApplyTransform()
+    // Jolts the camera for impacts. Stronger calls override weaker ones still playing.
+    public void AddShake(float strength, float duration)
     {
-        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
-        Vector3 lookPoint = focusPoint + edgeOffset;
+        float remaining = shakeDuration > 0f ? shakeStrength * (shakeTimeLeft / shakeDuration) : 0f;
+        if (strength < remaining)
+        {
+            return;
+        }
 
-        transform.SetPositionAndRotation(lookPoint - rotation * Vector3.forward * distance, rotation);
+        shakeStrength = strength;
+        shakeDuration = Mathf.Max(duration, 0.01f);
+        shakeTimeLeft = shakeDuration;
     }
 
-    private void OnValidate()
+    private Vector3 GetShakeOffset()
     {
-        maxDistance = Mathf.Max(maxDistance, minDistance);
-        startDistance = Mathf.Clamp(startDistance, minDistance, maxDistance);
+        if (shakeTimeLeft <= 0f)
+        {
+            return Vector3.zero;
+        }
+
+        // Unscaled so the shake still plays during hit-stop.
+        shakeTimeLeft -= Time.unscaledDeltaTime;
+        float falloff = Mathf.Clamp01(shakeTimeLeft / shakeDuration);
+        return Random.insideUnitSphere * (shakeStrength * falloff * falloff);
+    }
+
+    private void ApplyTransform()
+    {
+        Quaternion rotation = Quaternion.Euler(settings.pitch, settings.yaw, 0f);
+        Vector3 lookPoint = focusPoint + edgeOffset;
+
+        transform.SetPositionAndRotation(lookPoint - rotation * Vector3.forward * distance + GetShakeOffset(), rotation);
     }
 
     private void OnEnable()
