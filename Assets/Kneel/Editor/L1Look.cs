@@ -19,7 +19,7 @@ namespace Kneel.EditorTools
             Debug.Log("[L1] " + RebuildRegiments());
         }
 
-        // Kael's army: slate armour, dried-blood red cloth (matches the red standards).
+        // The Vanguard (the player's fallen army): slate armour, dried-blood red cloth (matches the red standards).
         // The enemy: near-black iron and cloth. Red against black reads instantly from above.
         // Team-colour cells are found by diffing Synty's Blue and Orange team textures.
         public static string RebuildRegiments()
@@ -32,7 +32,7 @@ namespace Kneel.EditorTools
             var blackPx = black.GetPixels();
             int teamCells = 0;
 
-            var kael = new Color[bluePx.Length];
+            var vanguard = new Color[bluePx.Length];
             var enemy = new Color[bluePx.Length];
             for (int i = 0; i < bluePx.Length; i++)
             {
@@ -42,23 +42,23 @@ namespace Kneel.EditorTools
                 if (team)
                 {
                     teamCells++;
-                    kael[i] = Color.HSVToRGB(0.995f, 0.62f, Mathf.Lerp(0.2f, 0.36f, v));
+                    vanguard[i] = Color.HSVToRGB(0.995f, 0.62f, Mathf.Lerp(0.2f, 0.36f, v));
                     enemy[i] = Color.HSVToRGB(0.07f, 0.12f, Mathf.Lerp(0.07f, 0.15f, v));
                 }
                 else
                 {
                     bool blood = (h < 0.03f || h > 0.96f) && s > 0.4f;
-                    kael[i] = blood ? Color.HSVToRGB(0.995f, Mathf.Min(s * 0.7f, 0.6f), v * 0.55f) : Color.HSVToRGB(h, s * 0.32f, v * 0.72f);
+                    vanguard[i] = blood ? Color.HSVToRGB(0.995f, Mathf.Min(s * 0.7f, 0.6f), v * 0.55f) : Color.HSVToRGB(h, s * 0.32f, v * 0.72f);
 
                     Color.RGBToHSV(blackPx[i], out float bh, out float bs, out float bv);
                     enemy[i] = Color.HSVToRGB(bh, bs * 0.2f, bv * 0.62f);
                 }
 
-                kael[i].a = 1f;
+                vanguard[i].a = 1f;
                 enemy[i].a = 1f;
             }
 
-            Save(kael, blue.width, blue.height, "L1_Regiment_Kael", "L1_Regiment_Kael", new Color(0.86f, 0.86f, 0.88f));
+            Save(vanguard, blue.width, blue.height, "L1_Regiment_Vanguard", "L1_Regiment_Vanguard", new Color(0.86f, 0.86f, 0.88f));
             Save(enemy, blue.width, blue.height, "L1_Regiment_Enemy", "L1_Regiment_Enemy", Color.white);
             Object.DestroyImmediate(blue);
             Object.DestroyImmediate(orange);
@@ -85,7 +85,75 @@ namespace Kneel.EditorTools
             AssetDatabase.SaveAssets();
         }
 
+        // ---------------------------------------------------------------- Fire lights
+
+        [MenuItem("Kneel/L1/Look/Apply Fire Lights")]
+        public static void ApplyFireLightsMenu()
+        {
+            Debug.Log("[L1] " + ApplyFireLights());
+        }
+
+        // Torch, pylon and campfire strengths (constants in L1Wayfinding) and their flicker clips.
+        // Sun, ambient, fog and grading belong to the lighting pass (Kneel/L1/Lighting/Apply Lighting Pass).
+        public static string ApplyFireLights()
+        {
+            L1Wayfinding.BuildFlickerClip("L1_TorchFlicker", L1Wayfinding.TorchIntensity);
+            L1Wayfinding.BuildFlickerClip("L1_BrazierFlicker", L1Wayfinding.BrazierIntensity);
+            SetPrefabLight("L1_Torch", "FireLight", L1Wayfinding.TorchIntensity, L1Wayfinding.TorchRange);
+            SetPrefabLight("L1_GatePylon", "FireLight", L1Wayfinding.BrazierIntensity, L1Wayfinding.BrazierRange);
+            SetPrefabLight("L1_DyingCampfire", "EmberLight", L1Wayfinding.CampfireIntensity, L1Wayfinding.CampfireRange,
+                L1Wayfinding.BuildFlickerClip("L1_CampfireFlicker", L1Wayfinding.CampfireIntensity));
+            AssetDatabase.SaveAssets();
+            return "Fire lights applied.";
+        }
+
+        private static void SetPrefabLight(string prefab, string lightName, float intensity, float range, AnimationClip flicker = null)
+        {
+            string path = L1Build.PrefabsPath + "/" + prefab + ".prefab";
+            var contents = PrefabUtility.LoadPrefabContents(path);
+            foreach (var light in contents.GetComponentsInChildren<Light>(true))
+            {
+                if (light.name == lightName)
+                {
+                    light.intensity = intensity;
+                    light.range = range;
+                    if (flicker != null)
+                    {
+                        var animation = light.GetComponent<Animation>();
+                        if (animation == null)
+                        {
+                            animation = light.gameObject.AddComponent<Animation>();
+                        }
+
+                        if (animation.GetClip(flicker.name) == null)
+                        {
+                            animation.AddClip(flicker, flicker.name);
+                        }
+
+                        animation.clip = flicker;
+                        animation.playAutomatically = true;
+                        GameObjectUtility.SetStaticEditorFlags(light.gameObject, 0);
+                    }
+                }
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(contents, path);
+            PrefabUtility.UnloadPrefabContents(contents);
+        }
+
+        private static Color Hex(string hex)
+        {
+            return L1Build.Hex(hex);
+        }
+
         // ---------------------------------------------------------------- Ground
+
+        // Set to true to paint wagon ruts down the wide corridors again.
+        private const bool PaintWheelRuts = false;
+
+        // False: encounter spaces are painted exactly like the rest of the battlefield (no clean floor,
+        // no churned rim), so they don't announce themselves.
+        private const bool DistinctArenaFloors = false;
 
         [MenuItem("Kneel/L1/Look/Repaint Ground")]
         public static void RepaintGroundMenu()
@@ -94,7 +162,7 @@ namespace Kneel.EditorTools
         }
 
         // Paints the ground layout texture: trampled path, clean compact arena floors, wet mud patches,
-        // wheel ruts along the corridors, churned mud at arena rims, and dried blood under bodies.
+        // optional wheel ruts along the corridors, churned mud at arena rims, and dried blood under bodies.
         // Alpha carries smoothness (wet mud reads glossy).
         public static string RepaintGround()
         {
@@ -118,7 +186,7 @@ namespace Kneel.EditorTools
 
                     float wWalk = 1f - SmoothStep(-0.8f, 1.6f, sd + (Fbm(wx * 0.4f, z * 0.4f) - 0.5f) * 1.4f);
                     float wArena = 0f, rim = 0f;
-                    foreach (var a in arenas)
+                    foreach (var a in DistinctArenaFloors ? arenas : new List<L1Layout.Circle>())
                     {
                         float d = (p - a.Center).magnitude;
                         wArena = Mathf.Max(wArena, 1f - SmoothStep(a.Radius - 1.8f, a.Radius + 0.3f, d));
@@ -146,7 +214,7 @@ namespace Kneel.EditorTools
             // Wheel ruts: two wobbling wet grooves down each main corridor, fading out before the arenas.
             foreach (var capsule in L1Layout.Capsules)
             {
-                if (capsule.HalfWidth < 4f)
+                if (!PaintWheelRuts || capsule.HalfWidth < 4f)
                 {
                     continue;
                 }
@@ -174,7 +242,7 @@ namespace Kneel.EditorTools
             // Dried blood under the dead (never on arena floors).
             var root = L1LevelTools.Root;
             var stains = new List<Vector3>();
-            foreach (var group in new[] { "SetDressing/Corpses", "SetDressing/Monsters" })
+            foreach (var group in new[] { "SetDressing/Corpses", "SetDressing/Monsters", "SetDressing/Fallen" })
             {
                 var t = root.transform.Find(group);
                 if (t == null)
@@ -207,7 +275,7 @@ namespace Kneel.EditorTools
                 }
 
                 var sp = new Vector2(s.x + (float)(rng.NextDouble() - 0.5) * 1.2f, s.z + (float)(rng.NextDouble() - 0.5) * 1.2f);
-                if (L1Layout.IsInArena(sp, 0.5f))
+                if (DistinctArenaFloors && L1Layout.IsInArena(sp, 0.5f))
                 {
                     continue;
                 }
@@ -231,7 +299,7 @@ namespace Kneel.EditorTools
             File.WriteAllBytes(path, tex.EncodeToPNG());
             Object.DestroyImmediate(tex);
             AssetDatabase.ImportAsset(path);
-            return $"Ground repainted ({painted} blood stains, ruts on {L1Layout.Capsules.Length} corridors).";
+            return $"Ground repainted ({painted} blood stains, wheel ruts {(PaintWheelRuts ? "on" : "off")}).";
         }
 
         private static void Stamp(Color[] pixels, int width, int height, float ppm, Vector2 world, float radius, Color colour, float strength, float smoothness, bool noisyEdge = false)

@@ -79,12 +79,24 @@ namespace Kneel.EditorTools
 
         // Real gameplay camera (Assets/Player/PlayerCamera.cs defaults).
         public const float CameraPitch = 65f;
+        // Set on Main Camera in L1: looking west, so the level runs left to right on screen.
+        public const float CameraYaw = 270f;
         public const float CameraDistance = 15f;
         public const float CameraMinDistance = 8f;
         public const float CameraMaxDistance = 25f;
         public const float CameraTargetHeight = 1f;
         public const float CameraFov = 60f;
         public const float CameraMaxEdgeOffset = 10f;
+
+        // Ground-plane direction the camera looks along (screen up).
+        public static Vector2 CameraForward
+        {
+            get
+            {
+                Vector3 f = Quaternion.Euler(0f, CameraYaw, 0f) * Vector3.forward;
+                return new Vector2(f.x, f.z).normalized;
+            }
+        }
 
         public static IEnumerable<Circle> Arenas
         {
@@ -146,14 +158,15 @@ namespace Kneel.EditorTools
         }
 
         // Tallest a piece may be at p without hiding the player from the gameplay camera.
-        // The camera looks down at CameraPitch from the south, so anything south of walkable ground
-        // must stay under the camera-to-chest line. South edges of arenas are capped harder.
+        // The camera looks down at CameraPitch along CameraForward, so anything on the camera side of
+        // walkable ground must stay under the camera-to-chest line. Camera-side edges of arenas are capped harder.
         public static float MaxPropHeight(Vector2 p)
         {
+            Vector2 forward = CameraForward;
             foreach (var arena in Arenas)
             {
                 Vector2 offset = p - arena.Center;
-                if (offset.magnitude < arena.Radius + 7f && offset.y < -arena.Radius * 0.2f)
+                if (offset.magnitude < arena.Radius + 7f && Vector2.Dot(offset, forward) < -arena.Radius * 0.2f)
                 {
                     return 1.2f;
                 }
@@ -162,7 +175,7 @@ namespace Kneel.EditorTools
             float slope = Mathf.Tan(CameraPitch * Mathf.Deg2Rad);
             for (float d = 0.5f; d <= 14f; d += 0.5f)
             {
-                if (SignedDistance(p + new Vector2(0f, d)) < 0f)
+                if (SignedDistance(p + forward * d) < 0f)
                 {
                     return CameraTargetHeight + slope * d;
                 }
@@ -174,7 +187,7 @@ namespace Kneel.EditorTools
         // Where the gameplay camera sits when framing a focus point.
         public static Pose CameraPose(Vector3 feet, float distance, Vector3 edgeOffset = default)
         {
-            Quaternion rotation = Quaternion.Euler(CameraPitch, 0f, 0f);
+            Quaternion rotation = Quaternion.Euler(CameraPitch, CameraYaw, 0f);
             Vector3 look = feet + Vector3.up * CameraTargetHeight + edgeOffset;
             return new Pose(look - rotation * Vector3.forward * distance, rotation);
         }

@@ -244,7 +244,21 @@ namespace Kneel.EditorTools
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing != null)
             {
-                EditorUtility.CopySerialized(mesh, existing);
+                // Copy through the Mesh API (not CopySerialized) so renderers already showing this mesh re-upload it.
+                existing.Clear();
+                existing.indexFormat = mesh.indexFormat;
+                existing.SetVertices(mesh.vertices);
+                existing.SetNormals(mesh.normals);
+                existing.SetTangents(mesh.tangents);
+                existing.SetUVs(0, mesh.uv);
+                existing.subMeshCount = mesh.subMeshCount;
+                for (int s = 0; s < mesh.subMeshCount; s++)
+                {
+                    existing.SetTriangles(mesh.GetTriangles(s), s);
+                }
+
+                existing.RecalculateBounds();
+                EditorUtility.SetDirty(existing);
                 Object.DestroyImmediate(mesh);
                 return existing;
             }
@@ -259,6 +273,12 @@ namespace Kneel.EditorTools
             if (!AssetDatabase.IsValidFolder(dir))
             {
                 AssetDatabase.CreateFolder(L1Build.PrefabsPath, folder);
+            }
+
+            // A part group can come out empty (an unpinned crawler has no weapons): one material per submesh.
+            if (materials.Length > mesh.subMeshCount)
+            {
+                System.Array.Resize(ref materials, mesh.subMeshCount);
             }
 
             var go = new GameObject(name);
@@ -286,7 +306,7 @@ namespace Kneel.EditorTools
         [MenuItem("Kneel/L1/Bake/Soldier Corpses")]
         public static void BakeCorpses()
         {
-            var kael = L1Build.Mat("L1_Regiment_Kael");
+            var vanguard = L1Build.Mat("L1_Regiment_Vanguard");
             var enemy = L1Build.Mat("L1_Regiment_Enemy");
             foreach (var body in new[] { "Soldier_01", "Soldier_02", "Knight_02" })
             {
@@ -297,7 +317,7 @@ namespace Kneel.EditorTools
                     var mesh = Assemble(new List<Part> { new Part { Mesh = standing, Matrix = Matrix4x4.identity, Group = 0 } }, 1, Poses[pose].lie, 0.04f);
                     Object.DestroyImmediate(standing);
                     mesh = SaveMesh(mesh, "Corpses", "L1_Corpse_" + body + "_" + pose);
-                    SaveStaticPrefab("Corpses", "L1_Corpse_Kael_" + body + "_" + pose, mesh, new[] { kael }, false);
+                    SaveStaticPrefab("Corpses", "L1_Corpse_Vanguard_" + body + "_" + pose, mesh, new[] { vanguard }, false);
                     SaveStaticPrefab("Corpses", "L1_Corpse_Enemy_" + body + "_" + pose, mesh, new[] { enemy }, false);
                 }
             }
@@ -323,10 +343,10 @@ namespace Kneel.EditorTools
         public static string BakeMonsters()
         {
             string knightTexture = CharacterTexture(KnightsCharacters + "Character_Knight_02_Black.prefab", "Character_Knight_02");
-            string warriorTexture = CharacterTexture(AdventureCharacters + "Character_Warrior_Brown.prefab", "Character_Warrior");
+            string peasantTexture = CharacterTexture(AdventureCharacters + "Character_Peasant_Brown.prefab", "Character_Peasant");
             var thrallMat = MonsterMaterial("L1_Monster_Thrall", knightTexture, 0.03f, 0.35f, 0.5f, L1Build.Hex("#3B1D18"));
-            var crawlerMat = MonsterMaterial("L1_Monster_Crawler", warriorTexture, 0.2f, 0.14f, 0.72f, L1Build.Hex("#4A1F1A"));
-            var kael = L1Build.Mat("L1_Regiment_Kael");
+            var crawlerMat = CrawlerSkinMaterial(peasantTexture);
+            var vanguard = L1Build.Mat("L1_Regiment_Vanguard");
             var weapons = L1Build.Mat("L1_Knights_Ash");
             var bone = L1Build.Mat("L1_Adventure_Ash");
             int made = 0;
@@ -334,7 +354,7 @@ namespace Kneel.EditorTools
             foreach (var carcass in CarcassPoses)
             {
                 var thrall = BuildThrall(carcass.pose == "OnSide" ? "OnSide" : carcass.pose, carcass.pinned);
-                SaveStaticPrefab("Monsters", "L1_Monster_Thrall_" + carcass.name, SaveMesh(thrall, "Monsters", "L1_Monster_Thrall_" + carcass.name), new[] { thrallMat, kael, weapons }, true);
+                SaveStaticPrefab("Monsters", "L1_Monster_Thrall_" + carcass.name, SaveMesh(thrall, "Monsters", "L1_Monster_Thrall_" + carcass.name), new[] { thrallMat, vanguard, weapons }, true);
 
                 var crawler = BuildCrawler(carcass.pose == "FaceDown_B" ? "Crawl" : carcass.pose, carcass.pinned);
                 SaveStaticPrefab("Monsters", "L1_Monster_Crawler_" + carcass.name, SaveMesh(crawler, "Monsters", "L1_Monster_Crawler_" + carcass.name), new[] { crawlerMat, bone, weapons }, false);
@@ -347,7 +367,7 @@ namespace Kneel.EditorTools
             return $"Baked {made} monster carcasses and the fallen giant.";
         }
 
-        // Ashbound Thrall: a grafted hulk. Swollen chest and arms, shrunken head, two of Kael's
+        // Ashbound Thrall: a grafted hulk. Swollen chest and arms, shrunken head, two Vanguard
         // soldiers grafted out of its back, blades driven into it.
         private static Mesh BuildThrall(string pose, bool pinned)
         {
@@ -411,52 +431,81 @@ namespace Kneel.EditorTools
             return result;
         }
 
-        // Carrion Crawler: an emaciated, stretched ghoul with long clawed limbs and bone spikes down its spine.
+        // Carrion Crawler: a hunched, starved ghoul. Small head sunk between swollen shoulders, a pinched
+        // waist, long arms ending in bone talons, and a ridge of bone spikes bursting from the upper back.
         private static Mesh BuildCrawler(string pose, bool pinned)
         {
             var proportions = new Proportions
             {
-                ["Spine_01"] = new Vector2(1.2f, 0.72f), ["Spine_02"] = new Vector2(1.2f, 0.7f), ["Spine_03"] = new Vector2(1.15f, 0.78f),
-                ["Clavicle_L"] = new Vector2(1.1f, 0.8f), ["Clavicle_R"] = new Vector2(1.1f, 0.8f),
-                ["Shoulder_L"] = new Vector2(1.65f, 0.7f), ["Shoulder_R"] = new Vector2(1.65f, 0.7f),
-                ["Elbow_L"] = new Vector2(1.7f, 0.65f), ["Elbow_R"] = new Vector2(1.7f, 0.65f),
-                ["Hand_L"] = new Vector2(1.9f, 1.25f), ["Hand_R"] = new Vector2(1.9f, 1.25f),
-                ["Neck"] = new Vector2(2f, 0.7f), ["Head"] = new Vector2(0.85f, 0.8f),
-                ["UpperLeg_L"] = new Vector2(1.3f, 0.7f), ["UpperLeg_R"] = new Vector2(1.3f, 0.7f),
-                ["LowerLeg_L"] = new Vector2(1.35f, 0.65f), ["LowerLeg_R"] = new Vector2(1.35f, 0.65f),
+                ["Hips"] = new Vector2(1f, 0.72f),
+                ["Spine_01"] = new Vector2(1f, 0.9f), ["Spine_02"] = new Vector2(1.1f, 1.5f), ["Spine_03"] = new Vector2(1.15f, 1.9f),
+                ["Clavicle_L"] = new Vector2(1.3f, 1.7f), ["Clavicle_R"] = new Vector2(1.3f, 1.7f),
+                ["Shoulder_L"] = new Vector2(1.35f, 1.8f), ["Shoulder_R"] = new Vector2(1.35f, 1.8f),
+                ["Elbow_L"] = new Vector2(1.45f, 2f), ["Elbow_R"] = new Vector2(1.45f, 2f),
+                ["Hand_L"] = new Vector2(1.5f, 1.9f), ["Hand_R"] = new Vector2(1.5f, 1.9f),
+                ["Neck"] = new Vector2(0.5f, 1.4f), ["Head"] = new Vector2(0.75f, 0.78f),
+                ["UpperLeg_L"] = new Vector2(0.95f, 1.3f), ["UpperLeg_R"] = new Vector2(0.95f, 1.3f),
+                ["LowerLeg_L"] = new Vector2(1.05f, 1.2f), ["LowerLeg_R"] = new Vector2(1.05f, 1.2f),
             };
 
-            var body = BakeStanding(AdventureCharacters + "Character_Warrior_Brown.prefab", "Character_Warrior", Poses[pose].pose, proportions, out var rig);
-            var parts = new List<Part> { new Part { Mesh = body, Matrix = Matrix4x4.identity, Group = 0 } };
+            const float scale = 1.25f;
+            var body = BakeStanding(AdventureCharacters + "Character_Peasant_Brown.prefab", "Character_Peasant", Poses[pose].pose, proportions, out var rig);
+            var parts = new List<Part> { new Part { Mesh = body, Matrix = Matrix4x4.Scale(Vector3.one * scale), Group = 0 } };
             var root = rig.transform;
-            var spine = new List<Vector3>();
-            foreach (var name in new[] { "Spine_01", "Spine_02", "Spine_03", "Neck" })
-            {
-                spine.Add(Find(root, name).position);
-            }
-
+            Vector3 P(string bone) => Find(root, bone).position * scale;
+            Vector3 lowerBack = P("Spine_01"), midBack = P("Spine_02"), upperBack = P("Spine_03");
             Vector3 right = Vector3.right * Mathf.Sign(Find(root, "Shoulder_L").position.x);
+            var arms = new[] { (P("Elbow_L"), P("Hand_L")), (P("Elbow_R"), P("Hand_R")) };
+            var shoulders = new[] { P("Shoulder_L"), P("Shoulder_R") };
             Object.DestroyImmediate(rig);
 
-            // Bone spikes erupting along the spine.
             var spike = PropMesh("A/Environments/SM_Env_Stalagmite_01", out var spikeLocal);
             float spikeHeight = Mathf.Max(0.01f, spike.bounds.size.y);
-            var rng = new System.Random(pose.GetHashCode());
-            for (int i = 0; i < spine.Count; i++)
+            Matrix4x4 Spike(Vector3 at, Vector3 dir, float length, float girth)
             {
-                for (int k = 0; k < 2; k++)
+                float s = length / spikeHeight;
+                return Matrix4x4.TRS(at, Quaternion.FromToRotation(Vector3.up, dir.normalized), new Vector3(s * girth, s, s * girth)) * spikeLocal;
+            }
+
+            // Spine ridge: big curved spikes on the hunch, smaller toward the waist, raking backwards.
+            var rng = new System.Random(pose.GetHashCode());
+            for (int i = 0; i < 5; i++)
+            {
+                float t = i / 4f;
+                Vector3 at = Vector3.Lerp(upperBack, lowerBack, t) + Vector3.back * 0.12f;
+                float side = i % 2 == 0 ? -1f : 1f;
+                Vector3 dir = Vector3.back + Vector3.down * (0.15f + 0.5f * t) + right * side * 0.18f;
+                float length = Mathf.Lerp(0.85f, 0.4f, t) + (float)rng.NextDouble() * 0.12f;
+                parts.Add(new Part { Mesh = spike, Matrix = Spike(at, dir, length, 0.42f), Group = 1 });
+            }
+
+            // Bone spurs through the shoulders.
+            for (int k = 0; k < 2; k++)
+            {
+                Vector3 outward = (shoulders[k] - midBack).normalized;
+                parts.Add(new Part { Mesh = spike, Matrix = Spike(shoulders[k] + Vector3.back * 0.06f, outward * 0.6f + Vector3.back + Vector3.up * 0.4f, 0.5f, 0.4f), Group = 1 });
+            }
+
+            // Three talons per hand, fanned along the forearm.
+            foreach (var (elbow, hand) in arms)
+            {
+                Vector3 along = (hand - elbow).normalized;
+                Vector3 side = Vector3.Cross(along, Vector3.back).normalized;
+                if (side.sqrMagnitude < 0.01f)
                 {
-                    float length = 0.28f + (float)rng.NextDouble() * 0.25f;
-                    float s = length / spikeHeight;
-                    Vector3 dir = (Vector3.back + Vector3.up * 0.35f * (k == 0 ? 1f : -0.2f) + right * (k == 0 ? -0.25f : 0.25f)).normalized;
-                    Vector3 at = spine[i] + Vector3.back * 0.1f + right * (k == 0 ? -0.05f : 0.05f);
-                    parts.Add(new Part { Mesh = spike, Matrix = Matrix4x4.TRS(at, Quaternion.FromToRotation(Vector3.up, dir), new Vector3(s * 0.45f, s, s * 0.45f)) * spikeLocal, Group = 1 });
+                    side = right;
+                }
+
+                for (int c = -1; c <= 1; c++)
+                {
+                    Vector3 dir = along + side * c * 0.28f + Vector3.forward * 0.1f;
+                    parts.Add(new Part { Mesh = spike, Matrix = Spike(hand + along * 0.06f + side * c * 0.045f, dir, 0.45f, 0.25f), Group = 1 });
                 }
             }
 
             if (pinned)
             {
-                AddPinningSpears(parts, spine[0], spine[2], right, 2);
+                AddPinningSpears(parts, lowerBack, upperBack, right, 2);
             }
 
             var result = Assemble(parts, 3, Poses[pose].lie, 0.04f);
@@ -519,6 +568,31 @@ namespace Kneel.EditorTools
         // Recolours a Synty character texture (hue, saturation, value) and adds a faint ember-crack emission.
         private static Material MonsterMaterial(string name, string sourceTexture, float hue, float saturation, float value, Color flesh)
         {
+            return MonsterMaterial(name, sourceTexture, (px, u, v) =>
+            {
+                Color.RGBToHSV(px, out float h, out float s, out float val);
+                bool warm = (h < 0.1f || h > 0.92f) && s > 0.25f;   // skin and cloth cells become raw flesh
+                // Cap non-flesh brightness so pale trims (cloth bands, bone) never pop against the ash palette.
+                return warm ? flesh * Mathf.Lerp(0.8f, 1.2f, val) : Color.HSVToRGB(hue, saturation, Mathf.Min(val * value, 0.4f));
+            });
+        }
+
+        // Crawler: every cell becomes skin (no clothing reads), ashen grey-brown with raw red flayed patches.
+        private static Material CrawlerSkinMaterial(string sourceTexture)
+        {
+            Color ash = L1Build.Hex("#35302E"), raw = L1Build.Hex("#5C1E1A"), dark = L1Build.Hex("#161212");
+            return MonsterMaterial("L1_Monster_Crawler", sourceTexture, (px, u, v) =>
+            {
+                Color.RGBToHSV(px, out _, out _, out float val);
+                float flayed = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.42f, 0.62f, Mathf.PerlinNoise(u * 48f + 3f, v * 48f + 11f)));
+                var c = Color.Lerp(ash, raw, flayed);
+                // Keep a little of the source shading so the palette cells still separate the forms.
+                return Color.Lerp(dark, c, Mathf.Lerp(0.65f, 1.05f, val));
+            });
+        }
+
+        private static Material MonsterMaterial(string name, string sourceTexture, System.Func<Color, float, float, Color> recolour)
+        {
             string texPath = L1Build.MaterialsPath + "/Monsters/" + name + ".png";
             string emitPath = L1Build.MaterialsPath + "/Monsters/" + name + "_Embers.png";
             if (!AssetDatabase.IsValidFolder(L1Build.MaterialsPath + "/Monsters"))
@@ -533,14 +607,11 @@ namespace Kneel.EditorTools
             int w = src.width;
             for (int i = 0; i < px.Length; i++)
             {
-                Color.RGBToHSV(px[i], out float h, out float s, out float v);
-                bool warm = (h < 0.1f || h > 0.92f) && s > 0.25f;   // skin and cloth cells become raw flesh
-                // Cap non-flesh brightness so pale trims (cloth bands, bone) never pop against the ash palette.
-                var c = warm ? flesh * Mathf.Lerp(0.8f, 1.2f, v) : Color.HSVToRGB(hue, saturation, Mathf.Min(v * value, 0.4f));
+                float x = (i % w) / (float)w, y = (i / w) / (float)w;
+                var c = recolour(px[i], x, y);
                 c.a = 1f;
                 px[i] = c;
 
-                float x = (i % w) / (float)w, y = (i / w) / (float)w;
                 float ridge = Mathf.Abs(Mathf.PerlinNoise(x * 14f, y * 14f) - 0.5f);
                 float crack = Mathf.Clamp01(1f - ridge / 0.025f) * (Mathf.PerlinNoise(x * 3f + 9f, y * 3f + 4f) > 0.5f ? 1f : 0f);
                 emit[i] = new Color(crack, crack * 0.35f, crack * 0.08f, 1f);

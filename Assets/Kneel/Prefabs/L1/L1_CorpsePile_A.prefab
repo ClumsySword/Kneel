@@ -161,7 +161,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5184287557317205508, guid: d4d444c5ee7b1294bb3c8a3950282ae3, type: 3}
       propertyPath: m_Name
-      value: L1_Corpse_Kael_Soldier_02_OnSide
+      value: L1_Corpse_Vanguard_Soldier_02_OnSide
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -285,7 +285,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3050706650978339698, guid: b06ca5e759a2de541abca9c7baa33228, type: 3}
       propertyPath: m_Name
-      value: L1_Corpse_Kael_Knight_02_OnBack
+      value: L1_Corpse_Vanguard_Knight_02_OnBack
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -449,7 +449,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2459634640266214243, guid: 18ceb536b2f88c944953dfa92b22041d, type: 3}
       propertyPath: m_Name
-      value: L1_Corpse_Kael_Soldier_01_FaceDown_A
+      value: L1_Corpse_Vanguard_Soldier_01_FaceDown_A
       objectReference: {fileID: 0}
     - target: {fileID: 3691699982787384118, guid: 18ceb536b2f88c944953dfa92b22041d, type: 3}
       propertyPath: m_LocalPosition.x

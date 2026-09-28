@@ -123,7 +123,7 @@ namespace Kneel.EditorTools
             var root = RequireRoot();
             int stripped = 0, lods = 0;
 
-            foreach (var path in new[] { "Boundary/Wreckage_Band", "Boundary/Wreckage_Outer", "Boundary/Silhouettes", "SetDressing/DeadTrees" })
+            foreach (var path in new[] { "Boundary/Wreckage_Band", "Boundary/Wreckage_Outer", "Boundary/Silhouettes", "Boundary/NaturalFringe", "SetDressing/DeadTrees", "SetDressing/PathTrees" })
             {
                 var group = root.transform.Find(path);
                 if (group == null)
@@ -148,7 +148,7 @@ namespace Kneel.EditorTools
                 }
             }
 
-            foreach (var path in new[] { "SetDressing/Corpses", "SetDressing/Debris", "SetDressing/Monsters", "SetDressing/Standards" })
+            foreach (var path in new[] { "SetDressing/Corpses", "SetDressing/Debris", "SetDressing/Monsters", "SetDressing/Standards", "SetDressing/Fallen", "SetDressing/DroppedArms", "SetDressing/GroundCover", "SetDressing/Grass" })
             {
                 var group = root.transform.Find(path);
                 if (group == null)
@@ -260,11 +260,13 @@ namespace Kneel.EditorTools
 
             report.Append(". ");
 
-            // 2. Arena floors: NavMesh coverage, no props, no fog, no warm lights.
+            // 2. Arena floors: NavMesh coverage, no blocking props (flat dressing is fine), no fog, no warm lights.
+            // Solid geometry only: particles, the ground and lighting effects (light-shaft and glow cards) never occlude.
             var renderers = new List<Renderer>();
+            var lighting = root.transform.Find("_Lighting");
             foreach (var r in root.GetComponentsInChildren<Renderer>())
             {
-                if (!(r is ParticleSystemRenderer) && !r.name.StartsWith("L1_Ground"))
+                if (!(r is ParticleSystemRenderer) && !r.name.StartsWith("L1_Ground") && (lighting == null || !r.transform.IsChildOf(lighting)))
                 {
                     renderers.Add(r);
                 }
@@ -294,7 +296,7 @@ namespace Kneel.EditorTools
                 foreach (var rend in renderers)
                 {
                     var c = rend.bounds.center;
-                    if ((new Vector2(c.x, c.z) - arena.Center).magnitude < arena.Radius - 2.5f)
+                    if ((new Vector2(c.x, c.z) - arena.Center).magnitude < arena.Radius - 2.5f && Blocks(rend))
                     {
                         props++;
                     }
@@ -345,7 +347,7 @@ namespace Kneel.EditorTools
 
                 foreach (float distance in new[] { L1Layout.CameraMinDistance, L1Layout.CameraDistance, L1Layout.CameraMaxDistance })
                 {
-                    foreach (var pan in new[] { Vector3.zero, new Vector3(0f, 0f, 1f), new Vector3(1f, 0f, 0f), new Vector3(-1f, 0f, 0f) })
+                    foreach (var pan in EdgePans())
                     {
                         Vector3 edge = pan * L1Layout.CameraMaxEdgeOffset * (distance / L1Layout.CameraMaxDistance);
                         foreach (var spot in spots)
@@ -384,6 +386,37 @@ namespace Kneel.EditorTools
                 }
             }
 
+            // Corridors too: the player walking down the middle of every path, at default and max zoom.
+            foreach (var capsule in L1Layout.Capsules)
+            {
+                float length = (capsule.B - capsule.A).magnitude;
+                for (float t = 0f; t <= length; t += 3f)
+                {
+                    Vector2 c = Vector2.Lerp(capsule.A, capsule.B, t / length);
+                    var spot = new Vector3(c.x, 0f, c.y);
+                    if (Physics.Raycast(spot + Vector3.up * 20f, Vector3.down, out var hit, 40f, 1 << LayerMask.NameToLayer("Ground")))
+                    {
+                        spot = hit.point;
+                    }
+
+                    foreach (float distance in new[] { L1Layout.CameraDistance, L1Layout.CameraMaxDistance })
+                    {
+                        var cam = L1Layout.CameraPose(spot, distance).position;
+                        tests++;
+                        string blocker = FirstOccluder(renderers, cam, spot + Vector3.up * 1.2f);
+                        if (blocker == null)
+                        {
+                            clear++;
+                        }
+                        else
+                        {
+                            string key = $"Path({c.x:F0},{c.y:F0}):{blocker}";
+                            blockers[key] = blockers.TryGetValue(key, out var n) ? n + 1 : 1;
+                        }
+                    }
+                }
+            }
+
             report.Append($"Readability {clear}/{tests} sight-lines clear");
             if (blockers.Count > 0)
             {
@@ -399,10 +432,11 @@ namespace Kneel.EditorTools
             report.Append(". ");
 
             // 5. No walkable point touched by more than the URP per-object light limit.
+            // Point and spot lights on the Default rendering layer (the character fill only lights characters).
             var pointLights = new List<Light>();
             foreach (var light in root.GetComponentsInChildren<Light>())
             {
-                if (light.type == LightType.Point && light.enabled && light.gameObject.activeInHierarchy)
+                if ((light.type == LightType.Point || light.type == LightType.Spot) && light.enabled && light.gameObject.activeInHierarchy && (light.renderingLayerMask & 1) != 0)
                 {
                     pointLights.Add(light);
                 }
@@ -423,8 +457,8 @@ namespace Kneel.EditorTools
                     int count = 0;
                     foreach (var light in pointLights)
                     {
-                        // A 1 m object at p is lit if the light's range reaches its bounds.
-                        if (Vector3.Distance(light.transform.position, new Vector3(x, 0.9f, z)) < light.range + 0.9f)
+                        // A 1 m object at p is lit if the light's range (and a spot's cone) reaches its bounds.
+                        if (Reaches(light, new Vector3(x, 0.9f, z), 0.9f))
                         {
                             count++;
                         }
@@ -438,8 +472,56 @@ namespace Kneel.EditorTools
                 }
             }
 
-            report.Append($"Max point lights on one spot: {worstLights} (limit {MaxLightsPerObject}) at {worstAt}.");
+            // Forward+ has no per-object light limit; the count only matters on the Forward path.
+            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            bool forwardPlus = pipeline != null && pipeline.rendererDataList.Length > 0 && pipeline.rendererDataList[0] is UnityEngine.Rendering.Universal.UniversalRendererData data
+                && data.renderingMode == UnityEngine.Rendering.Universal.RenderingMode.ForwardPlus;
+            report.Append($"Max point/spot lights on one spot: {worstLights} at {worstAt} ({(forwardPlus ? "Forward+, no per-object limit" : "limit " + MaxLightsPerObject)}).");
             return report.ToString();
+        }
+
+        // Something that gets in the way of a fight: it has a solid collider, or stands above knee height.
+        private static bool Blocks(Renderer rend)
+        {
+            if (rend.bounds.max.y - rend.bounds.min.y > 0.9f && rend.bounds.max.y > 0.9f)
+            {
+                return true;
+            }
+
+            foreach (var col in rend.GetComponentsInParent<Collider>())
+            {
+                if (col.enabled && !col.isTrigger)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool Reaches(Light light, Vector3 p, float radius)
+        {
+            Vector3 d = p - light.transform.position;
+            if (d.magnitude > light.range + radius)
+            {
+                return false;
+            }
+
+            if (light.type != LightType.Spot || d.magnitude < radius)
+            {
+                return true;
+            }
+
+            float angle = Vector3.Angle(light.transform.forward, d);
+            float slack = Mathf.Asin(Mathf.Clamp01(radius / d.magnitude)) * Mathf.Rad2Deg;
+            return angle <= light.spotAngle * 0.5f + slack;
+        }
+
+        // No pan, then full push to the top, right and left screen edges, in world space for the camera's yaw.
+        private static Vector3[] EdgePans()
+        {
+            var yaw = Quaternion.Euler(0f, L1Layout.CameraYaw, 0f);
+            return new[] { Vector3.zero, yaw * Vector3.forward, yaw * Vector3.right, yaw * Vector3.left };
         }
 
         private static string FirstOccluder(List<Renderer> renderers, Vector3 from, Vector3 to)

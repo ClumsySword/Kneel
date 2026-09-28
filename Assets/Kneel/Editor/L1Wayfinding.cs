@@ -13,6 +13,14 @@ namespace Kneel.EditorTools
         private const string AnimationsPath = "Assets/Kneel/Animations/L1";
         private static readonly Color TorchColor = L1Build.Hex("#FF8A3A");
 
+        // Fire light strengths, tuned for the dark mood (L1Look.ApplyDarkMood): the fires carry the scene.
+        public const float TorchIntensity = 4f;
+        public const float TorchRange = 6.5f;
+        public const float BrazierIntensity = 5.5f;
+        public const float BrazierRange = 8f;
+        public const float CampfireIntensity = 4f;
+        public const float CampfireRange = 6f;
+
         [MenuItem("Kneel/L1/Wayfinding/Rebuild All")]
         public static void RebuildAllMenu()
         {
@@ -39,13 +47,13 @@ namespace Kneel.EditorTools
                 AssetDatabase.CreateFolder("Assets/Kneel/Animations", "L1");
             }
 
-            var flicker = BuildFlickerClip("L1_TorchFlicker", 1.8f);
-            var braziers = BuildFlickerClip("L1_BrazierFlicker", 2.6f);
+            var flicker = BuildFlickerClip("L1_TorchFlicker", TorchIntensity);
+            var braziers = BuildFlickerClip("L1_BrazierFlicker", BrazierIntensity);
 
             // Battlefield torch: a stake with a burning head.
             var torch = new GameObject("L1_Torch");
             L1Build.Spawn("K/Props/SM_Prop_Beam_01", torch.transform, Vector3.zero, new Vector3(3f, 0f, -2f), 1f, "Stake").transform.localScale = new Vector3(1.1f, 0.95f, 1.1f);
-            BuildFlame(torch.transform, new Vector3(0.06f, 2.36f, -0.05f), 0.8f, 1.8f, 4.5f, flicker);
+            BuildFlame(torch.transform, new Vector3(0.06f, 2.36f, -0.05f), 0.8f, TorchIntensity, TorchRange, flicker);
             L1Build.SetStatic(torch, L1Build.PropStatic);
             L1Build.SavePrefab(torch, L1Build.PrefabsPath + "/L1_Torch.prefab");
 
@@ -59,7 +67,7 @@ namespace Kneel.EditorTools
             L1Build.Spawn("K/Props/SM_Prop_Beam_01", lean, new Vector3(0f, 0f, -0.2f), new Vector3(2f, 40f, 0f)).transform.localScale = new Vector3(1.7f, 1.6f, 1.7f);
             L1Build.Spawn("K/Props/SM_Prop_Brazier_01", lean, new Vector3(0f, 3.25f, 0f), Vector3.zero, 0.45f, "FireBasket");
             L1Build.Spawn("K/Props/SM_Prop_Banner_02", lean, new Vector3(0.32f, 3.2f, 0f), new Vector3(0f, 90f, 0f), 0.8f, "Rag");
-            BuildFlame(lean, new Vector3(0f, 4.02f, 0f), 1.1f, 2.6f, 6f, braziers);
+            BuildFlame(lean, new Vector3(0f, 4.02f, 0f), 1.1f, BrazierIntensity, BrazierRange, braziers);
             L1Build.SetStatic(pylon, L1Build.EnvironmentStatic);
             L1Build.SavePrefab(pylon, L1Build.PrefabsPath + "/L1_GatePylon.prefab");
 
@@ -80,7 +88,7 @@ namespace Kneel.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        private static AnimationClip BuildFlickerClip(string name, float baseIntensity)
+        internal static AnimationClip BuildFlickerClip(string name, float baseIntensity)
         {
             var rng = new System.Random(name.GetHashCode());
             var curve = new AnimationCurve();

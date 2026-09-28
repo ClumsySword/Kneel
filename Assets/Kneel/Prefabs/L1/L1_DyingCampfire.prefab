@@ -2344,6 +2344,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2016946250428893943}
   - component: {fileID: 8024786227527102286}
+  - component: {fileID: 6006361586816796136}
   m_Layer: 0
   m_Name: EmberLight
   m_TagString: Untagged
@@ -2377,8 +2378,8 @@ Light:
   serializedVersion: 13
   m_Type: 2
   m_Color: {r: 1, g: 0.41568628, b: 0.16470589, a: 1}
-  m_Intensity: 0.7
-  m_Range: 3.2
+  m_Intensity: 4
+  m_Range: 6
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -2431,6 +2432,23 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!111 &6006361586816796136
+Animation:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6026361407118069206}
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Animation: {fileID: 7400000, guid: dac5084d194408743aec3accdbccf40a, type: 2}
+  m_Animations:
+  - {fileID: 7400000, guid: dac5084d194408743aec3accdbccf40a, type: 2}
+  m_WrapMode: 0
+  m_PlayAutomatically: 1
+  m_AnimatePhysics: 0
+  m_UpdateMode: 0
+  m_CullingType: 0
 --- !u!1 &6526211647022943122
 GameObject:
   m_ObjectHideFlags: 0
