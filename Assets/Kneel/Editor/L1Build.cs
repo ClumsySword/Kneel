@@ -18,10 +18,11 @@ namespace Kneel.EditorTools
             StaticEditorFlags.ContributeGI | StaticEditorFlags.OccludeeStatic |
             StaticEditorFlags.BatchingStatic | StaticEditorFlags.ReflectionProbeStatic;
 
-        // "K/Props/SM_Prop_Beam_01" -> PolygonKnights, "A/..." -> PolygonAdventure, "L1_..." -> our prefabs.
+        // "K/Props/SM_Prop_Beam_01" -> PolygonKnights, "A/..." -> PolygonAdventure,
+        // "L1_..." / "Monsters/L1_..." / "Corpses/L1_..." -> our prefabs.
         public static string PrefabPath(string key)
         {
-            if (key.StartsWith("L1_"))
+            if (IsOwn(key))
             {
                 return PrefabsPath + "/" + key + ".prefab";
             }
@@ -58,12 +59,17 @@ namespace Kneel.EditorTools
                 go.name = name;
             }
 
-            if (!key.StartsWith("L1_"))
+            if (!IsOwn(key))
             {
                 ApplyAshMaterials(go, key.Contains("Banner") || key.Contains("Tent_"));
             }
 
             return go;
+        }
+
+        private static bool IsOwn(string key)
+        {
+            return key.StartsWith("L1_") || key.StartsWith("Monsters/") || key.StartsWith("Corpses/");
         }
 
         public static void ApplyAshMaterials(GameObject go, bool cloth)

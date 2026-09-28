@@ -108,6 +108,78 @@ namespace Kneel.EditorTools
             return $"Snapped {moved} dressing objects to the ground.";
         }
 
+        // ---------------------------------------------------------------- Optimisation
+
+        [MenuItem("Kneel/L1/Optimize Dressing")]
+        public static void OptimizeMenu()
+        {
+            Debug.Log("[L1] " + Optimize());
+        }
+
+        // Strips colliders from dressing the player can never reach (the invisible boundary walls
+        // already contain them), and gives small pieces a culling LOD so they drop out at distance.
+        public static string Optimize()
+        {
+            var root = RequireRoot();
+            int stripped = 0, lods = 0;
+
+            foreach (var path in new[] { "Boundary/Wreckage_Band", "Boundary/Wreckage_Outer", "Boundary/Silhouettes", "SetDressing/DeadTrees" })
+            {
+                var group = root.transform.Find(path);
+                if (group == null)
+                {
+                    continue;
+                }
+
+                foreach (var collider in group.GetComponentsInChildren<Collider>(true))
+                {
+                    var b = collider.bounds;
+                    float nearest = float.MaxValue;
+                    foreach (var corner in new[] { b.center, new Vector3(b.min.x, 0f, b.min.z), new Vector3(b.min.x, 0f, b.max.z), new Vector3(b.max.x, 0f, b.min.z), new Vector3(b.max.x, 0f, b.max.z) })
+                    {
+                        nearest = Mathf.Min(nearest, L1Layout.SignedDistance(corner));
+                    }
+
+                    if (nearest > 1.5f)
+                    {
+                        Object.DestroyImmediate(collider);
+                        stripped++;
+                    }
+                }
+            }
+
+            foreach (var path in new[] { "SetDressing/Corpses", "SetDressing/Debris", "SetDressing/Monsters", "SetDressing/Standards" })
+            {
+                var group = root.transform.Find(path);
+                if (group == null)
+                {
+                    continue;
+                }
+
+                foreach (Transform piece in group)
+                {
+                    var renderers = piece.GetComponentsInChildren<Renderer>(true);
+                    if (renderers.Length == 0 || piece.GetComponentInChildren<Animation>() != null)
+                    {
+                        continue;
+                    }
+
+                    var lod = piece.GetComponent<LODGroup>();
+                    if (lod == null)
+                    {
+                        lod = piece.gameObject.AddComponent<LODGroup>();
+                    }
+
+                    lod.SetLODs(new[] { new LOD(0.012f, renderers) });
+                    lod.RecalculateBounds();
+                    lods++;
+                }
+            }
+
+            EditorSceneManager.MarkSceneDirty(root.scene);
+            return $"Optimized: {stripped} unreachable colliders removed, {lods} culling LOD groups.";
+        }
+
         // ---------------------------------------------------------------- NavMesh + validation
 
         [MenuItem("Kneel/L1/Rebake NavMesh + Validate")]
