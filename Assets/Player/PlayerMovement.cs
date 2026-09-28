@@ -122,8 +122,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        // Rebuild the direction every frame from the latest input.
-        movementDirection = Vector3.ClampMagnitude(new Vector3(moveInput.x, 0f, moveInput.y), 1f);
+        // Rebuild the direction every frame from the latest input, relative to the camera's facing.
+        Quaternion cameraYaw = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
+        movementDirection = Vector3.ClampMagnitude(cameraYaw * new Vector3(moveInput.x, 0f, moveInput.y), 1f);
 
         AimTowardsMouse();
         UpdateSprintState();

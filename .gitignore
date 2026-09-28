@@ -112,3 +112,11 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Local review captures (not project assets)
+/Screenshots/
+
+# Local Claude Code npm install
+/node_modules/
+/package.json
+/package-lock.json
