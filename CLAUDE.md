@@ -17,7 +17,8 @@ Simulated input through `InputSystem.QueueStateEvent` is unreliable while the Ed
 Other MCP gotchas:
 - After adding a new `.cs` file, refresh with `mode: force` and check `read_console` for errors. A non-forced refresh can skip the import, and the next Play mode silently fails to start.
 - `execute_code` blocks `AssetDatabase.DeleteAsset`.
-- Loading materials makes Unity write `_MainTex` into two Synty materials (`PolyKnights_Mat_01`, `PolygonPrototype_Texture_01`). This recurs, so revert them with git before committing.
+- URP's material validation copies `_BaseMap` into the legacy `_MainTex` slot when a material loads. If a third-party material suddenly shows up as modified with only a `_MainTex` change, that's this, and it's safe to commit (as was done for `PolyKnights_Mat_01` and `PolygonPrototype_Texture_01`).
+- About 18 Synty materials (PolygonPrototype `*_Global_Grid_*`, `*_Glass_*`, FX, and PolygonStarter/City sky and steam) still use Synty's custom or Built-in legacy shaders and the pre-2018 file format. They aren't URP-ready and will render magenta if used; convert them before relying on them.
 - If Play-mode timings look stretched, check `Time.unscaledDeltaTime`. The Editor sometimes drops to about 1 fps, and gameplay `deltaTime` then caps at 0.33, which makes the results meaningless.
 
 ## Design docs
