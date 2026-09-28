@@ -77,13 +77,13 @@ namespace Kneel.EditorTools
         public const float GroundWidth = 114f;
         public const float GroundLength = 412f;
 
-        // Real gameplay camera (Assets/Player/PlayerCamera.cs defaults).
+        // Real gameplay camera (Assets/Player/Settings/PlayerCameraSettings.asset; L1 uses its own copy at yaw 270).
         public const float CameraPitch = 65f;
         // Set on Main Camera in L1: looking west, so the level runs left to right on screen.
         public const float CameraYaw = 270f;
-        public const float CameraDistance = 15f;
-        public const float CameraMinDistance = 8f;
-        public const float CameraMaxDistance = 25f;
+        public const float CameraDistance = 8.5f;
+        public const float CameraMinDistance = 3.2f;
+        public const float CameraMaxDistance = 8.5f;
         public const float CameraTargetHeight = 1f;
         public const float CameraFov = 60f;
         public const float CameraMaxEdgeOffset = 10f;
