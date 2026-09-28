@@ -69,8 +69,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        // Rebuild the direction every frame from the latest input.
-        movementDirection = new Vector3(moveInput.x, 0f, moveInput.y);
+        // Rebuild the direction every frame from the latest input, relative to the camera's facing.
+        movementDirection = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f) * new Vector3(moveInput.x, 0f, moveInput.y);
 
         ApplyGravityVelocity();
         ApplyJumpVelocity();
