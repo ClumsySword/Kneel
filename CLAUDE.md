@@ -35,24 +35,29 @@ The code currently diverges from the ten-pager in a few places:
 
 ## Layout
 
-- The project's own code and assets:
-  - `Assets/Player/`: the player.
-  - `Assets/Combat/`: shared combat code.
-  - `Assets/Enemies/`: `TargetDummy`.
-- Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
+- **All team-made content lives under `Assets/Kneel/`, organized by feature.** Don't add new top-level `Assets/` folders.
+  - `Kneel/Player/`: the player, including `Models/Player.fbx`, `Animations/` (Mixamo clips) and `Settings/`.
+  - `Kneel/Combat/`: shared combat code.
+  - `Kneel/Enemies/`: `AI/` (enemy base and state machine), `AshenFootman/` (with its own `Animations/`), and `TargetDummy/`.
+  - `Kneel/Levels/L1/`: Patrick's level (`Scenes/L1_BrokenLine.unity` plus its lighting and NavMesh folder, and `Materials`, `Meshes`, `Prefabs`, `Lighting`, `Animations`, `Settings`).
+  - `Kneel/Scenes/`: team and test scenes that aren't a level.
+  - `Kneel/Editor/L1/`: the level-building tools (`Kneel/L1` menu). They hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
+  - `Kneel/Shaders/`: shared shaders.
+- Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/` including `Toon_RTS_demo`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
+- Move assets inside Unity (or with `AssetDatabase.MoveAsset`), never in the file browser, so the `.meta` GUIDs travel with them. When scripting moves, don't wrap `AssetDatabase.CreateFolder` in `StartAssetEditing`: folders created inside the batch aren't registered, and retries produce numbered duplicates (`Levels 1`, `Levels 2`, …).
 - Physics layers: `Enemy` (8) is enemy hurtboxes, and it is what the sword's `WeaponHitbox` hits. `Player` (9) is the Player root, which is what enemy attacks overlap.
-- `Assets/Scenes/Sandbox_S.unity`: small movement test scene. `Assets/Scenes/Arena_S.unity`: a 30×30 walled arena (pillars, low walls, crates, a ramped platform) using `PlayerCamera`. Both follow the same layer convention: walkable surfaces on `Ground` (layer 6) and props on `Obstacles` (layer 7). The Player's `aimLayerMask` covers both, so new geometry must be on one of those layers for mouse aim to hit it.
+- `Assets/Kneel/Scenes/Sandbox_S.unity`: small movement test scene. `Assets/Kneel/Scenes/Arena_S.unity`: a 30×30 walled arena (pillars, low walls, crates, a ramped platform) using `PlayerCamera`. Both follow the same layer convention: walkable surfaces on `Ground` (layer 6) and props on `Obstacles` (layer 7). The Player's `aimLayerMask` covers both, so new geometry must be on one of those layers for mouse aim to hit it.
 - `Assets/Settings/`: URP pipeline assets, with separate `PC_*` and `Mobile_*` renderer/RP assets.
 
 ## Player architecture
 
-The player is `Assets/Player/Player.prefab`: a `CharacterController`, `PlayerMovement`, and a child Animator driven by `AC_Player.controller`.
+The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `PlayerMovement`, and a child Animator driven by `AC_Player.controller`.
 
 - **Input**: `PlayerControls.inputactions` is the source of truth. `PlayerControls.cs` is **auto-generated** from it by the Input System ("Generate C# Class"). Never edit it by hand. Change the `.inputactions` asset and regenerate instead.
   - The `Character` map defines Movement, Aim (mouse screen position), Sprint, Jump, Zoom (scroll), Strike (LMB), Draw (R), Block (RMB), and Dodge (Ctrl).
   - The `Debug` map holds ToggleOverlay (F1).
   - Each script creates its own `new PlayerControls()`.
-- **Tuning lives in ScriptableObjects** in `Assets/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
+- **Tuning lives in ScriptableObjects** in `Assets/Kneel/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
 - **`PlayerMovement.cs`** owns all player logic in `Update()`. Input callbacks only cache values. Each frame it:
   1. Aims: raycasts the mouse against `aimLayerMask` and moves the `aim` dot to the hit point.
   2. Resolves sprint and stamina.
@@ -84,7 +89,7 @@ The player is `Assets/Player/Player.prefab`: a `CharacterController`, `PlayerMov
 - **`PlayerEquipment.cs`** moves the sword and shield between sockets: `Socket_Sheath` on the scabbard, `Socket_ShieldBack` on the upper spine, `Socket_SwordHand` / `Socket_ShieldHand` on the hands.
   - Sockets carry a ×100 scale because the Knight's bones are in centimetres. They define the item pose exactly, so items sit at identity.
   - The sword has a `WeaponHitbox`: a capsule from `BladeBase` to `BladeTip`, swept between frames, hitting each target once per swing.
-- **Shared combat** (`Assets/Combat/`):
+- **Shared combat** (`Assets/Kneel/Combat/`):
   - `DamageInfo`, plus the interfaces `IDamageable` / `IParryable` / `IStaggerable`.
   - `Health`: optional regenerate-to-full, so nobody dies yet.
   - `HitStop`: global `Time.timeScale` freeze.
@@ -93,7 +98,7 @@ The player is `Assets/Player/Player.prefab`: a `CharacterController`, `PlayerMov
 - **`TargetDummy`** is a Synty `Character_Dummy_Male_01` humanoid playing the Mixamo impact/kick clips via `AC_TargetDummy`.
   - Its "attacks" toggle (in the F1 overlay) makes it telegraph (red tint), turn and kick, with an overlap sphere against the `Player` layer.
   - Being parried staggers it, and hits on a staggered dummy are critical.
-- **Clips**: Mixamo FBX files in `Assets/Player/SnS-Anims/`.
+- **Clips**: Mixamo FBX files in `Assets/Kneel/Player/Animations/`.
   - The Humanoid ones copy their avatar from `Mixamo_POLYGON_Guy_Naked.fbx`. The combat clips in use have been converted and renamed (`draw-sword-1`, `attack-4`, `slash-1`, `block-idle`, `impact-1`, `kick`, …). The other `sword and shield *` clips are still Generic and must be switched to Humanoid (same avatar source) before use.
   - `draw sword 1`/`2` and `sheath sword 1`/`2` are two halves of one motion (reach to the hilt, then pull out; and the reverse).
   - Mixamo FBX files downloaded "with skin" can contain an extra `Take 001` bind-pose take. Pick the `mixamo.com` take when building `clipAnimations` (see `Stand To Roll.fbx`).

@@ -11,9 +11,9 @@ namespace Kneel.EditorTools
     // Editor-only helpers for L1 "The Broken Line". Nothing here runs in a build.
     public static class L1LevelTools
     {
-        public const string ScenePath = "Assets/Kneel/Scenes/Levels/L1_BrokenLine.unity";
+        public const string ScenePath = "Assets/Kneel/Levels/L1/Scenes/L1_BrokenLine.unity";
         public const string RootName = "L1_BrokenLine";
-        private const string NavMeshAssetPath = "Assets/Kneel/Scenes/Levels/L1_BrokenLine/NavMesh-L1_BrokenLine.asset";
+        private const string NavMeshAssetPath = "Assets/Kneel/Levels/L1/Scenes/L1_BrokenLine/NavMesh-L1_BrokenLine.asset";
         private const int MaxLightsPerObject = 4; // PC_RPAsset additional lights per object
 
         public static GameObject Root => GameObject.Find(RootName);

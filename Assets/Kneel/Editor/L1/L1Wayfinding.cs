@@ -10,7 +10,7 @@ namespace Kneel.EditorTools
     // Each generator clears and rebuilds only its own group, so it is safe to re-run.
     public static class L1Wayfinding
     {
-        private const string AnimationsPath = "Assets/Kneel/Animations/L1";
+        private const string AnimationsPath = "Assets/Kneel/Levels/L1/Animations";
         private static readonly Color TorchColor = L1Build.Hex("#FF8A3A");
 
         // Fire light strengths, tuned for the dark mood (L1Look.ApplyDarkMood): the fires carry the scene.
@@ -43,8 +43,7 @@ namespace Kneel.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(AnimationsPath))
             {
-                AssetDatabase.CreateFolder("Assets/Kneel", "Animations");
-                AssetDatabase.CreateFolder("Assets/Kneel/Animations", "L1");
+                AssetDatabase.CreateFolder("Assets/Kneel/Levels/L1", "Animations");
             }
 
             var flicker = BuildFlickerClip("L1_TorchFlicker", TorchIntensity);

@@ -11,7 +11,7 @@ namespace Kneel.EditorTools
     // soldier corpses, the two monster types (as carcasses) and the colossal fallen giant.
     public static class L1Bakers
     {
-        private const string MeshesPath = "Assets/Kneel/Meshes/L1";
+        private const string MeshesPath = "Assets/Kneel/Levels/L1/Meshes";
         private const string KnightsCharacters = "Assets/SyntyStudios/PolygonKnights/Prefabs/Characters/";
         private const string AdventureCharacters = "Assets/SyntyStudios/PolygonAdventure/Prefabs/Characters/";
 

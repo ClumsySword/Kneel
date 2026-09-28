@@ -727,7 +727,7 @@ namespace Kneel.EditorTools
         // A soft, torn blob: brightest in the middle, ragged at the edge, zero at the borders.
         private static Texture2D BreakCookie()
         {
-            string path = "Assets/Kneel/Lighting/L1/Textures/L1_BreakCookie.png";
+            string path = "Assets/Kneel/Levels/L1/Lighting/Textures/L1_BreakCookie.png";
             if (!File.Exists(path))
             {
                 const int size = 256;

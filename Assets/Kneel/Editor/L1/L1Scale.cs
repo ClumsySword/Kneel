@@ -9,7 +9,7 @@ namespace Kneel.EditorTools
     // banner sway, and monster carcasses placed where the story wants them.
     public static class L1Scale
     {
-        private const string AnimationsPath = "Assets/Kneel/Animations/L1";
+        private const string AnimationsPath = "Assets/Kneel/Levels/L1/Animations";
 
         [MenuItem("Kneel/L1/Scale/Rebuild All")]
         public static void RebuildAllMenu()

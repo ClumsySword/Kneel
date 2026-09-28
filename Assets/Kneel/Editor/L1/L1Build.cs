@@ -6,8 +6,8 @@ namespace Kneel.EditorTools
     // Shared helpers for building L1 content from Synty parts without touching the Synty sources.
     public static class L1Build
     {
-        public const string MaterialsPath = "Assets/Kneel/Materials/L1";
-        public const string PrefabsPath = "Assets/Kneel/Prefabs/L1";
+        public const string MaterialsPath = "Assets/Kneel/Levels/L1/Materials";
+        public const string PrefabsPath = "Assets/Kneel/Levels/L1/Prefabs";
 
         public const StaticEditorFlags EnvironmentStatic =
             StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic |

@@ -15,7 +15,7 @@ namespace Kneel.Lighting.EditorTools
     {
         public const string CharactersLayer = "Characters";
 
-        public const string AssetsPath = "Assets/Kneel/Lighting/L1";
+        public const string AssetsPath = "Assets/Kneel/Levels/L1/Lighting";
         private const string VolumesPath = AssetsPath + "/Volumes";
         private const string MaterialsPath = AssetsPath + "/Materials";
         private const string TexturesPath = AssetsPath + "/Textures";
