@@ -41,11 +41,14 @@ The code currently diverges from the ten-pager in a few places:
   - `Kneel/Enemies/`: `AI/` (enemy base and state machine), `AshenFootman/` (with its own `Animations/`), and `TargetDummy/`.
   - `Kneel/Levels/L1/`: Patrick's level (`Scenes/L1_BrokenLine.unity` plus its lighting and NavMesh folder, and `Materials`, `Meshes`, `Prefabs`, `Lighting`, `Animations`, `Settings`).
   - `Kneel/Scenes/`: team and test scenes that aren't a level.
+  - `Kneel/Core/`: game flow (`LevelRestartOnDeath`).
   - `Kneel/Editor/L1/`: the level-building tools (`Kneel/L1` menu). They hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
   - `Kneel/Shaders/`: shared shaders.
 - Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/` including `Toon_RTS_demo`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
 - Move assets inside Unity (or with `AssetDatabase.MoveAsset`), never in the file browser, so the `.meta` GUIDs travel with them. When scripting moves, don't wrap `AssetDatabase.CreateFolder` in `StartAssetEditing`: folders created inside the batch aren't registered, and retries produce numbered duplicates (`Levels 1`, `Levels 2`, …).
 - Physics layers: `Enemy` (8) is enemy hurtboxes, and it is what the sword's `WeaponHitbox` hits. `Player` (9) is the Player root, which is what enemy attacks overlap.
+- **Scenes are owned by one person**, named with their initial (`_L` is Lucas); see the vault's `04-Tech/Scene Ownership.md`. Don't edit someone else's scene: copy it.
+- `Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity` (Build Settings index 0) is the playable level. It's a copy of Patrick's `Levels/L1/Scenes/L1_BrokenLine.unity`, with five Ashen Footmen under `_Gameplay/Enemies` (one per `Encounter_E1`–`E5`, at its first `EnemySpawn`, patrolling a ring inside the arena), the F1 `Debug` overlay, and `LevelFlow`. It shares Patrick's baked NavMesh and lighting data, so re-bakes of his scene carry over.
 - `Assets/Kneel/Scenes/Sandbox_S.unity`: small movement test scene. `Assets/Kneel/Scenes/Arena_S.unity`: a 30×30 walled arena (pillars, low walls, crates, a ramped platform) using `PlayerCamera`. Both follow the same layer convention: walkable surfaces on `Ground` (layer 6) and props on `Obstacles` (layer 7). The Player's `aimLayerMask` covers both, so new geometry must be on one of those layers for mouse aim to hit it.
 - `Assets/Settings/`: URP pipeline assets, with separate `PC_*` and `Mobile_*` renderer/RP assets.
 
@@ -82,7 +85,7 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
     - Optionally rolls through enemies, via `Physics.IgnoreLayerCollision(Player, Enemy)`.
   - It doesn't use animator transitions or animation events. It `CrossFadeInFixedTime`s states on two layers and sets their weights itself:
     - `UpperBody`, masked by `AM_UpperBody.mask` (arms and head): ArmedIdle, Draw1/2, Sheath1/2, Block, BlockHit, Parry.
-    - `FullBody`: Slash1, Slash2, HitReact, GuardBreak.
+    - `FullBody`: Slash1, Slash2, HitReact, GuardBreak, Death.
   - All timings are clip-seconds in `PlayerCombatSettings`: each attack's `hitStart/hitEnd/comboWindow/recoveryEnd`, plus draw grab and sheathe release. They were measured from blade-tip speed and hand-to-hilt distance on the Knight. Re-measure them if you swap a clip.
   - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame. Stamina goes through `TrySpendStamina` / `DrainStamina`.
   - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, drains stamina; guard break at 0), then full damage plus hit-stun.
@@ -91,13 +94,25 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
   - The sword has a `WeaponHitbox`: a capsule from `BladeBase` to `BladeTip`, swept between frames, hitting each target once per swing.
 - **Shared combat** (`Assets/Kneel/Combat/`):
   - `DamageInfo`, plus the interfaces `IDamageable` / `IParryable` / `IStaggerable`.
-  - `Health`: optional regenerate-to-full, so nobody dies yet.
+  - `Health`: optional regenerate-to-full (only the dummy uses it). The player and enemies can die. Player death (`PlayerCombat` `Dead` state, `OnDied`) reloads the scene through `LevelRestartOnDeath`, which only works for scenes in Build Settings.
   - `HitStop`: global `Time.timeScale` freeze.
   - `DamageNumber`: runtime-built world-space TMP text.
   - `HitSpark`: runtime-built particle burst.
 - **`TargetDummy`** is a Synty `Character_Dummy_Male_01` humanoid playing the Mixamo impact/kick clips via `AC_TargetDummy`.
   - Its "attacks" toggle (in the F1 overlay) makes it telegraph (red tint), turn and kick, with an overlap sphere against the `Player` layer.
   - Being parried staggers it, and hits on a staggered dummy are critical.
+- **Ashen Footman** (Olivia's, `Kneel/Enemies/AshenFootman`, base `Kneel/Enemies/AI/Enemy.cs`):
+  - It's a plain-C# state machine: one `EnemyState` subclass per behaviour, and each state sets an animator **bool** of the same name.
+  - The controller follows one pattern: Entry → state when its bool is true, state → Exit when it's false. Add new states the same way.
+  - States: Idle → Move (patrol) → Recovery (the pointing clip, which is also the post-attack punish window) → Chase → Attack, plus Hit and Dead.
+  - **Animation events** drive it: `AnimationTrigger` ends the Recovery and Attack clips, and `AttackHit` (on `Attack_B.anim` at 0.30 s) deals damage with an overlap sphere on the `Player` layer.
+  - Attack plays at 0.6× so the wind-up is at least 300 ms, with a red tint telegraph.
+  - The Hit and Dead states use `stateTimer` instead of events, because their clips (Mixamo `impact-1`, `death-1`) are shared with the player, whose animator has no receiver for them.
+  - It implements `IDamageable` / `IParryable` / `IStaggerable`:
+    - Sword hits interrupt the wind-up but not the swing.
+    - A parry staggers it, and hits during the stagger are crits.
+    - It has 40 HP, which is 3 hits of the 12→20 combo.
+    - When it dies, its agent and collider switch off and the body stays.
 - **Clips**: Mixamo FBX files in `Assets/Kneel/Player/Animations/`.
   - The Humanoid ones copy their avatar from `Mixamo_POLYGON_Guy_Naked.fbx`. The combat clips in use have been converted and renamed (`draw-sword-1`, `attack-4`, `slash-1`, `block-idle`, `impact-1`, `kick`, …). The other `sword and shield *` clips are still Generic and must be switched to Humanoid (same avatar source) before use.
   - `draw sword 1`/`2` and `sheath sword 1`/`2` are two halves of one motion (reach to the hilt, then pull out; and the reverse).

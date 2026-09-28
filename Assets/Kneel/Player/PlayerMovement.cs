@@ -68,7 +68,7 @@ public class PlayerMovement : MonoBehaviour
     public bool jumpBlocked = false;
 
     // When set, replaces the planar velocity outright (no acceleration). Used for the dodge roll.
-    [HideInInspector]
+    [System.NonSerialized]
     public Vector3? forcedVelocity = null;
 
     // Collision result of the last CharacterController.Move.

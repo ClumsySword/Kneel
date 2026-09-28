@@ -19,6 +19,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Attacking,
         HitStun,
         Dodging,
+        Dead,
     }
 
     private PlayerControls controls;
@@ -69,6 +70,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public bool IsBlocking { get; private set; }
 
+    public bool IsDead => State == CombatState.Dead;
+
+    // Raised once when health reaches zero (LevelRestartOnDeath listens).
+    public event System.Action OnDied;
+
     public bool IsInvulnerable => State == CombatState.Dodging
         && stateTime >= settings.dodgeInvulnerableStart
         && stateTime <= settings.dodgeInvulnerableEnd;
@@ -108,6 +114,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         fullBodyLayer = animator.GetLayerIndex("FullBody");
 
         health.SetMax(settings.maxHealth, true);
+        health.OnDepleted += Die;
 
         foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
         {
@@ -503,7 +510,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public void TakeHit(DamageInfo info)
     {
-        if (IsInvulnerable == true)
+        if (IsInvulnerable == true || IsDead == true)
         {
             return;
         }
@@ -559,8 +566,42 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Shake(settings.hitShake * 1.5f);
     }
 
+    // Health reached zero. Everything stops; the scene decides what happens next (see OnDied).
+    private void Die()
+    {
+        if (IsDead == true)
+        {
+            return;
+        }
+
+        if (State == CombatState.Dodging)
+        {
+            movement.forcedVelocity = null;
+            SetEnemyCollision(true);
+        }
+
+        equipment.SwordHitbox.End();
+        attackQueued = false;
+        IsBlocking = false;
+        SetState(CombatState.Dead);
+
+        upperBodyTarget = 0f;
+        upperBodyWeight = 0f;
+        fullBodyTarget = 1f;
+        fullBodyWeight = 1f;
+        animator.CrossFadeInFixedTime("Death", 0.1f, fullBodyLayer, 0f);
+
+        OnDied?.Invoke();
+    }
+
     private void StartHitStun(float duration, string reaction)
     {
+        // The killing blow already switched to Dead (health's OnDepleted fires inside ApplyDamage).
+        if (IsDead == true)
+        {
+            return;
+        }
+
         if (State == CombatState.Dodging)
         {
             // Caught in the roll's vulnerable tail.
@@ -621,6 +662,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 jumpBlocked = true;
                 break;
             case CombatState.HitStun:
+            case CombatState.Dead:
                 moveMultiplier = 0f;
                 rotationLocked = true;
                 sprintBlocked = true;

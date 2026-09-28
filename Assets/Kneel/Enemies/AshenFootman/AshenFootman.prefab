@@ -852,7 +852,9 @@ GameObject:
   - component: {fileID: 4373213086389819274}
   - component: {fileID: 618335137643986671}
   - component: {fileID: 3301758570996914010}
-  m_Layer: 0
+  - component: {fileID: 1995036952550390812}
+  - component: {fileID: 7393797960183544358}
+  m_Layer: 8
   m_Name: AshenFootman
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -914,6 +916,12 @@ MonoBehaviour:
   aggressionRange: 7.02
   attackRange: 1.57
   attackMoveSpeed: 2
+  attackDamage: 15
+  attackReach: 1.1
+  attackRadius: 0.8
+  playerMask:
+    serializedVersion: 2
+    m_Bits: 512
   idleTime: 2
   moveSpeed: 1.5
   chaseSpeed: 2.2
@@ -923,6 +931,10 @@ MonoBehaviour:
   - {fileID: 4298623124185975695}
   - {fileID: 7270683620398365147}
   - {fileID: 5530941260404139815}
+  popupHeight: 2
+  hitStunTime: 0.6
+  staggerTime: 1.4
+  knockback: 0.35
 --- !u!195 &3301758570996914010
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -945,6 +957,44 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1995036952550390812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7563310063189061072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4a4c59c1d59f0fd88556fd23cb3fa65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  maxHealth: 40
+  regenerateToFull: 0
+  regenDelay: 3
+--- !u!136 &7393797960183544358
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7563310063189061072}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.35
+  m_Height: 1.7
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.85, z: 0}
 --- !u!1 &7661797285709002335
 GameObject:
   m_ObjectHideFlags: 0

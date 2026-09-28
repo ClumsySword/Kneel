@@ -1780,7 +1780,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
-  regenerateToFull: 1
+  regenerateToFull: 0
   regenDelay: 3
 --- !u!114 &6166704346916173636
 MonoBehaviour:
