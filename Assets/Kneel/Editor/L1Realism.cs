@@ -792,7 +792,8 @@ namespace Kneel.EditorTools
             return false;
         }
 
-        // Keep clear: the ram, the shrine, the start, the exit road, lore spots and gameplay markers.
+        // Keep clear: the ram, the start, the exit road, the shrine nook (-15, 204), the last stand (0, 337),
+        // lore spots and gameplay markers.
         private static bool Reserved(Vector2 p)
         {
             if (L1Layout.RamFootprint.Contains(p))

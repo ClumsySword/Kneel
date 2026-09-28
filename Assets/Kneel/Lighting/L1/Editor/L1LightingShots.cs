@@ -40,8 +40,8 @@ namespace Kneel.Lighting.EditorTools
             new Zone("07_E3", -3f, 180f),
             new Zone("08_E4", 4f, 232f),
             new Zone("09_E5", 0f, 290f),
-            new Zone("10_ShrineApproach", -2f, 318f, 20f),
-            new Zone("11_Shrine", 2f, 336f),
+            new Zone("10_ShrineApproach", -6f, 194f, 20f),
+            new Zone("11_Shrine", -13f, 204f),
             new Zone("12_Exit", 4f, 370f, 18f),
             new Zone("13_ExitLookNorth", 4f, 377f, 22f),
         };

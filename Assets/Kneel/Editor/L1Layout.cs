@@ -47,11 +47,11 @@ namespace Kneel.EditorTools
             new Circle("RamPlaza", 0f, 130f, 13f),
             new Circle("HealPocket", 26f, 130f, 5f),
             new Circle("E3", -3f, 180f, 9f, true),
-            new Circle("RearguardNook", -16f, 204f, 3.5f),
+            new Circle("ShrineNook", -16f, 204f, 3.5f),       // checkpoint shrine, just past E3 (mid-route)
             new Circle("E4", 4f, 232f, 9f, true),
             new Circle("TentNook", -2f, 257f, 4f),
             new Circle("E5", 0f, 290f, 10f, true),
-            new Circle("Shrine", 4f, 334f, 7f),
+            new Circle("LastStand", 4f, 334f, 7f),          // the rearguard's last stand, before the exit
         };
 
         public static readonly Capsule[] Capsules =

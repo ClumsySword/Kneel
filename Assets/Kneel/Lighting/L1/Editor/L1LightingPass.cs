@@ -263,7 +263,8 @@ namespace Kneel.Lighting.EditorTools
             Get<ColorAdjustments>(shrine).saturation.Override(-28f);
             Get<WhiteBalance>(shrine).temperature.Override(9f);
             Get<Bloom>(shrine).intensity.Override(0.45f);
-            LocalVolume(volumes, "Shrine", new Vector3(2f, 0f, 336f), new Vector3(20f, 30f, 20f), 12f, 1, shrine);
+            var shrinePos = FindDeep(L1LevelTools.Root.transform, "L1_CheckpointShrine").position;
+            LocalVolume(volumes, "Shrine", new Vector3(shrinePos.x + 1f, 0f, shrinePos.z), new Vector3(20f, 30f, 20f), 12f, 1, shrine);
 
             // Exit: colder, sliding toward L2's night.
             var exit = Profile("L1_Zone_Exit", true);
@@ -365,7 +366,7 @@ namespace Kneel.Lighting.EditorTools
             var shrine = FindDeep(root, "L1_CheckpointShrine");
 
             // The prefab's own brazier light is replaced (scene override) by one that casts shadows and flickers.
-            Vector3 lightPos = new Vector3(2f, 2f, 336f);
+            Vector3 lightPos = shrine.position + Vector3.up * 2f;
             foreach (var l in shrine.GetComponentsInChildren<Light>(true))
             {
                 if (l.name == "WarmLight")
