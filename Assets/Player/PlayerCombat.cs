@@ -513,6 +513,16 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         bool fromFront = Vector3.Angle(transform.forward, toAttacker) <= settings.blockAngle;
         Vector3 popup = transform.position + Vector3.up * popupHeight;
 
+        // Fire and other world damage burns through the guard but never stuns or freezes time, so a damage
+        // tick can't lock the player in place inside the thing that is hurting them.
+        if (info.isEnvironmental == true)
+        {
+            health.ApplyDamage(info.amount);
+            DamageNumber.Spawn(popup, Mathf.RoundToInt(info.amount).ToString(), DamageNumberStyle.PlayerDamage);
+            Shake(settings.hitShake * 0.4f);
+            return;
+        }
+
         if (fromFront == true && IsParryWindowOpen == true)
         {
             if (info.source != null && info.source.TryGetComponent(out IParryable parried))

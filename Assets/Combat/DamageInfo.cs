@@ -14,6 +14,9 @@ public struct DamageInfo
     public GameObject source;
 
     public bool isCritical;
+
+    // Damage from the world (fire), not an attack: it can't be parried or blocked and causes no hit reaction.
+    public bool isEnvironmental;
 }
 
 public interface IDamageable
