@@ -6,6 +6,14 @@ namespace Kneel.Hazards
         FireTick,
         Smoulder,
         Ditch,
+
+        // L4
+        Pour,
+        OilBurnEnter,
+        OilBurnTick,
+        Crush,
+        GateSlot,
+        Fall,
     }
 
     // What a hazard talks to. Hazards only report contact; the actor decides the consequence
