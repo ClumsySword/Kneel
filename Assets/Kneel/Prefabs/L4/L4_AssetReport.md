@@ -621,6 +621,16 @@ Editor tidy-up: the magenta marker volumes are hidden in the scene. They are hid
 
 After a full rebuild: agent rules 14/14, every floor reachable except the crossbow walks, no leaks, and the sweep walks 1,228 m with the one known stall.
 
+**The start, redone (owner, 2026-10-20):** "The start of the level looks bad. Please find images of lvl 3 and then make it look like the farmlands but add a nice transition." The first farm start had coloured the land's flat-shaded facets in field tones, with sparse heavy L3 crop-row wheat. `L4Farmland` now builds the start the way L3 builds itself, from L3 captures taken for reference:
+- **Ground.** A patch over x -10..130, z -100..-8, on the surroundings' own 2 m grid and heights (`L4Surroundings` skips its facets there and lies nearly flat under the fields). It is painted onto a copy of L3's ground material (`L4_FarmGround`, the Kneel/Ground shader) from L3's palette and its strips of straw and ash (`L3Ground.Burnt`). A pale road ribbon winds down the track onto the causeway, and the patch's border fades into the burnt land's colour.
+- **Wheat.** L3's own plants (`L3Fields.Plant` and `Stub`, now internal) in rows that lean with the strips, about 13,000 plants on L3's wind materials.
+- **Track.** L3's low stone walls along the southern half, as at L3's own start, then rails toward the bank.
+- **Transition.** A ragged fire front (`L4Farmland.Scorch`) turns the strips to ash and stubble toward the ravine, with cinders on the ground, smouldering fields, a burning rick and the first skeletons, before the lava.
+
+Then (owner, same day): "I would like the wheats here to be black indicating they have been burned. Also remove the farmer house close by." All of the start's wheat now uses L3's charred crop materials: the swaying stalks on `L3_Wheat_Charred`, the still ones and the stubble on `L3_Wheat_Stubble`. The farmhouse by the track and its side track are gone.
+
+The L3 reference captures showed L3's re-graded stone walls and its castle backdrop rendering pink in a script camera, although their materials and textures check out. That needs a look in L3 itself.
+
 **Lore change:** the note's "three days after it fell" is now "fell long ago", per the owner. The vault note's refinement section says so.
 
 **Not yet checked in Play mode:** the fire vents and burning wrecks (contact and damage), the fading walls in the live camera, and the gates and hazards from before.

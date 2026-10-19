@@ -183,6 +183,8 @@ namespace Kneel.EditorTools
         private static float Land(Vector2 p, float d)
         {
             float roll = (Fbm(p.x * 0.02f, p.y * 0.02f) - 0.5f) * 6f + (Fbm(p.x * 0.07f + 3f, p.y * 0.07f) - 0.5f) * 1.6f;
+            // The farm's fields lie nearly flat, like L3's plain.
+            roll *= Mathf.Lerp(1f, 0.25f, Farm(p));
             float hills = Mathf.Max(0f, d - 80f) * 0.05f;
             float h = 0.6f + roll + hills;
             if (p.y < CausewaySouth + 2f)
@@ -229,6 +231,12 @@ namespace Kneel.EditorTools
                             var p11 = V(i + 1, j + 1);
                             // Under the castle nothing shows; skip the cells fully under it.
                             if (p00.y <= -0.59f && p10.y <= -0.59f && p01.y <= -0.59f && p11.y <= -0.59f && Distance(new Vector2(p00.x + Cell * 0.5f, p00.z + Cell * 0.5f)) <= 0f)
+                            {
+                                continue;
+                            }
+
+                            // The farm's painted patch (L4Farmland) takes the ground there.
+                            if (L4Farmland.Rect.Contains(new Vector2(p00.x + Cell * 0.5f, p00.z + Cell * 0.5f)))
                             {
                                 continue;
                             }
@@ -294,19 +302,11 @@ namespace Kneel.EditorTools
             }
             else
             {
-                // The land: dry grass and burnt earth in broad sweeps, ash where the fires ran hottest; south of
-                // the causeway, L3's fields.
+                // The land: dry grass and burnt earth in broad sweeps, ash where the fires ran hottest. (South of
+                // the causeway L4Farmland paints L3's fields over its own patch.)
                 float burn = Fbm(centre.x * 0.025f + 30f, centre.z * 0.025f);
                 cell = burn > 0.6f ? 7 : burn > 0.42f ? 5 : 6;
-                var field = FieldAt(new Vector2(centre.x, centre.z));
-                if (field != Field.None)
-                {
-                    cell = field == Field.Wheat ? 8 : field == Field.Stubble ? 9 : field == Field.Pasture ? 10 : 11;
-                    if (speck > 0.8f)
-                    {
-                        cell = 6;
-                    }
-                }
+
             }
 
             var uv = L4Kit.Cell(cell, Tones.Length);
