@@ -70,8 +70,8 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
   5. Moves via `CharacterController.Move` (no Rigidbody, no root motion).
   6. Feeds the animator.
 
-  Walk speed depends on direction relative to facing, interpolated by angle across 5 speeds. Sprint velocity follows facing, scaled by how aligned facing is with the input, so turning bleeds speed.
-- **Animator contract**: the code sets `xVelocity` and `zVelocity` to the **actual local planar velocity in m/s**, plus `IsGrounded` (bool) and `Jump` (trigger).
+  Walk speed depends on direction relative to facing, interpolated by angle across 5 speeds. The speed fields hold the clips' measured speeds, and `walkSpeedMultiplier` / `sprintSpeedMultiplier` scale them. The sprint steers speed and direction separately: speed builds with the accel rates and drops when facing and input disagree (turning bleeds speed), while the travel direction swings to the facing at `sprintGrip` °/s, so the run follows the body instead of sliding through turns.
+- **Animator contract**: the code sets `xVelocity` and `zVelocity` to the **actual local planar velocity in m/s divided by `LocomotionSpeed`**, plus `LocomotionSpeed` (the `Locomotion` state's speed multiplier: 1 at rest, ramping to the walk multiplier at full walk speed in the current direction, then to the sprint multiplier at full sprint), `IsGrounded` (bool) and `Jump` (trigger). So the tree always sees the clips' own speeds, and the clips play faster to match the faster movement.
   - The `Locomotion` state is a Freeform Directional 2D tree whose child positions are each clip's real travel speed on the Knight. That is what keeps the feet from sliding.
   - If you add a clip or change a movement speed default, place the clip at its measured speed and keep the `PlayerMovementSettings` defaults in sync.
   - Renaming parameters means updating the string literals in `PlayerMovement.cs`.

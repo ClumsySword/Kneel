@@ -17,12 +17,15 @@ MonoBehaviour:
   walkSpeedStrafe: 0.8
   walkSpeedBackwardDiagonal: 1.04
   walkSpeedBackward: 1.09
-  acceleration: 8
-  deceleration: 14
+  walkSpeedMultiplier: 1.2
+  acceleration: 16
+  deceleration: 22
   aimTurnRate: 540
   sprintSpeed: 3.97
-  sprintAcceleration: 4
-  sprintTurnRate: 300
+  sprintSpeedMultiplier: 1.15
+  sprintAcceleration: 9
+  sprintTurnRate: 540
+  sprintGrip: 1080
   gravity: 20
   jumpHeight: 0.9
   airControl: 0.3

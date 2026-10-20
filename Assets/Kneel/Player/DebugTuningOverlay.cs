@@ -154,11 +154,14 @@ public class DebugTuningOverlay : MonoBehaviour
             s.walkSpeedStrafe = Slider("Walk strafe", s.walkSpeedStrafe, 0.5f, 3f);
             s.walkSpeedBackwardDiagonal = Slider("Walk back diagonal", s.walkSpeedBackwardDiagonal, 0.5f, 3f);
             s.walkSpeedBackward = Slider("Walk backward", s.walkSpeedBackward, 0.5f, 3f);
+            s.walkSpeedMultiplier = Slider("Walk speed x", s.walkSpeedMultiplier, 0.5f, 2f);
             s.acceleration = Slider("Acceleration", s.acceleration, 1f, 40f);
             s.deceleration = Slider("Deceleration", s.deceleration, 1f, 40f);
             s.aimTurnRate = Slider("Aim turn rate", s.aimTurnRate, 90f, 1440f);
 
             s.sprintSpeed = Slider("Sprint speed", s.sprintSpeed, 1f, 8f);
+            s.sprintSpeedMultiplier = Slider("Sprint speed x", s.sprintSpeedMultiplier, 0.5f, 2f);
+            s.sprintGrip = Slider("Sprint grip", s.sprintGrip, 90f, 2160f);
             s.sprintAcceleration = Slider("Sprint acceleration", s.sprintAcceleration, 1f, 20f);
             s.sprintTurnRate = Slider("Sprint turn rate", s.sprintTurnRate, 60f, 1080f);
 

@@ -190,40 +190,56 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        Vector3 desiredVelocity;
-        float speedUpRate;
+        float control = characterController.isGrounded ? 1f : settings.airControl;
 
         if (IsSprinting == true)
         {
-            // Momentum: you run where you face, and hard direction changes bleed speed until you've turned.
-            float alignment = Mathf.Max(0f, Vector3.Dot(transform.forward, movementDirection.normalized));
-            desiredVelocity = transform.forward * (settings.sprintSpeed * alignment * movementDirection.magnitude);
-
-            // Get going at walk responsiveness, then build the rest of the sprint slowly.
-            bool belowWalkSpeed = planarVelocity.magnitude < settings.walkSpeedForward;
-            speedUpRate = belowWalkSpeed ? settings.acceleration : settings.sprintAcceleration;
-        }
-        else
-        {
-            desiredVelocity = movementDirection * GetWalkSpeed(movementDirection);
-            speedUpRate = settings.acceleration;
+            ApplySprintVelocity(control);
+            return;
         }
 
-        desiredVelocity *= moveSpeedMultiplier;
+        Vector3 desiredVelocity = movementDirection * GetWalkSpeed(movementDirection) * moveSpeedMultiplier;
 
         // Speed up gradually, but plant quickly so the controls stay responsive.
-        float rate = desiredVelocity.sqrMagnitude > planarVelocity.sqrMagnitude ? speedUpRate : settings.deceleration;
-
-        if (characterController.isGrounded == false)
-        {
-            rate *= settings.airControl;
-        }
-
-        planarVelocity = Vector3.MoveTowards(planarVelocity, desiredVelocity, rate * Time.deltaTime);
+        float rate = desiredVelocity.sqrMagnitude > planarVelocity.sqrMagnitude ? settings.acceleration : settings.deceleration;
+        planarVelocity = Vector3.MoveTowards(planarVelocity, desiredVelocity, rate * control * Time.deltaTime);
     }
 
-    // Walk speed for a world direction, matched to the walk clip for that direction relative to facing.
+    // Speed and direction are steered separately so the run follows the body: speed builds with acceleration,
+    // while the direction swings round to the facing at sprintGrip. Steering them as one vector made direction
+    // changes as slow as speeding up, and the character slid sideways through every turn.
+    private void ApplySprintVelocity(float control)
+    {
+        // Momentum: hard direction changes bleed speed until you've turned.
+        float alignment = Mathf.Max(0f, Vector3.Dot(transform.forward, movementDirection.normalized));
+        float targetSpeed = SprintSpeed * alignment * movementDirection.magnitude * moveSpeedMultiplier;
+        float speed = planarVelocity.magnitude;
+
+        // Get going at walk responsiveness, then build the rest of the sprint more slowly.
+        float speedUpRate = speed < WalkSpeedForward ? settings.acceleration : settings.sprintAcceleration;
+        float rate = targetSpeed > speed ? speedUpRate : settings.deceleration;
+        float newSpeed = Mathf.MoveTowards(speed, targetSpeed, rate * control * Time.deltaTime);
+
+        Vector3 direction = speed > 0.01f ? planarVelocity / speed : transform.forward;
+        float maxTurn = settings.sprintGrip * control * Mathf.Deg2Rad * Time.deltaTime;
+        direction = Vector3.RotateTowards(direction, transform.forward, maxTurn, 0f);
+
+        // A near-reversal can rotate through the vertical; keep it on the ground plane.
+        direction.y = 0f;
+        planarVelocity = direction.normalized * newSpeed;
+    }
+
+    private float WalkSpeedForward => settings.walkSpeedForward * settings.walkSpeedMultiplier;
+
+    private float SprintSpeed => settings.sprintSpeed * settings.sprintSpeedMultiplier;
+
+    // Walk speed for a world direction: the walk clip's speed for that direction relative to facing, times walkSpeedMultiplier.
     private float GetWalkSpeed(Vector3 worldDirection)
+    {
+        return GetClipWalkSpeed(worldDirection) * settings.walkSpeedMultiplier;
+    }
+
+    private float GetClipWalkSpeed(Vector3 worldDirection)
     {
         if (worldDirection.sqrMagnitude < 0.0001f)
         {
@@ -303,14 +319,36 @@ public class PlayerMovement : MonoBehaviour
 
     private void AnimatorControllers()
     {
-        // The blend tree is laid out in m/s, so feed it the real local velocity and the feet match the ground.
+        // The blend tree is laid out in the clips' own speeds (m/s). Movement runs faster than the clips by the speed
+        // multipliers, so the clips play faster by the same scale and the tree gets the velocity divided by it:
+        // the feet match the ground at any multiplier.
         Vector3 actualVelocity = characterController.velocity;
         actualVelocity.y = 0f;
         Vector3 localVelocity = transform.InverseTransformDirection(actualVelocity);
+        float scale = GetLocomotionScale(actualVelocity);
 
-        animator.SetFloat("xVelocity", localVelocity.x, .1f, Time.deltaTime);
-        animator.SetFloat("zVelocity", localVelocity.z, .1f, Time.deltaTime);
+        animator.SetFloat("LocomotionSpeed", scale);
+        animator.SetFloat("xVelocity", localVelocity.x / scale, .05f, Time.deltaTime);
+        animator.SetFloat("zVelocity", localVelocity.z / scale, .05f, Time.deltaTime);
         animator.SetBool("IsGrounded", characterController.isGrounded);
+    }
+
+    // Playback scale for the locomotion clips: 1 at rest, the walk multiplier at full walk speed in whatever
+    // direction the character is walking, rising to the sprint multiplier at full sprint speed.
+    private float GetLocomotionScale(Vector3 velocity)
+    {
+        float walkScale = Mathf.Max(settings.walkSpeedMultiplier, 0.01f);
+        float sprintScale = Mathf.Max(settings.sprintSpeedMultiplier, 0.01f);
+        float speed = velocity.magnitude;
+
+        if (speed <= WalkSpeedForward)
+        {
+            // Strafe and backward walks are slower than forward, so measure against this direction's full walk speed.
+            float walkSpeed = Mathf.Max(GetWalkSpeed(velocity), 0.01f);
+            return Mathf.Lerp(1f, walkScale, Mathf.Clamp01(speed / walkSpeed));
+        }
+
+        return Mathf.Lerp(walkScale, sprintScale, Mathf.InverseLerp(WalkSpeedForward, SprintSpeed, speed));
     }
 
     private void OnEnable()
