@@ -136,7 +136,8 @@ namespace Kneel.EditorTools
 
         // Poses a character in its standing frame (faces +Z, feet at y = 0) and returns the skinned mesh
         // baked into that frame, plus the posed rig for attaching parts. Caller destroys the rig.
-        private static Mesh BakeStanding(string prefabPath, string rendererName, PoseFn pose, Proportions proportions, out GameObject rig)
+        // (Internal so L2Bakers can pose other characters the same way.)
+        internal static Mesh BakeStanding(string prefabPath, string rendererName, PoseFn pose, Proportions proportions, out GameObject rig)
         {
             rig = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
             rig.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);

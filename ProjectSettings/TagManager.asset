@@ -15,8 +15,8 @@ TagManager:
   - Obstacles
   - Enemy
   - Player
-  - 
-  - 
+  - FadeProbe
+  - Hazard
   - 
   - 
   - 
