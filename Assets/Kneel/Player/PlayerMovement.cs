@@ -291,8 +291,11 @@ public class PlayerMovement : MonoBehaviour
         actualVelocity.y = 0f;
         CurrentSpeed = actualVelocity.magnitude;
 
-        // Don't keep building speed while pushing into a wall.
-        if (planarVelocity.sqrMagnitude > actualVelocity.sqrMagnitude + 0.01f && characterController.isGrounded == true)
+        // Don't keep building speed while pushing into a wall. Only an actual side hit counts: on open ground a step can
+        // come out shorter than intended (tiny steps at high frame rates or during hit-stop), and clamping to that
+        // would pin the player in place.
+        bool hitWall = (LastCollisionFlags & CollisionFlags.Sides) != 0;
+        if (hitWall == true && planarVelocity.sqrMagnitude > actualVelocity.sqrMagnitude + 0.01f && characterController.isGrounded == true)
         {
             planarVelocity = Vector3.ClampMagnitude(planarVelocity, Mathf.Max(actualVelocity.magnitude, 0.1f));
         }

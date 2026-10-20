@@ -19,6 +19,7 @@ Other MCP gotchas:
 - `execute_code` blocks `AssetDatabase.DeleteAsset`.
 - URP's material validation copies `_BaseMap` into the legacy `_MainTex` slot when a material loads. If a third-party material suddenly shows up as modified with only a `_MainTex` change, that's this, and it's safe to commit (as was done for `PolyKnights_Mat_01` and `PolygonPrototype_Texture_01`).
 - About 18 Synty materials (PolygonPrototype `*_Global_Grid_*`, `*_Glass_*`, FX, and PolygonStarter/City sky and steam) still use Synty's custom or Built-in legacy shaders and the pre-2018 file format. They aren't URP-ready and will render magenta if used; convert them before relying on them.
+- Movement bugs can depend on frame rate: builds run uncapped (vSync is off), and hit-stop shrinks `deltaTime` 20×. Reproduce high-fps behaviour in Play mode with `Time.captureFramerate = N` (reset to 0 after). The player's `CharacterController.minMoveDistance` must stay 0: at 0.001, the tiny steps of walking from rest at ≥300 fps were dropped, and the wall clamp then pinned the player at 0.1 m/s until they jumped.
 - If Play-mode timings look stretched, check `Time.unscaledDeltaTime`. The Editor sometimes drops to about 1 fps, and gameplay `deltaTime` then caps at 0.33, which makes the results meaningless.
 
 ## Design docs
