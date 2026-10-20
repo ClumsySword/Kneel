@@ -20,8 +20,17 @@ public class Enemy : MonoBehaviour
     public float attackReach = 1.1f;
     public float attackRadius = 0.8f;
 
+    // Poise knocked off the player by the attack (see Poise).
+    public float attackPoiseDamage = 30f;
+
     [SerializeField]
     private LayerMask playerMask;
+
+    [Header("Poise Data")]
+    public Poise poise = new Poise(30f, 2f, 20f);
+
+    // Hits landed during an attack's wind-up deal this much more poise damage (a counter-hit).
+    public float windupPoiseMultiplier = 2f;
 
     [Header("Idle Data")]
     public float idleTime;
@@ -61,6 +70,7 @@ public class Enemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         health = GetComponent<Health>();
+        poise.Reset();
 
         GameObject playerObject = GameObject.Find("Player");
         if (playerObject == null)
@@ -88,6 +98,7 @@ public class Enemy : MonoBehaviour
 
     protected virtual void Update()
     {
+        poise.Tick(Time.deltaTime);
         UpdateTint();
     }
 
@@ -117,6 +128,7 @@ public class Enemy : MonoBehaviour
             target.TakeHit(new DamageInfo
             {
                 amount = attackDamage,
+                poiseDamage = attackPoiseDamage,
                 point = overlapBuffer[i].ClosestPoint(center),
                 direction = transform.forward,
                 source = gameObject,

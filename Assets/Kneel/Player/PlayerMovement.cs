@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Weighty top-down locomotion: the character accelerates, plants and turns at capped rates.
-// Walking keeps them facing the aim point; sprinting turns them toward where they run and drains stamina.
+// Walking keeps them facing the aim point; sprinting turns them toward where they run.
 // Tuning values live in a PlayerMovementSettings asset.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -36,17 +36,9 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 planarVelocity;
     private float verticalVelocity = 0f;
 
-    private float stamina;
-    private float staminaRegenTimer = 0f;
-
     public PlayerMovementSettings Settings => settings;
 
     public bool IsSprinting { get; private set; }
-
-    // True after stamina runs dry, until it refills to settings.exhaustedRecoverFraction.
-    public bool IsExhausted { get; private set; }
-
-    public float Stamina01 => settings.maxStamina > 0f ? stamina / settings.maxStamina : 0f;
 
     // Actual horizontal speed after collisions, in m/s.
     public float CurrentSpeed { get; private set; }
@@ -77,8 +69,6 @@ public class PlayerMovement : MonoBehaviour
     // Horizontal displacement actually achieved by the last move, after collisions.
     public Vector3 LastMoveDelta { get; private set; }
 
-    public float Stamina => stamina;
-
     // Current steering input in world space, magnitude 0..1.
     public Vector3 MoveDirection => movementDirection;
 
@@ -101,8 +91,6 @@ public class PlayerMovement : MonoBehaviour
             Debug.LogWarning("PlayerMovement has no settings asset assigned, using defaults.", this);
             settings = ScriptableObject.CreateInstance<PlayerMovementSettings>();
         }
-
-        stamina = settings.maxStamina;
     }
 
     private void Start()
@@ -128,7 +116,6 @@ public class PlayerMovement : MonoBehaviour
 
         AimTowardsMouse();
         UpdateSprintState();
-        UpdateStamina();
         ApplyRotation();
         ApplyPlanarVelocity();
         ApplyGravityVelocity();
@@ -155,36 +142,7 @@ public class PlayerMovement : MonoBehaviour
     private void UpdateSprintState()
     {
         bool hasMoveInput = movementDirection.sqrMagnitude > 0.01f;
-        IsSprinting = sprintHeld && hasMoveInput && IsExhausted == false && stamina > 0f && sprintBlocked == false;
-    }
-
-    // Spends stamina for an action (attack, blocked hit). Returns false without spending if exhausted or empty.
-    // An action may overdraw what's left; hitting zero exhausts the player like sprinting does.
-    public bool TrySpendStamina(float amount)
-    {
-        if (IsExhausted == true || stamina <= 0f)
-        {
-            return false;
-        }
-
-        DrainStamina(amount);
-        return true;
-    }
-
-    // Unconditionally removes stamina (e.g. absorbing a hit on the shield). Returns true if stamina ran out.
-    public bool DrainStamina(float amount)
-    {
-        stamina -= amount;
-        staminaRegenTimer = settings.staminaRegenDelay;
-
-        if (stamina <= 0f)
-        {
-            stamina = 0f;
-            IsExhausted = true;
-            return true;
-        }
-
-        return false;
+        IsSprinting = sprintHeld && hasMoveInput && sprintBlocked == false;
     }
 
     // Adds a burst of horizontal velocity (e.g. an attack lunge) that decays with deceleration.
@@ -192,37 +150,6 @@ public class PlayerMovement : MonoBehaviour
     {
         velocity.y = 0f;
         planarVelocity += velocity;
-    }
-
-    private void UpdateStamina()
-    {
-        if (IsSprinting == true)
-        {
-            stamina -= settings.sprintStaminaDrain * Time.deltaTime;
-            staminaRegenTimer = settings.staminaRegenDelay;
-
-            if (stamina <= 0f)
-            {
-                stamina = 0f;
-                IsExhausted = true;
-                IsSprinting = false;
-            }
-
-            return;
-        }
-
-        if (staminaRegenTimer > 0f)
-        {
-            staminaRegenTimer -= Time.deltaTime;
-            return;
-        }
-
-        stamina = Mathf.Min(stamina + settings.staminaRegen * Time.deltaTime, settings.maxStamina);
-
-        if (IsExhausted == true && Stamina01 >= settings.exhaustedRecoverFraction)
-        {
-            IsExhausted = false;
-        }
     }
 
     private void ApplyRotation()

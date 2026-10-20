@@ -2,7 +2,7 @@ using UnityEngine;
 
 // Training mannequin. Flinches and shows damage numbers when hit, never dies (Health refills).
 // With attacking enabled it winds up (tinting red), turns toward a nearby player and kicks.
-// Parrying the kick staggers it, and hits on a staggered dummy are critical.
+// Parrying the kick or breaking its poise staggers it, and hits on a staggered dummy are critical.
 [RequireComponent(typeof(Health))]
 public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
 {
@@ -27,6 +27,9 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     public bool attackEnabled = false;
 
     public float attackDamage = 15f;
+
+    // Poise knocked off the player by the kick (see Poise).
+    public float kickPoiseDamage = 30f;
 
     // Seconds between attacks.
     public float attackInterval = 2.5f;
@@ -61,6 +64,12 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     [SerializeField]
     private float flinchDuration = 0.4f;
 
+    [Header("Poise Info")]
+    public Poise poise = new Poise(30f, 2f, 20f);
+
+    // Hits landed during the wind-up telegraph deal this much more poise damage (a counter-hit).
+    public float windupPoiseMultiplier = 2f;
+
     private readonly Collider[] overlapBuffer = new Collider[8];
 
     private Health health;
@@ -84,6 +93,7 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     private void Awake()
     {
         health = GetComponent<Health>();
+        poise.Reset();
 
         if (animator == null)
         {
@@ -122,10 +132,21 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
         DamageNumber.Spawn(transform.position + Vector3.up * popupHeight, Mathf.RoundToInt(info.amount).ToString(), style);
         flash = 1f;
 
-        // The kick itself has armour; everything else gets interrupted.
-        if (state == DummyState.Attacking)
+        if (state != DummyState.Staggered)
         {
-            return;
+            // Catching it mid wind-up is a counter-hit and hits its poise harder.
+            float poiseDamage = info.poiseDamage * (state == DummyState.Windup ? windupPoiseMultiplier : 1f);
+            if (poise.ApplyDamage(poiseDamage) == true)
+            {
+                Stagger();
+                return;
+            }
+
+            // Poise held: the wind-up and the kick carry on through the hit.
+            if (state == DummyState.Windup || state == DummyState.Attacking)
+            {
+                return;
+            }
         }
 
         animator.CrossFadeInFixedTime("Hit" + Random.Range(1, 4), 0.05f, 0, 0f);
@@ -137,6 +158,12 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     }
 
     public void OnParried(GameObject parrier)
+    {
+        poise.Reset();
+        Stagger();
+    }
+
+    private void Stagger()
     {
         SetState(DummyState.Staggered);
         animator.CrossFadeInFixedTime("Stagger", 0.05f, 0, 0f);
@@ -152,6 +179,7 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     private void Update()
     {
         stateTime += Time.deltaTime;
+        poise.Tick(Time.deltaTime);
 
         switch (state)
         {
@@ -247,6 +275,7 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
             target.TakeHit(new DamageInfo
             {
                 amount = attackDamage,
+                poiseDamage = kickPoiseDamage,
                 point = overlapBuffer[i].ClosestPoint(center),
                 direction = transform.forward,
                 source = gameObject,

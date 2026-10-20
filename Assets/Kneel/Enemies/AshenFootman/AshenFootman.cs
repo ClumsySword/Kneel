@@ -6,7 +6,7 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
     // How long a normal hit interrupts the footman.
     public float hitStunTime = 0.6f;
 
-    // How long being parried leaves it open (hits during it are critical).
+    // How long a parry or a broken poise leaves it open (hits during it are critical).
     public float staggerTime = 1.4f;
 
     // How far a hit shoves it back.
@@ -18,11 +18,12 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
     public ChaseState_AshenFootman chaseState { get; private set; }
     public AttackState_AshenFootman attackState { get; private set; }
     public HitState_AshenFootman hitState { get; private set; }
+    public StaggerState_AshenFootman staggerState { get; private set; }
     public DeadState_AshenFootman deadState { get; private set; }
 
     public bool IsDead => stateMachine.currentState == deadState;
 
-    public bool IsStaggered => stateMachine.currentState == hitState && hitState.isStagger;
+    public bool IsStaggered => stateMachine.currentState == staggerState;
 
     protected override void Awake()
     {
@@ -34,6 +35,7 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
         chaseState = new ChaseState_AshenFootman(this, stateMachine, "Chase");
         attackState = new AttackState_AshenFootman(this, stateMachine, "Attack");
         hitState = new HitState_AshenFootman(this, stateMachine, "Hit");
+        staggerState = new StaggerState_AshenFootman(this, stateMachine, "Stagger");
         deadState = new DeadState_AshenFootman(this, stateMachine, "Dead");
     }
 
@@ -71,15 +73,25 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
         if (agent.enabled)
             agent.Move(info.direction * knockback);
 
-        // Once the swing has started it goes through (the hit still lands); a wind-up gets interrupted.
-        if (stateMachine.currentState == attackState && attackState.swingStarted)
-            return;
-
-        // A staggered footman stays staggered; more hits don't reset it to a shorter stun.
+        // A staggered footman stays staggered; more hits don't restart or shorten it.
         if (IsStaggered)
             return;
 
-        hitState.Setup(hitStunTime, false);
+        // Catching it mid wind-up is a counter-hit and hits its poise harder.
+        bool attacking = stateMachine.currentState == attackState;
+        bool inWindup = attacking && attackState.swingStarted == false;
+        float poiseDamage = info.poiseDamage * (inWindup ? windupPoiseMultiplier : 1f);
+
+        if (poise.ApplyDamage(poiseDamage))
+        {
+            stateMachine.ChangeState(staggerState);
+            return;
+        }
+
+        // Poise held: the attack (wind-up or swing) carries on through the hit.
+        if (attacking)
+            return;
+
         stateMachine.ChangeState(hitState);
     }
 
@@ -88,8 +100,8 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
         if (IsDead)
             return;
 
-        hitState.Setup(staggerTime, true);
-        stateMachine.ChangeState(hitState);
+        poise.Reset();
+        stateMachine.ChangeState(staggerState);
     }
 
     public override void AttackHit()

@@ -28,17 +28,6 @@ public class PlayerCameraSettings : ScriptableObject
 
     public float zoomSmoothTime = 0.1f;
 
-    [Header("Edge Look Info")]
-    // Width of the edge band as a fraction of the screen (0.1 = outer 10% on each side).
-    [Range(0.01f, 0.5f)]
-    public float edgeSize = 0.1f;
-
-    // How far (world units) the camera can pan away from the player at full edge push and max zoom.
-    // Scaled down with zoom so the player stays on screen when zoomed in.
-    public float maxEdgeOffset = 10f;
-
-    public float edgeSmoothTime = 0.3f;
-
     private void OnValidate()
     {
         minDistance = Mathf.Max(1f, minDistance);

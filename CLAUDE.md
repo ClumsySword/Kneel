@@ -63,7 +63,7 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
 - **Tuning lives in ScriptableObjects** in `Assets/Kneel/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
 - **`PlayerMovement.cs`** owns all player logic in `Update()`. Input callbacks only cache values. Each frame it:
   1. Aims: raycasts the mouse against `aimLayerMask` and moves the `aim` dot to the hit point.
-  2. Resolves sprint and stamina.
+  2. Resolves sprint (no stamina; sprint is unlimited).
   3. Rotates at a capped turn rate: toward the aim point when walking, toward the move direction when sprinting.
   4. Moves planar velocity toward the target with accel/decel, and applies gravity and jump (`sqrt(2gh)`).
   5. Moves via `CharacterController.Move` (no Rigidbody, no root motion).
@@ -74,7 +74,7 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
   - The `Locomotion` state is a Freeform Directional 2D tree whose child positions are each clip's real travel speed on the Knight. That is what keeps the feet from sliding.
   - If you add a clip or change a movement speed default, place the clip at its measured speed and keep the `PlayerMovementSettings` defaults in sync.
   - Renaming parameters means updating the string literals in `PlayerMovement.cs`.
-- **`PlayerCamera.cs`** (on Main Camera) is an angled top-down follow camera in `LateUpdate`. It reads `Zoom` and `Aim` (pointer position, for edge panning). It finds the player through `PlayerMovement` if `target` is unset. `AddShake()` is used for impacts.
+- **`PlayerCamera.cs`** (on Main Camera) is an angled top-down follow camera in `LateUpdate`. It reads only `Zoom` (edge panning was removed). It finds the player through `PlayerMovement` if `target` is unset. `AddShake()` is used for impacts.
 - **`PlayerCombat.cs`** is a code-driven state machine: `Sheathed → Drawing → Armed ⇄ Attacking / HitStun / Dodging → Sheathing`, with blocking as a flag while Armed. It runs before `PlayerMovement` (`[DefaultExecutionOrder(-10)]`).
   - The combo is two slashes (`Slash1` = `slash-1`, `Slash2` = `slash-3`). The pommel strike `attack-4` was dropped.
   - **Dodge roll** (base-layer `Dodge` state, trimmed `Stand To Roll` clip, frames 33–117, sped up to `dodgeDuration`):
@@ -87,14 +87,15 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
     - `UpperBody`, masked by `AM_UpperBody.mask` (arms and head): ArmedIdle, Draw1/2, Sheath1/2, Block, BlockHit, Parry.
     - `FullBody`: Slash1, Slash2, HitReact, GuardBreak, Death.
   - All timings are clip-seconds in `PlayerCombatSettings`: each attack's `hitStart/hitEnd/comboWindow/recoveryEnd`, plus draw grab and sheathe release. They were measured from blade-tip speed and hand-to-hilt distance on the Knight. Re-measure them if you swap a clip.
-  - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame. Stamina goes through `TrySpendStamina` / `DrainStamina`.
-  - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, drains stamina; guard break at 0), then full damage plus hit-stun.
+  - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame.
+  - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, `blockPoiseMultiplier` of the poise damage; guard break when poise breaks), then full damage plus full poise damage. A broken poise staggers (`GuardBreak`, `staggerDuration`). An intact poise means a short `HitReact`, unless mid-action (attack/draw/sheathe/roll), which carries on.
 - **`PlayerEquipment.cs`** moves the sword and shield between sockets: `Socket_Sheath` on the scabbard, `Socket_ShieldBack` on the upper spine, `Socket_SwordHand` / `Socket_ShieldHand` on the hands.
   - Sockets carry a ×100 scale because the Knight's bones are in centimetres. They define the item pose exactly, so items sit at identity.
   - The sword has a `WeaponHitbox`: a capsule from `BladeBase` to `BladeTip`, swept between frames, hitting each target once per swing.
 - **Shared combat** (`Assets/Kneel/Combat/`):
   - `DamageInfo`, plus the interfaces `IDamageable` / `IParryable` / `IStaggerable`.
   - `Health`: optional regenerate-to-full (only the dummy uses it). The player and enemies can die. Player death (`PlayerCombat` `Dead` state, `OnDied`) reloads the scene through `LevelRestartOnDeath`, which only works for scenes in Build Settings.
+  - `Poise` (plain serializable class, owned by the player, `Enemy` and `TargetDummy`): depletes from `DamageInfo.poiseDamage`, regenerates after a delay, refills when it breaks. Hits during an enemy wind-up deal `windupPoiseMultiplier`× poise damage.
   - `HitStop`: global `Time.timeScale` freeze.
   - `DamageNumber`: runtime-built world-space TMP text.
   - `HitSpark`: runtime-built particle burst.
@@ -109,7 +110,7 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
   - Attack plays at 0.6× so the wind-up is at least 300 ms, with a red tint telegraph.
   - The Hit and Dead states use `stateTimer` instead of events, because their clips (Mixamo `impact-1`, `death-1`) are shared with the player, whose animator has no receiver for them.
   - It implements `IDamageable` / `IParryable` / `IStaggerable`:
-    - Sword hits interrupt the wind-up but not the swing.
+    - Hits that break its poise (30) stagger it (`StaggerState`, `Stagger` animator state on `impact-2` at 0.7×); hits that don't make it flinch (`Hit`), except during an attack, which carries on.
     - A parry staggers it, and hits during the stagger are crits.
     - It has 40 HP, which is 3 hits of the 12→20 combo.
     - When it dies, its agent and collider switch off and the body stays.

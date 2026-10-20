@@ -26,8 +26,3 @@ MonoBehaviour:
   gravity: 20
   jumpHeight: 0.9
   airControl: 0.3
-  maxStamina: 100
-  sprintStaminaDrain: 25
-  staminaRegen: 30
-  staminaRegenDelay: 0.8
-  exhaustedRecoverFraction: 0.3

@@ -5,6 +5,9 @@ public struct DamageInfo
 {
     public float amount;
 
+    // How hard the hit knocks the receiver off balance (see Poise). Zero never staggers.
+    public float poiseDamage;
+
     // World position of the contact.
     public Vector3 point;
 

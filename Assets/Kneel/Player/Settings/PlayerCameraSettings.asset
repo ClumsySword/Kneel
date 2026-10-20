@@ -21,6 +21,3 @@ MonoBehaviour:
   startDistance: 8.501834
   zoomStep: 2
   zoomSmoothTime: 0.1
-  edgeSize: 0.1
-  maxEdgeOffset: 10
-  edgeSmoothTime: 0.3

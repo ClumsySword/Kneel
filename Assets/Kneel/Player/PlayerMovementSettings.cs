@@ -42,18 +42,4 @@ public class PlayerMovementSettings : ScriptableObject
     // Fraction of ground acceleration available while airborne.
     [Range(0f, 1f)]
     public float airControl = 0.3f;
-
-    [Header("Stamina Info")]
-    public float maxStamina = 100f;
-
-    public float sprintStaminaDrain = 25f;
-
-    public float staminaRegen = 30f;
-
-    // Seconds after sprinting stops before stamina starts regenerating.
-    public float staminaRegenDelay = 0.8f;
-
-    // After running dry, sprint stays locked until stamina refills to this fraction.
-    [Range(0f, 1f)]
-    public float exhaustedRecoverFraction = 0.3f;
 }

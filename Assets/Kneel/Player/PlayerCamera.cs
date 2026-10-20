@@ -1,7 +1,6 @@
 using UnityEngine;
 
-// Angled top-down camera that follows the player, zooms with the scroll wheel
-// and pans toward the pointer when it is pushed against the screen edges.
+// Angled top-down camera that follows the player and zooms with the scroll wheel.
 // Tuning values live in a PlayerCameraSettings asset.
 [RequireComponent(typeof(Camera))]
 public class PlayerCamera : MonoBehaviour
@@ -14,19 +13,12 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField]
     private PlayerCameraSettings settings;
 
-    // Turned off by the debug overlay so reaching for its panel doesn't pan the view.
-    [HideInInspector]
-    public bool edgeLookEnabled = true;
-
     private float distance;
     private float targetDistance;
     private float zoomVelocity;
 
     private Vector3 focusPoint;
     private Vector3 focusVelocity;
-
-    private Vector3 edgeOffset;
-    private Vector3 edgeOffsetVelocity;
 
     private float shakeStrength = 0f;
     private float shakeDuration = 0f;
@@ -82,7 +74,6 @@ public class PlayerCamera : MonoBehaviour
         }
 
         UpdateZoom();
-        UpdateEdgeOffset();
 
         Vector3 desiredFocus = target.position + Vector3.up * settings.targetHeight;
         focusPoint = Vector3.SmoothDamp(focusPoint, desiredFocus, ref focusVelocity, settings.followSmoothTime);
@@ -98,41 +89,6 @@ public class PlayerCamera : MonoBehaviour
         // Clamped every frame so min/max edits made while playing apply immediately.
         targetDistance = Mathf.Clamp(targetDistance - scroll * settings.zoomStep, settings.minDistance, settings.maxDistance);
         distance = Mathf.SmoothDamp(distance, targetDistance, ref zoomVelocity, settings.zoomSmoothTime);
-    }
-
-    private void UpdateEdgeOffset()
-    {
-        Vector2 edgePush = edgeLookEnabled ? GetEdgePush(controls.Character.Aim.ReadValue<Vector2>()) : Vector2.zero;
-
-        // Map the screen direction onto the ground plane using only the camera's yaw.
-        Quaternion flatRotation = Quaternion.Euler(0f, settings.yaw, 0f);
-        Vector3 right = flatRotation * Vector3.right;
-        Vector3 forward = flatRotation * Vector3.forward;
-
-        float offsetDistance = settings.maxEdgeOffset * (distance / settings.maxDistance);
-        Vector3 desiredOffset = (right * edgePush.x + forward * edgePush.y) * offsetDistance;
-        edgeOffset = Vector3.SmoothDamp(edgeOffset, desiredOffset, ref edgeOffsetVelocity, settings.edgeSmoothTime);
-    }
-
-    // Returns how hard the pointer is pushed into each screen edge, from -1 to 1 per axis.
-    private Vector2 GetEdgePush(Vector2 pointer)
-    {
-        bool pointerOnScreen = pointer.x >= 0f && pointer.y >= 0f && pointer.x <= Screen.width && pointer.y <= Screen.height;
-        if (Application.isFocused == false || pointerOnScreen == false)
-        {
-            return Vector2.zero;
-        }
-
-        // -1..1 from screen centre to each edge.
-        float x = pointer.x / Screen.width * 2f - 1f;
-        float y = pointer.y / Screen.height * 2f - 1f;
-
-        float edgeStart = 1f - settings.edgeSize * 2f;
-        Vector2 push = new Vector2(
-            Mathf.Sign(x) * Mathf.InverseLerp(edgeStart, 1f, Mathf.Abs(x)),
-            Mathf.Sign(y) * Mathf.InverseLerp(edgeStart, 1f, Mathf.Abs(y)));
-
-        return Vector2.ClampMagnitude(push, 1f);
     }
 
     // Jolts the camera for impacts. Stronger calls override weaker ones still playing.
@@ -165,9 +121,7 @@ public class PlayerCamera : MonoBehaviour
     private void ApplyTransform()
     {
         Quaternion rotation = Quaternion.Euler(settings.pitch, settings.yaw, 0f);
-        Vector3 lookPoint = focusPoint + edgeOffset;
-
-        transform.SetPositionAndRotation(lookPoint - rotation * Vector3.forward * distance + GetShakeOffset(), rotation);
+        transform.SetPositionAndRotation(focusPoint - rotation * Vector3.forward * distance + GetShakeOffset(), rotation);
     }
 
     private void OnEnable()
