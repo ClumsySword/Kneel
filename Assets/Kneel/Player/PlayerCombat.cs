@@ -83,6 +83,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public Health Health => health;
 
+    // Synced from settings every frame so overlay edits apply live.
+    public Poise Poise { get; } = new Poise();
+
     public PlayerCombatSettings Settings => settings;
 
     private void Awake()
@@ -103,6 +106,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         movement = GetComponent<PlayerMovement>();
         equipment = GetComponent<PlayerEquipment>();
         health = GetComponent<Health>();
+
+        SyncPoiseSettings();
+        Poise.Reset();
     }
 
     private void Start()
@@ -156,7 +162,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         else if (State == CombatState.Armed && blockHeld == false)
         {
             // Checks the button, not IsBlocking, so release-block-and-swing works on the same frame.
-            TryStartAttack(0);
+            StartAttack(0);
         }
         else if (State == CombatState.Attacking)
         {
@@ -181,6 +187,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private void Update()
     {
         stateTime += Time.deltaTime;
+
+        SyncPoiseSettings();
+        Poise.Tick(Time.deltaTime);
 
         switch (State)
         {
@@ -269,14 +278,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     // --- Attacks ---
 
-    private bool TryStartAttack(int step)
+    private void StartAttack(int step)
     {
         AttackDefinition attack = settings.attacks[step];
-
-        if (movement.TrySpendStamina(attack.staminaCost) == false)
-        {
-            return false;
-        }
 
         SetState(CombatState.Attacking);
         comboStep = step;
@@ -291,7 +295,6 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         // Step into the swing. v = sqrt(2·a·d) covers the lunge distance while decelerating to a stop.
         float lungeSpeed = Mathf.Sqrt(2f * movement.Settings.deceleration * settings.attackLunge);
         movement.AddImpulse(transform.forward * lungeSpeed);
-        return true;
     }
 
     private void QueueNextAttack()
@@ -326,14 +329,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         if (attackQueued == true && clipTime >= attack.comboWindow)
         {
             equipment.SwordHitbox.End();
-            int nextStep = (comboStep + 1) % settings.attacks.Length;
-
-            if (TryStartAttack(nextStep) == true)
-            {
-                return;
-            }
-
-            attackQueued = false;
+            StartAttack((comboStep + 1) % settings.attacks.Length);
+            return;
         }
 
         if (clipTime >= attack.recoveryEnd)
@@ -352,14 +349,16 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
 
         bool critical = target is IStaggerable staggerable && staggerable.IsStaggered;
-        float damage = settings.attacks[comboStep].damage * (critical ? settings.criticalMultiplier : 1f);
+        float multiplier = critical ? settings.criticalMultiplier : 1f;
+        AttackDefinition attack = settings.attacks[comboStep];
 
         Vector3 direction = hitCollider.transform.position - transform.position;
         direction.y = 0f;
 
         target.TakeHit(new DamageInfo
         {
-            amount = damage,
+            amount = attack.damage * multiplier,
+            poiseDamage = attack.poiseDamage * multiplier,
             point = point,
             direction = direction.normalized,
             source = gameObject,
@@ -393,11 +392,6 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void StartDodge()
     {
-        if (movement.TrySpendStamina(settings.dodgeStaminaCost) == false)
-        {
-            return;
-        }
-
         // Roll where the player is steering, or straight ahead with no input. Snap to face it.
         dodgeDirection = movement.MoveDirection;
         dodgeDirection.y = 0f;
@@ -461,7 +455,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             if (State == CombatState.Armed && Time.time - attackRequestTime <= settings.comboBufferTime + settings.dodgeDuration)
             {
                 attackRequestTime = -999f;
-                TryStartAttack(0);
+                StartAttack(0);
             }
         }
     }
@@ -547,19 +541,18 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
         if (fromFront == true && IsBlocking == true)
         {
-            float absorbed = info.amount * settings.blockDamageReduction;
-            bool guardBroken = movement.DrainStamina(absorbed * settings.blockStaminaPerDamage);
-
-            if (guardBroken == true)
+            // The shield soaks most of the poise damage too; what gets through can still break the guard.
+            if (Poise.ApplyDamage(info.poiseDamage * settings.blockPoiseMultiplier) == true)
             {
                 health.ApplyDamage(info.amount);
                 DamageNumber.Spawn(popup, "GUARD BREAK " + Mathf.RoundToInt(info.amount), DamageNumberStyle.PlayerDamage);
-                StartHitStun(settings.guardBreakDuration, "GuardBreak");
+                StartHitStun(settings.staggerDuration, "GuardBreak");
+                HitStop.Freeze(settings.hitStop);
                 Shake(settings.hitShake * 2f);
                 return;
             }
 
-            float taken = info.amount - absorbed;
+            float taken = info.amount * (1f - settings.blockDamageReduction);
             health.ApplyDamage(taken);
             DamageNumber.Spawn(popup, "BLOCK " + Mathf.RoundToInt(taken), DamageNumberStyle.Block);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(0.8f, 0.85f, 1f), 10);
@@ -569,11 +562,38 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
+        bool poiseBroken = Poise.ApplyDamage(info.poiseDamage);
         health.ApplyDamage(info.amount);
-        DamageNumber.Spawn(popup, Mathf.RoundToInt(info.amount).ToString(), DamageNumberStyle.PlayerDamage);
-        StartHitStun(settings.hitStunDuration, "HitReact");
         HitStop.Freeze(settings.hitStop);
+
+        if (poiseBroken == true)
+        {
+            DamageNumber.Spawn(popup, "STAGGER " + Mathf.RoundToInt(info.amount), DamageNumberStyle.PlayerDamage);
+            StartHitStun(settings.staggerDuration, "GuardBreak");
+            Shake(settings.hitShake * 2f);
+            return;
+        }
+
+        DamageNumber.Spawn(popup, Mathf.RoundToInt(info.amount).ToString(), DamageNumberStyle.PlayerDamage);
         Shake(settings.hitShake * 1.5f);
+
+        // Poise held: a committed action (swing, draw, sheathe, roll) carries on through the hit.
+        if (IsInCommittedAction == false)
+        {
+            StartHitStun(settings.hitStunDuration, "HitReact");
+        }
+    }
+
+    private bool IsInCommittedAction => State == CombatState.Attacking
+        || State == CombatState.Drawing
+        || State == CombatState.Sheathing
+        || State == CombatState.Dodging;
+
+    private void SyncPoiseSettings()
+    {
+        Poise.maxPoise = settings.maxPoise;
+        Poise.regenDelay = settings.poiseRegenDelay;
+        Poise.regenRate = settings.poiseRegenRate;
     }
 
     // Health reached zero. Everything stops; the scene decides what happens next (see OnDied).

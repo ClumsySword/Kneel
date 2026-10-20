@@ -38,7 +38,7 @@ public class DebugTuningOverlay : MonoBehaviour
     private void Awake()
     {
         controls = new PlayerControls();
-        controls.Debug.ToggleOverlay.performed += ctx => SetOpen(isOpen == false);
+        controls.Debug.ToggleOverlay.performed += ctx => isOpen = isOpen == false;
     }
 
     private void Start()
@@ -63,7 +63,7 @@ public class DebugTuningOverlay : MonoBehaviour
             targetDummy = FindAnyObjectByType<TargetDummy>();
         }
 
-        SetOpen(startOpen);
+        isOpen = startOpen;
     }
 
     private void Update()
@@ -83,16 +83,6 @@ public class DebugTuningOverlay : MonoBehaviour
     private static Rect PanelRect()
     {
         return new Rect(10f, 10f, PanelWidth, Screen.height - 20f);
-    }
-
-    private void SetOpen(bool open)
-    {
-        isOpen = open;
-
-        if (playerCamera != null)
-        {
-            playerCamera.edgeLookEnabled = open == false;
-        }
     }
 
     private void OnGUI()
@@ -141,8 +131,6 @@ public class DebugTuningOverlay : MonoBehaviour
             s.startDistance = Mathf.Clamp(Slider("Start distance", s.startDistance, 1f, 60f), s.minDistance, s.maxDistance);
             s.zoomStep = Slider("Zoom step", s.zoomStep, 0.25f, 6f);
             s.pitch = Slider("Pitch", s.pitch, 30f, 90f);
-            s.maxEdgeOffset = Slider("Edge pan distance", s.maxEdgeOffset, 0f, 25f);
-            s.edgeSize = Slider("Edge band size", s.edgeSize, 0.01f, 0.5f);
             s.followSmoothTime = Slider("Follow smoothing", s.followSmoothTime, 0f, 0.5f);
         });
 
@@ -156,9 +144,8 @@ public class DebugTuningOverlay : MonoBehaviour
 
     private void DrawMovementSection(PlayerMovementSettings s)
     {
-        string state = playerMovement.IsExhausted ? "EXHAUSTED" : playerMovement.IsSprinting ? "sprinting" : "walking";
+        string state = playerMovement.IsSprinting ? "sprinting" : "walking";
         GUILayout.Label($"Speed {playerMovement.CurrentSpeed:F2} m/s  ({state})");
-        DrawBar(playerMovement.Stamina01, playerMovement.IsExhausted ? Color.red : Color.green);
 
         EditorDirtyCheck(s, () =>
         {
@@ -167,23 +154,20 @@ public class DebugTuningOverlay : MonoBehaviour
             s.walkSpeedStrafe = Slider("Walk strafe", s.walkSpeedStrafe, 0.5f, 3f);
             s.walkSpeedBackwardDiagonal = Slider("Walk back diagonal", s.walkSpeedBackwardDiagonal, 0.5f, 3f);
             s.walkSpeedBackward = Slider("Walk backward", s.walkSpeedBackward, 0.5f, 3f);
+            s.walkSpeedMultiplier = Slider("Walk speed x", s.walkSpeedMultiplier, 0.5f, 2f);
             s.acceleration = Slider("Acceleration", s.acceleration, 1f, 40f);
             s.deceleration = Slider("Deceleration", s.deceleration, 1f, 40f);
             s.aimTurnRate = Slider("Aim turn rate", s.aimTurnRate, 90f, 1440f);
 
             s.sprintSpeed = Slider("Sprint speed", s.sprintSpeed, 1f, 8f);
+            s.sprintSpeedMultiplier = Slider("Sprint speed x", s.sprintSpeedMultiplier, 0.5f, 2f);
+            s.sprintGrip = Slider("Sprint grip", s.sprintGrip, 90f, 2160f);
             s.sprintAcceleration = Slider("Sprint acceleration", s.sprintAcceleration, 1f, 20f);
             s.sprintTurnRate = Slider("Sprint turn rate", s.sprintTurnRate, 60f, 1080f);
 
             s.gravity = Slider("Gravity", s.gravity, 5f, 40f);
             s.jumpHeight = Slider("Jump height", s.jumpHeight, 0.2f, 2.5f);
             s.airControl = Slider("Air control", s.airControl, 0f, 1f);
-
-            s.maxStamina = Slider("Max stamina", s.maxStamina, 10f, 300f);
-            s.sprintStaminaDrain = Slider("Sprint drain /s", s.sprintStaminaDrain, 0f, 100f);
-            s.staminaRegen = Slider("Regen /s", s.staminaRegen, 0f, 100f);
-            s.staminaRegenDelay = Slider("Regen delay", s.staminaRegenDelay, 0f, 3f);
-            s.exhaustedRecoverFraction = Slider("Exhausted until", s.exhaustedRecoverFraction, 0f, 1f);
         });
 
         if (GUILayout.Button("Reset movement to defaults"))
@@ -200,18 +184,15 @@ public class DebugTuningOverlay : MonoBehaviour
         string guard = playerCombat.IsInvulnerable ? "I-FRAMES" : playerCombat.IsParryWindowOpen ? "PARRY WINDOW" : playerCombat.IsBlocking ? "blocking" : "";
         GUILayout.Label($"HP {health.Current:0}/{health.Max:0}   {playerCombat.State} {guard}");
         DrawBar(health.Fraction, new Color(0.8f, 0.15f, 0.1f));
-
-        if (playerMovement != null)
-        {
-            DrawBar(playerMovement.Stamina01, playerMovement.IsExhausted ? Color.red : Color.green);
-        }
+        GUILayout.Label($"Poise {playerCombat.Poise.Current:0}/{playerCombat.Poise.maxPoise:0}");
+        DrawBar(playerCombat.Poise.Fraction, new Color(0.95f, 0.75f, 0.2f));
 
         EditorDirtyCheck(s, () =>
         {
             for (int i = 0; i < s.attacks.Length; i++)
             {
                 s.attacks[i].damage = Slider($"Hit {i + 1} damage", s.attacks[i].damage, 0f, 100f);
-                s.attacks[i].staminaCost = Slider($"Hit {i + 1} stamina", s.attacks[i].staminaCost, 0f, 60f);
+                s.attacks[i].poiseDamage = Slider($"Hit {i + 1} poise dmg", s.attacks[i].poiseDamage, 0f, 100f);
             }
 
             s.criticalMultiplier = Slider("Crit multiplier", s.criticalMultiplier, 1f, 4f);
@@ -223,7 +204,6 @@ public class DebugTuningOverlay : MonoBehaviour
 
             s.dodgeDistance = Slider("Roll distance", s.dodgeDistance, 1f, 6f);
             s.dodgeDuration = Slider("Roll duration", s.dodgeDuration, 0.4f, 1.6f);
-            s.dodgeStaminaCost = Slider("Roll stamina", s.dodgeStaminaCost, 0f, 60f);
             s.dodgeInvulnerableStart = Slider("Roll i-frames from", s.dodgeInvulnerableStart, 0f, 1f);
             s.dodgeInvulnerableEnd = Slider("Roll i-frames to", s.dodgeInvulnerableEnd, 0f, 1.6f);
             s.dodgeBufferTime = Slider("Roll buffer", s.dodgeBufferTime, 0f, 1f);
@@ -231,7 +211,7 @@ public class DebugTuningOverlay : MonoBehaviour
 
             s.blockMoveMultiplier = Slider("Block move speed", s.blockMoveMultiplier, 0f, 1f);
             s.blockDamageReduction = Slider("Block reduction", s.blockDamageReduction, 0f, 1f);
-            s.blockStaminaPerDamage = Slider("Block stamina/dmg", s.blockStaminaPerDamage, 0f, 5f);
+            s.blockPoiseMultiplier = Slider("Block poise taken", s.blockPoiseMultiplier, 0f, 1f);
             s.parryWindow = Slider("Parry window", s.parryWindow, 0f, 0.6f);
             s.parryCooldown = Slider("Parry cooldown", s.parryCooldown, 0f, 1.5f);
 
@@ -239,6 +219,11 @@ public class DebugTuningOverlay : MonoBehaviour
             s.parryHitStop = Slider("Parry hit-stop", s.parryHitStop, 0f, 0.5f);
             s.hitShake = Slider("Hit shake", s.hitShake, 0f, 0.5f);
             s.hitStunDuration = Slider("Hit stun", s.hitStunDuration, 0f, 1.5f);
+            s.staggerDuration = Slider("Stagger time", s.staggerDuration, 0f, 3f);
+
+            s.maxPoise = Slider("Max poise", s.maxPoise, 1f, 200f);
+            s.poiseRegenDelay = Slider("Poise regen delay", s.poiseRegenDelay, 0f, 5f);
+            s.poiseRegenRate = Slider("Poise regen /s", s.poiseRegenRate, 0f, 100f);
         });
 
         if (GUILayout.Button("Reset combat to defaults"))
@@ -253,13 +238,18 @@ public class DebugTuningOverlay : MonoBehaviour
     {
         TargetDummy d = targetDummy;
         GUILayout.Label($"Hits {d.HitCount}   Total damage {d.TotalDamage:0}   {(d.IsStaggered ? "STAGGERED" : "")}");
+        GUILayout.Label($"Poise {d.poise.Current:0}/{d.poise.maxPoise:0}");
+        DrawBar(d.poise.Fraction, new Color(0.95f, 0.75f, 0.2f));
 
         d.attackEnabled = GUILayout.Toggle(d.attackEnabled, " Dummy attacks");
         d.attackDamage = Slider("Kick damage", d.attackDamage, 0f, 60f);
+        d.kickPoiseDamage = Slider("Kick poise dmg", d.kickPoiseDamage, 0f, 100f);
         d.attackInterval = Slider("Kick interval", d.attackInterval, 0.5f, 6f);
         d.attackWindup = Slider("Kick windup", d.attackWindup, 0.1f, 2f);
         d.attackRange = Slider("Kick range", d.attackRange, 1f, 4f);
         d.staggerDuration = Slider("Stagger time", d.staggerDuration, 0.2f, 3f);
+        d.poise.maxPoise = Slider("Max poise", d.poise.maxPoise, 1f, 200f);
+        d.windupPoiseMultiplier = Slider("Wind-up poise x", d.windupPoiseMultiplier, 1f, 4f);
     }
 
     private static bool Foldout(string title, ref bool open)

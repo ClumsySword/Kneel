@@ -15,14 +15,14 @@ MonoBehaviour:
   attacks:
   - stateName: Slash1
     damage: 12
-    staminaCost: 12
+    poiseDamage: 20
     hitStart: 0.5
     hitEnd: 0.66
     comboWindow: 0.66
     recoveryEnd: 0.95
   - stateName: Slash2
     damage: 20
-    staminaCost: 18
+    poiseDamage: 35
     hitStart: 0.66
     hitEnd: 0.92
     comboWindow: 0.95
@@ -39,7 +39,6 @@ MonoBehaviour:
   sheathDuration: 1.7
   dodgeDistance: 3
   dodgeDuration: 0.85
-  dodgeStaminaCost: 20
   dodgeInvulnerableStart: 0.07
   dodgeInvulnerableEnd: 0.43
   dodgeBufferTime: 0.35
@@ -187,7 +186,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   blockMoveMultiplier: 0.5
   blockDamageReduction: 0.8
-  blockStaminaPerDamage: 1
+  blockPoiseMultiplier: 0.5
   blockAngle: 70
   parryWindow: 0.2
   parryCooldown: 0.4
@@ -195,5 +194,8 @@ MonoBehaviour:
   parryHitStop: 0.12
   hitShake: 0.08
   hitStunDuration: 0.45
-  guardBreakDuration: 0.9
+  staggerDuration: 0.9
+  maxPoise: 50
+  poiseRegenDelay: 1.5
+  poiseRegenRate: 25
   maxHealth: 100

@@ -139,8 +139,6 @@ namespace Kneel.Lighting.EditorTools
             var cameraScript = Camera.main.GetComponent("PlayerCamera");
             var type = cameraScript.GetType();
             const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
-            type.GetField("edgeLookEnabled", flags)?.SetValue(cameraScript, false);
-            type.GetField("edgeOffset", flags)?.SetValue(cameraScript, Vector3.zero);
             type.GetField("focusPoint", flags)?.SetValue(cameraScript, feet);
         }
 

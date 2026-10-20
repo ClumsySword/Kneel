@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 // Timings for one swing, in seconds of the clip at attackSpeed 1. Defaults were measured from the
 // sword-tip speed of each clip on the Knight (hit window = fastest part of the swing).
@@ -10,7 +11,8 @@ public class AttackDefinition
 
     public float damage;
 
-    public float staminaCost;
+    // Poise knocked off the target (see Poise).
+    public float poiseDamage;
 
     public float hitStart;
 
@@ -30,8 +32,8 @@ public class PlayerCombatSettings : ScriptableObject
     [Header("Attack Info")]
     public AttackDefinition[] attacks =
     {
-        new AttackDefinition { stateName = "Slash1", damage = 12f, staminaCost = 12f, hitStart = 0.5f, hitEnd = 0.66f, comboWindow = 0.66f, recoveryEnd = 0.95f },
-        new AttackDefinition { stateName = "Slash2", damage = 20f, staminaCost = 18f, hitStart = 0.66f, hitEnd = 0.92f, comboWindow = 0.95f, recoveryEnd = 1.25f },
+        new AttackDefinition { stateName = "Slash1", damage = 12f, poiseDamage = 20f, hitStart = 0.5f, hitEnd = 0.66f, comboWindow = 0.66f, recoveryEnd = 0.95f },
+        new AttackDefinition { stateName = "Slash2", damage = 20f, poiseDamage = 35f, hitStart = 0.66f, hitEnd = 0.92f, comboWindow = 0.95f, recoveryEnd = 1.25f },
     };
 
     // Damage multiplier against a staggered target (e.g. after a parry).
@@ -71,8 +73,6 @@ public class PlayerCombatSettings : ScriptableObject
     // Total roll time, including getting back up. The roll animation is sped up to fit.
     public float dodgeDuration = 0.85f;
 
-    public float dodgeStaminaCost = 20f;
-
     // Invulnerable between these times into the roll (roughly frames 4-13 at 30 fps, per the Combat Roll spec).
     public float dodgeInvulnerableStart = 0.07f;
 
@@ -100,8 +100,9 @@ public class PlayerCombatSettings : ScriptableObject
     [Range(0f, 1f)]
     public float blockDamageReduction = 0.8f;
 
-    // Stamina lost per point of damage absorbed by the shield.
-    public float blockStaminaPerDamage = 1f;
+    // Fraction of a hit's poise damage that still gets through the shield. Running out is a guard break.
+    [Range(0f, 1f)]
+    public float blockPoiseMultiplier = 0.5f;
 
     // Hits from within this angle of where you face can be blocked or parried.
     public float blockAngle = 70f;
@@ -120,9 +121,20 @@ public class PlayerCombatSettings : ScriptableObject
 
     public float hitShake = 0.08f;
 
+    // Short reaction to a hit that doesn't break poise, taken only when not mid-action.
     public float hitStunDuration = 0.45f;
 
-    public float guardBreakDuration = 0.9f;
+    // Stun when poise breaks (unblocked stagger or guard break).
+    [FormerlySerializedAs("guardBreakDuration")]
+    public float staggerDuration = 0.9f;
+
+    [Header("Poise Info")]
+    public float maxPoise = 50f;
+
+    // Seconds without being hit before poise regenerates.
+    public float poiseRegenDelay = 1.5f;
+
+    public float poiseRegenRate = 25f;
 
     [Header("Health Info")]
     public float maxHealth = 100f;

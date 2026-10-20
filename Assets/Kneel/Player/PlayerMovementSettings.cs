@@ -18,10 +18,13 @@ public class PlayerMovementSettings : ScriptableObject
 
     public float walkSpeedBackward = 1.09f;
 
-    // How fast the character reaches walk speed, and how fast they plant when input stops (m/s²).
-    public float acceleration = 8f;
+    // Scales all the walk speeds above. The walk clips play faster by the same amount, so the feet stay planted.
+    public float walkSpeedMultiplier = 1.2f;
 
-    public float deceleration = 14f;
+    // How fast the character reaches walk speed, and how fast they plant when input stops (m/s²).
+    public float acceleration = 16f;
+
+    public float deceleration = 22f;
 
     // Degrees per second the character turns toward the aim point.
     public float aimTurnRate = 540f;
@@ -30,9 +33,16 @@ public class PlayerMovementSettings : ScriptableObject
     // Travel speed of the sprint-forwards clip on the Knight.
     public float sprintSpeed = 3.97f;
 
-    public float sprintAcceleration = 4f;
+    // Scales sprintSpeed. The sprint clip plays faster by the same amount, so the feet stay planted.
+    public float sprintSpeedMultiplier = 1.15f;
 
-    public float sprintTurnRate = 300f;
+    public float sprintAcceleration = 9f;
+
+    public float sprintTurnRate = 540f;
+
+    // Degrees per second the sprint's travel direction swings round to follow the body. High values keep
+    // the character running where they face; lower ones let momentum carry them wide through turns.
+    public float sprintGrip = 1080f;
 
     [Header("Air Info")]
     public float gravity = 20f;
@@ -42,18 +52,4 @@ public class PlayerMovementSettings : ScriptableObject
     // Fraction of ground acceleration available while airborne.
     [Range(0f, 1f)]
     public float airControl = 0.3f;
-
-    [Header("Stamina Info")]
-    public float maxStamina = 100f;
-
-    public float sprintStaminaDrain = 25f;
-
-    public float staminaRegen = 30f;
-
-    // Seconds after sprinting stops before stamina starts regenerating.
-    public float staminaRegenDelay = 0.8f;
-
-    // After running dry, sprint stays locked until stamina refills to this fraction.
-    [Range(0f, 1f)]
-    public float exhaustedRecoverFraction = 0.3f;
 }

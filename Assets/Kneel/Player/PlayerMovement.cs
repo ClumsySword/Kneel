@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Weighty top-down locomotion: the character accelerates, plants and turns at capped rates.
-// Walking keeps them facing the aim point; sprinting turns them toward where they run and drains stamina.
+// Walking keeps them facing the aim point; sprinting turns them toward where they run.
 // Tuning values live in a PlayerMovementSettings asset.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -36,17 +36,9 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 planarVelocity;
     private float verticalVelocity = 0f;
 
-    private float stamina;
-    private float staminaRegenTimer = 0f;
-
     public PlayerMovementSettings Settings => settings;
 
     public bool IsSprinting { get; private set; }
-
-    // True after stamina runs dry, until it refills to settings.exhaustedRecoverFraction.
-    public bool IsExhausted { get; private set; }
-
-    public float Stamina01 => settings.maxStamina > 0f ? stamina / settings.maxStamina : 0f;
 
     // Actual horizontal speed after collisions, in m/s.
     public float CurrentSpeed { get; private set; }
@@ -77,8 +69,6 @@ public class PlayerMovement : MonoBehaviour
     // Horizontal displacement actually achieved by the last move, after collisions.
     public Vector3 LastMoveDelta { get; private set; }
 
-    public float Stamina => stamina;
-
     // Current steering input in world space, magnitude 0..1.
     public Vector3 MoveDirection => movementDirection;
 
@@ -101,8 +91,6 @@ public class PlayerMovement : MonoBehaviour
             Debug.LogWarning("PlayerMovement has no settings asset assigned, using defaults.", this);
             settings = ScriptableObject.CreateInstance<PlayerMovementSettings>();
         }
-
-        stamina = settings.maxStamina;
     }
 
     private void Start()
@@ -128,7 +116,6 @@ public class PlayerMovement : MonoBehaviour
 
         AimTowardsMouse();
         UpdateSprintState();
-        UpdateStamina();
         ApplyRotation();
         ApplyPlanarVelocity();
         ApplyGravityVelocity();
@@ -155,36 +142,7 @@ public class PlayerMovement : MonoBehaviour
     private void UpdateSprintState()
     {
         bool hasMoveInput = movementDirection.sqrMagnitude > 0.01f;
-        IsSprinting = sprintHeld && hasMoveInput && IsExhausted == false && stamina > 0f && sprintBlocked == false;
-    }
-
-    // Spends stamina for an action (attack, blocked hit). Returns false without spending if exhausted or empty.
-    // An action may overdraw what's left; hitting zero exhausts the player like sprinting does.
-    public bool TrySpendStamina(float amount)
-    {
-        if (IsExhausted == true || stamina <= 0f)
-        {
-            return false;
-        }
-
-        DrainStamina(amount);
-        return true;
-    }
-
-    // Unconditionally removes stamina (e.g. absorbing a hit on the shield). Returns true if stamina ran out.
-    public bool DrainStamina(float amount)
-    {
-        stamina -= amount;
-        staminaRegenTimer = settings.staminaRegenDelay;
-
-        if (stamina <= 0f)
-        {
-            stamina = 0f;
-            IsExhausted = true;
-            return true;
-        }
-
-        return false;
+        IsSprinting = sprintHeld && hasMoveInput && sprintBlocked == false;
     }
 
     // Adds a burst of horizontal velocity (e.g. an attack lunge) that decays with deceleration.
@@ -192,37 +150,6 @@ public class PlayerMovement : MonoBehaviour
     {
         velocity.y = 0f;
         planarVelocity += velocity;
-    }
-
-    private void UpdateStamina()
-    {
-        if (IsSprinting == true)
-        {
-            stamina -= settings.sprintStaminaDrain * Time.deltaTime;
-            staminaRegenTimer = settings.staminaRegenDelay;
-
-            if (stamina <= 0f)
-            {
-                stamina = 0f;
-                IsExhausted = true;
-                IsSprinting = false;
-            }
-
-            return;
-        }
-
-        if (staminaRegenTimer > 0f)
-        {
-            staminaRegenTimer -= Time.deltaTime;
-            return;
-        }
-
-        stamina = Mathf.Min(stamina + settings.staminaRegen * Time.deltaTime, settings.maxStamina);
-
-        if (IsExhausted == true && Stamina01 >= settings.exhaustedRecoverFraction)
-        {
-            IsExhausted = false;
-        }
     }
 
     private void ApplyRotation()
@@ -263,40 +190,56 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        Vector3 desiredVelocity;
-        float speedUpRate;
+        float control = characterController.isGrounded ? 1f : settings.airControl;
 
         if (IsSprinting == true)
         {
-            // Momentum: you run where you face, and hard direction changes bleed speed until you've turned.
-            float alignment = Mathf.Max(0f, Vector3.Dot(transform.forward, movementDirection.normalized));
-            desiredVelocity = transform.forward * (settings.sprintSpeed * alignment * movementDirection.magnitude);
-
-            // Get going at walk responsiveness, then build the rest of the sprint slowly.
-            bool belowWalkSpeed = planarVelocity.magnitude < settings.walkSpeedForward;
-            speedUpRate = belowWalkSpeed ? settings.acceleration : settings.sprintAcceleration;
-        }
-        else
-        {
-            desiredVelocity = movementDirection * GetWalkSpeed(movementDirection);
-            speedUpRate = settings.acceleration;
+            ApplySprintVelocity(control);
+            return;
         }
 
-        desiredVelocity *= moveSpeedMultiplier;
+        Vector3 desiredVelocity = movementDirection * GetWalkSpeed(movementDirection) * moveSpeedMultiplier;
 
         // Speed up gradually, but plant quickly so the controls stay responsive.
-        float rate = desiredVelocity.sqrMagnitude > planarVelocity.sqrMagnitude ? speedUpRate : settings.deceleration;
-
-        if (characterController.isGrounded == false)
-        {
-            rate *= settings.airControl;
-        }
-
-        planarVelocity = Vector3.MoveTowards(planarVelocity, desiredVelocity, rate * Time.deltaTime);
+        float rate = desiredVelocity.sqrMagnitude > planarVelocity.sqrMagnitude ? settings.acceleration : settings.deceleration;
+        planarVelocity = Vector3.MoveTowards(planarVelocity, desiredVelocity, rate * control * Time.deltaTime);
     }
 
-    // Walk speed for a world direction, matched to the walk clip for that direction relative to facing.
+    // Speed and direction are steered separately so the run follows the body: speed builds with acceleration,
+    // while the direction swings round to the facing at sprintGrip. Steering them as one vector made direction
+    // changes as slow as speeding up, and the character slid sideways through every turn.
+    private void ApplySprintVelocity(float control)
+    {
+        // Momentum: hard direction changes bleed speed until you've turned.
+        float alignment = Mathf.Max(0f, Vector3.Dot(transform.forward, movementDirection.normalized));
+        float targetSpeed = SprintSpeed * alignment * movementDirection.magnitude * moveSpeedMultiplier;
+        float speed = planarVelocity.magnitude;
+
+        // Get going at walk responsiveness, then build the rest of the sprint more slowly.
+        float speedUpRate = speed < WalkSpeedForward ? settings.acceleration : settings.sprintAcceleration;
+        float rate = targetSpeed > speed ? speedUpRate : settings.deceleration;
+        float newSpeed = Mathf.MoveTowards(speed, targetSpeed, rate * control * Time.deltaTime);
+
+        Vector3 direction = speed > 0.01f ? planarVelocity / speed : transform.forward;
+        float maxTurn = settings.sprintGrip * control * Mathf.Deg2Rad * Time.deltaTime;
+        direction = Vector3.RotateTowards(direction, transform.forward, maxTurn, 0f);
+
+        // A near-reversal can rotate through the vertical; keep it on the ground plane.
+        direction.y = 0f;
+        planarVelocity = direction.normalized * newSpeed;
+    }
+
+    private float WalkSpeedForward => settings.walkSpeedForward * settings.walkSpeedMultiplier;
+
+    private float SprintSpeed => settings.sprintSpeed * settings.sprintSpeedMultiplier;
+
+    // Walk speed for a world direction: the walk clip's speed for that direction relative to facing, times walkSpeedMultiplier.
     private float GetWalkSpeed(Vector3 worldDirection)
+    {
+        return GetClipWalkSpeed(worldDirection) * settings.walkSpeedMultiplier;
+    }
+
+    private float GetClipWalkSpeed(Vector3 worldDirection)
     {
         if (worldDirection.sqrMagnitude < 0.0001f)
         {
@@ -364,8 +307,11 @@ public class PlayerMovement : MonoBehaviour
         actualVelocity.y = 0f;
         CurrentSpeed = actualVelocity.magnitude;
 
-        // Don't keep building speed while pushing into a wall.
-        if (planarVelocity.sqrMagnitude > actualVelocity.sqrMagnitude + 0.01f && characterController.isGrounded == true)
+        // Don't keep building speed while pushing into a wall. Only an actual side hit counts: on open ground a step can
+        // come out shorter than intended (tiny steps at high frame rates or during hit-stop), and clamping to that
+        // would pin the player in place.
+        bool hitWall = (LastCollisionFlags & CollisionFlags.Sides) != 0;
+        if (hitWall == true && planarVelocity.sqrMagnitude > actualVelocity.sqrMagnitude + 0.01f && characterController.isGrounded == true)
         {
             planarVelocity = Vector3.ClampMagnitude(planarVelocity, Mathf.Max(actualVelocity.magnitude, 0.1f));
         }
@@ -373,14 +319,36 @@ public class PlayerMovement : MonoBehaviour
 
     private void AnimatorControllers()
     {
-        // The blend tree is laid out in m/s, so feed it the real local velocity and the feet match the ground.
+        // The blend tree is laid out in the clips' own speeds (m/s). Movement runs faster than the clips by the speed
+        // multipliers, so the clips play faster by the same scale and the tree gets the velocity divided by it:
+        // the feet match the ground at any multiplier.
         Vector3 actualVelocity = characterController.velocity;
         actualVelocity.y = 0f;
         Vector3 localVelocity = transform.InverseTransformDirection(actualVelocity);
+        float scale = GetLocomotionScale(actualVelocity);
 
-        animator.SetFloat("xVelocity", localVelocity.x, .1f, Time.deltaTime);
-        animator.SetFloat("zVelocity", localVelocity.z, .1f, Time.deltaTime);
+        animator.SetFloat("LocomotionSpeed", scale);
+        animator.SetFloat("xVelocity", localVelocity.x / scale, .05f, Time.deltaTime);
+        animator.SetFloat("zVelocity", localVelocity.z / scale, .05f, Time.deltaTime);
         animator.SetBool("IsGrounded", characterController.isGrounded);
+    }
+
+    // Playback scale for the locomotion clips: 1 at rest, the walk multiplier at full walk speed in whatever
+    // direction the character is walking, rising to the sprint multiplier at full sprint speed.
+    private float GetLocomotionScale(Vector3 velocity)
+    {
+        float walkScale = Mathf.Max(settings.walkSpeedMultiplier, 0.01f);
+        float sprintScale = Mathf.Max(settings.sprintSpeedMultiplier, 0.01f);
+        float speed = velocity.magnitude;
+
+        if (speed <= WalkSpeedForward)
+        {
+            // Strafe and backward walks are slower than forward, so measure against this direction's full walk speed.
+            float walkSpeed = Mathf.Max(GetWalkSpeed(velocity), 0.01f);
+            return Mathf.Lerp(1f, walkScale, Mathf.Clamp01(speed / walkSpeed));
+        }
+
+        return Mathf.Lerp(walkScale, sprintScale, Mathf.InverseLerp(WalkSpeedForward, SprintSpeed, speed));
     }
 
     private void OnEnable()

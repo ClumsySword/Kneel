@@ -24,7 +24,7 @@ namespace Kneel.EditorTools
         private static int failures;
         private static Component movement;
         private static CharacterController controller;
-        private static FieldInfo moveField, sprintField, staminaField;
+        private static FieldInfo moveField, sprintField;
         private static float speedScale = 3f;
 
         public static string Begin(string test, float timeScale = 3f)
@@ -49,7 +49,6 @@ namespace Kneel.EditorTools
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
             moveField = movement.GetType().GetField("moveInput", flags);
             sprintField = movement.GetType().GetField("sprintHeld", flags);
-            staminaField = movement.GetType().GetField("stamina", flags);
             foreach (var component in player.GetComponents<MonoBehaviour>())
             {
                 var controls = component.GetType().GetField("controls", flags);
@@ -203,10 +202,6 @@ namespace Kneel.EditorTools
                 // The camera's yaw is 0, so input x and y are world x and z.
                 moveField.SetValue(movement, (target - here).normalized);
                 sprintField.SetValue(movement, true);
-                if (staminaField != null)
-                {
-                    staminaField.SetValue(movement, 100f);
-                }
 
                 yield return null;
             }
@@ -443,7 +438,6 @@ namespace Kneel.EditorTools
             {
                 moveField.SetValue(movement, new Vector2(dx, dz));
                 sprintField.SetValue(movement, true);
-                staminaField.SetValue(movement, 100f);
                 float gone = new Vector2(Position.x - start.x, Position.z - start.z).magnitude;
                 if (!jumped && gone > wallDistance - jumpBefore)
                 {
