@@ -6,8 +6,11 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity
+    guid: afa83bf8d9a4b6feeae3319434e670cb
+  - enabled: 1
+    path: Assets/Kneel/Scenes/Arena_S.unity
+    guid: afd7619a65b5e1bbba63fd7ddb58722e
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 234b9d44d97eebf80b3524ff745a9911, type: 3}
