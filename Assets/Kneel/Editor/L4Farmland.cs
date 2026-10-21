@@ -138,8 +138,6 @@ namespace Kneel.EditorTools
             // L3's palette (L3Ground.Paint), paler than it ends up: the shader multiplies it by the tiled earth.
             Color burnt = L1Build.Hex("#5C4F42"), straw = L1Build.Hex("#80735A"), ash = L1Build.Hex("#38302A"), regrowth = L1Build.Hex("#5C6645");
             Color chalk = L1Build.Hex("#DDD2BA"), verge = L1Build.Hex("#7C6E57"), cinder = L1Build.Hex("#241D19");
-            // The surroundings' burnt land, lifted the same way, for the patch's border.
-            Color land = L1Build.Hex("#5A4B3E");
             var pixels = new Color[TexWidth * TexHeight];
             for (int y = 0; y < TexHeight; y++)
             {
@@ -184,9 +182,10 @@ namespace Kneel.EditorTools
                     float cinders = L3Ground.Step(0.75f, 1f, scorch) * L3Ground.Step(0.35f, 0.65f, L3Ground.Fbm(wx * 0.2f + 5f, z * 0.2f + 8f));
                     c = Color.Lerp(c, cinder, cinders * 0.7f * (1f - wRoad));
 
-                    // The patch's border: into the burnt land's own colour over the last 14 m.
+                    // The patch's border: into the surroundings' own painted land (the same function paints it),
+                    // over the last 24 m, so the farm's edge does not show.
                     float border = Mathf.Min(Mathf.Min(wx - Rect.xMin, Rect.xMax - wx), Mathf.Min(z - Rect.yMin, Rect.yMax - z));
-                    c = Color.Lerp(land, c, L3Ground.Step(2f, 14f, border + fine * 3f));
+                    c = Color.Lerp(L4Surroundings.LandPaint(p), c, L3Ground.Step(0.5f, 24f, border + fine * 4f));
 
                     float grain = Mathf.PerlinNoise(wx * 1.4f, z * 1.4f);
                     c *= 0.9f + 0.2f * grain;
@@ -262,7 +261,14 @@ namespace Kneel.EditorTools
             mesh.SetVertices(verts);
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(tris, 0);
-            mesh.RecalculateNormals();
+            // Normals from the same height samples the surroundings' land uses, so the shading runs on across the edge.
+            var normals = new List<Vector3>();
+            foreach (var v in verts)
+            {
+                normals.Add(L4Surroundings.Normal(v.x, v.z));
+            }
+
+            mesh.SetNormals(normals);
             mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             var go = L3Build.MeshChild(g, "Ground", L4Level.SaveMesh(mesh), Vector3.zero, mat);

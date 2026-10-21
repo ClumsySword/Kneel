@@ -213,6 +213,7 @@ namespace Kneel.EditorTools
 
             int count = 0;
             var parent = L3Build.Child(g, "Ground").transform;
+            var landMat = LandMaterial();
             for (int ti = 0; ti < nx; ti += Tile)
             {
                 for (int tj = 0; tj < nz; tj += Tile)
@@ -220,6 +221,27 @@ namespace Kneel.EditorTools
                     var verts = new List<Vector3>();
                     var uvs = new List<Vector2>();
                     var tris = new List<int>();
+                    // The open land: smooth, one vertex per grid point, painted (refinement, owner 2026-10-21: the
+                    // line between the farm's painted ground and the faceted land was "very harsh").
+                    var landVerts = new List<Vector3>();
+                    var landNormals = new List<Vector3>();
+                    var landUvs = new List<Vector2>();
+                    var landTris = new List<int>();
+                    var landIndex = new Dictionary<int, int>();
+                    int LandVertex(int a, int b)
+                    {
+                        int key = a * (nz + 1) + b;
+                        if (!landIndex.TryGetValue(key, out int index))
+                        {
+                            index = landVerts.Count;
+                            landIndex[key] = index;
+                            landVerts.Add(new Vector3(MinX + a * Cell, heights[a, b], MinZ + b * Cell));
+                            landNormals.Add(GridNormal(heights, a, b, nx, nz));
+                            landUvs.Add(LandUv(MinX + a * Cell, MinZ + b * Cell));
+                        }
+
+                        return index;
+                    }
                     for (int i = ti; i < Mathf.Min(ti + Tile, nx); i++)
                     {
                         for (int j = tj; j < Mathf.Min(tj + Tile, nz); j++)
@@ -243,6 +265,13 @@ namespace Kneel.EditorTools
 
                             // Alternate the diagonal so the facets do not line up.
                             bool flip = ((i * 7 + j * 13) & 1) == 0;
+                            if (IsLand(p00, p10, p01, p11))
+                            {
+                                int a00 = LandVertex(i, j), a10 = LandVertex(i + 1, j), a01 = LandVertex(i, j + 1), a11 = LandVertex(i + 1, j + 1);
+                                landTris.AddRange(flip ? new[] { a00, a01, a11, a00, a11, a10 } : new[] { a00, a01, a10, a10, a01, a11 });
+                                continue;
+                            }
+
                             if (flip)
                             {
                                 Face(verts, uvs, tris, p00, p01, p11);
@@ -254,6 +283,21 @@ namespace Kneel.EditorTools
                                 Face(verts, uvs, tris, p10, p01, p11);
                             }
                         }
+                    }
+
+                    if (landTris.Count > 0)
+                    {
+                        var land = new Mesh { name = "L4_Land_" + ti / Tile + "_" + tj / Tile, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                        land.SetVertices(landVerts);
+                        land.SetNormals(landNormals);
+                        land.SetUVs(0, landUvs);
+                        land.SetTriangles(landTris, 0);
+                        land.RecalculateTangents();
+                        land.RecalculateBounds();
+                        land = L4Level.SaveMesh(land);
+                        var lgo = L3Build.MeshChild(parent, land.name, land, Vector3.zero, landMat);
+                        lgo.layer = L3Build.Layer(L3Build.Unlayered);
+                        GameObjectUtility.SetStaticEditorFlags(lgo, StaticEditorFlags.BatchingStatic);
                     }
 
                     if (tris.Count == 0)
@@ -276,6 +320,100 @@ namespace Kneel.EditorTools
             }
 
             return count;
+        }
+
+        // ---------------------------------------------------------------- The painted land
+
+        // A cell of open land, not cliff, scree, ravine or the rock ledge at the walls' feet: those stay faceted rock.
+        private static bool IsLand(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            float lo = Mathf.Min(Mathf.Min(a.y, b.y), Mathf.Min(c.y, d.y)), hi = Mathf.Max(Mathf.Max(a.y, b.y), Mathf.Max(c.y, d.y));
+            var centre = new Vector2((a.x + d.x) * 0.5f, (a.z + d.z) * 0.5f);
+            return lo > -1.2f && hi - lo < 0.9f && Distance(centre) >= 12f;
+        }
+
+        // A smooth normal from the height grid's central differences (L4Farmland uses the same, so the two meshes
+        // shade alike where they meet).
+        private static Vector3 GridNormal(float[,] h, int a, int b, int nx, int nz)
+        {
+            float dx = h[Mathf.Min(a + 1, nx), b] - h[Mathf.Max(a - 1, 0), b];
+            float dz = h[a, Mathf.Min(b + 1, nz)] - h[a, Mathf.Max(b - 1, 0)];
+            return new Vector3(-dx, 2f * Cell, -dz).normalized;
+        }
+
+        public static Vector3 Normal(float x, float z)
+        {
+            float dx = Height(new Vector2(x + Cell, z)) - Height(new Vector2(x - Cell, z));
+            float dz = Height(new Vector2(x, z + Cell)) - Height(new Vector2(x, z - Cell));
+            return new Vector3(-dx, 2f * Cell, -dz).normalized;
+        }
+
+        private static Vector2 LandUv(float x, float z) => new Vector2((x - MinX) / (MaxX - MinX), (z - MinZ) / (MaxZ - MinZ));
+
+        // The burnt country, in L3's ground palette (pale: the Kneel/Ground shader multiplies it by tiled earth):
+        // scorched straw and ash in broad sweeps, soot drifts, cinders where the fire ran hottest. L4Farmland fades
+        // its fields into exactly this, so the farm's edge does not show. Before the grain.
+        public static Color LandPaint(Vector2 p)
+        {
+            Color burnt = Hex("#5C4F42"), straw = Hex("#80735A"), ash = Hex("#38302A"), cinder = Hex("#241D19");
+            float sweep = Fbm(p.x * 0.025f + 30f, p.y * 0.025f);
+            float black = Mathf.Clamp01(0.62f + (sweep - 0.5f) * 1.5f + (L3Ground.Burnt(p.x, p.y) - 0.5f) * 0.3f);
+            Color c = Color.Lerp(straw, ash, black * 0.85f);
+            c = Color.Lerp(c, burnt, 0.45f);
+            float soot = L3Ground.Step(0.56f, 0.72f, Fbm(p.x * 0.11f + 31f, p.y * 0.11f + 17f));
+            c = Color.Lerp(c, ash, Mathf.Clamp01(soot * 0.4f + black * 0.3f));
+            float cinders = L3Ground.Step(0.75f, 1f, black) * L3Ground.Step(0.35f, 0.65f, Fbm(p.x * 0.2f + 5f, p.y * 0.2f + 8f));
+            return Color.Lerp(c, cinder, cinders * 0.6f);
+        }
+
+        private static Material LandMaterial()
+        {
+            const int w = 1024, h = 1536;
+            var pixels = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float z = MinZ + (y + 0.5f) / h * (MaxZ - MinZ);
+                for (int x = 0; x < w; x++)
+                {
+                    float wx = MinX + (x + 0.5f) / w * (MaxX - MinX);
+                    var c = LandPaint(new Vector2(wx, z)) * (0.9f + 0.2f * Mathf.PerlinNoise(wx * 1.4f, z * 1.4f));
+                    pixels[y * w + x] = new Color(Mathf.Clamp01(c.r), Mathf.Clamp01(c.g), Mathf.Clamp01(c.b), 0.04f);
+                }
+            }
+
+            const string folder = "Assets/Kneel/Textures/L4";
+            L2Build.EnsureFolder(folder);
+            string path = folder + "/L4_Land_Layout.png";
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.SetPixels(pixels);
+            tex.Apply();
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.maxTextureSize = 2048;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.SaveAndReimport();
+
+            string matPath = L4Build.MaterialsPath + "/L4_LandGround.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null)
+            {
+                AssetDatabase.CopyAsset(L3Build.MaterialsPath + "/L3_Ground.mat", matPath);
+                mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            }
+            else
+            {
+                mat.CopyPropertiesFromMaterial(L3Ground.Material);
+            }
+
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(path));
+            mat.SetTextureScale("_BaseMap", Vector2.one);
+            mat.SetTextureOffset("_BaseMap", Vector2.zero);
+            mat.SetTexture("_PaveMask", null);
+            EditorUtility.SetDirty(mat);
+            return mat;
         }
 
         // One flat-shaded triangle, its palette cell picked from its slope, height and a little noise.

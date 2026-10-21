@@ -124,6 +124,16 @@ namespace Kneel.EditorTools
                 embers++;
             }
 
+            // Ash falling out of the smoke over the whole route (refinement, owner 2026-10-21: "endgame dark souls...
+            // gritty"): grey flakes drifting down and north, thicker out on the farm track and the causeway.
+            var ashFall = L3Build.Child(g, "AshFall").transform;
+            foreach (var (centre, size) in fields)
+            {
+                Ash(ashFall, centre + Vector3.up * 5f, size + new Vector3(10f, 0f, 10f));
+            }
+
+            Ash(ashFall, new Vector3(60f, 8f, -20f), new Vector3(40f, 6f, 50f));
+
             return GroupName + ": " + plumes + " smoke columns, " + fires + " fires, " + embers + " ember fields";
         }
 
@@ -156,6 +166,30 @@ namespace Kneel.EditorTools
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
             renderer.maxParticleSize = 3f;
             renderer.sortingFudge = 10f;
+        }
+
+        private static void Ash(Transform parent, Vector3 centre, Vector3 size)
+        {
+            var ps = L1Wayfinding.Particles("Ash", parent, L1Build.FxMat("L1_FX_Smoke"), Mathf.CeilToInt(size.x * size.z * 0.05f), size.x * size.z * 0.006f,
+                new Vector2(7f, 11f), new Vector2(0.05f, 0.2f), new Vector2(0.05f, 0.11f), new Color(0.42f, 0.4f, 0.38f, 0.85f), new Color(0.3f, 0.29f, 0.28f, 0f), 0.012f);
+            ps.transform.position = centre;
+            ps.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(size.x, size.z, 0.5f);
+            var noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.4f;
+            noise.frequency = 0.25f;
+            noise.scrollSpeed = 0.2f;
+            var velocity = ps.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-0.5f, -0.3f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0.2f, 0.5f);
+            ps.GetComponent<ParticleSystemRenderer>().maxParticleSize = 0.02f;
         }
 
         private static void Embers(Transform parent, Vector3 centre, Vector3 size)

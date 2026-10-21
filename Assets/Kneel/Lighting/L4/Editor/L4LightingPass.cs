@@ -7,7 +7,12 @@ using UnityEngine.Rendering.Universal;
 
 namespace Kneel.Lighting.EditorTools
 {
-    // The look of L4 "The Burning Gate": dusk over a stronghold that burns (owner, 2026-10-19: "a bit later at day,
+    // The look of L4 "The Burning Gate" (owner, 2026-10-21: "feel like endgame dark souls level... gritty and
+    // hardcore"): an ashen, overcast end of the world. A dull sun smothered low in grey ash, cold slate shadows, a
+    // pale ash haze closing in at 34-220 m, the grade drained (saturation -30, contrast 28) so only fire, lava and
+    // the master's crimson keep their colour; heavy vignette and grain, ash falling over the route (L4Atmosphere).
+    // The character fill keeps the fights readable. Before that,
+    // dusk over a stronghold that burns (owner, 2026-10-19: "a bit later at day,
     // this should feel ambient with the fires"; before that an afternoon sun at 47 degrees, and noon at 52). A low
     // orange sun from the west-south-west rakes the walls, the sky is a burnt red band under smoke, the shadows go
     // violet, and the fires, the lava and the braziers carry the frame. Earlier notes on the noon look follow:
@@ -26,27 +31,27 @@ namespace Kneel.Lighting.EditorTools
 
         // High and from the south-south-west: shadows fall short and up-screen, south faces are lit. A true noon
         // sun (60 degrees and more) leaves the walls the camera looks at half as bright as the yards.
-        private const float SunElevation = 28f;
+        private const float SunElevation = 18f;
         private const float SunYaw = 55f;
-        private const float SunIntensity = 2.2f;
-        private static readonly Color SunColor = Hex("#FFAA6C");
+        private const float SunIntensity = 1.9f;
+        private static readonly Color SunColor = Hex("#E2A47A");
 
-        private const float AmbientBoost = 2.7f;
-        private static readonly Color AmbientSky = Hex("#4E4A64") * AmbientBoost;
-        private static readonly Color AmbientEquator = Hex("#725040") * AmbientBoost;
-        private static readonly Color AmbientGround = Hex("#30201A") * AmbientBoost;
+        private const float AmbientBoost = 3.1f;
+        private static readonly Color AmbientSky = Hex("#3E4248") * AmbientBoost;
+        private static readonly Color AmbientEquator = Hex("#4E4640") * AmbientBoost;
+        private static readonly Color AmbientGround = Hex("#201C1A") * AmbientBoost;
 
         // Smoke: haze builds only beyond the arenas (decision 10), so the fog starts past a yard's width.
-        private static readonly Color FogColor = Hex("#6A4232");
-        private const float FogStart = 45f;
-        private const float FogEnd = 240f;
+        private static readonly Color FogColor = Hex("#5E5650");
+        private const float FogStart = 34f;
+        private const float FogEnd = 220f;
 
         private static readonly Color FillColor = Hex("#C2C8D2");
-        private const float FillIntensity = 0.5f;
+        private const float FillIntensity = 0.6f;
 
-        private const float Exposure = 1.22f;
-        private const float Contrast = 22f;
-        private const float Saturation = -2f;
+        private const float Exposure = 1.5f;
+        private const float Contrast = 28f;
+        private const float Saturation = -30f;
 
         [MenuItem("Kneel/L4/Lighting/Apply To Open Scene")]
         public static void ApplyMenu()
@@ -120,11 +125,11 @@ namespace Kneel.Lighting.EditorTools
             // distance dissolves into haze instead of going black.
             // A red tint on the procedural sky cuts its blue and leaves green; a grey-brown one with a thicker
             // atmosphere gives the burnt orange band at the horizon instead.
-            sky.SetColor("_SkyTint", Hex("#5C4640"));
-            sky.SetFloat("_AtmosphereThickness", 2.3f);
-            sky.SetColor("_GroundColor", Hex("#4A2C22"));
-            sky.SetFloat("_Exposure", 0.9f);
-            sky.SetFloat("_SunSize", 0.05f);
+            sky.SetColor("_SkyTint", Hex("#5A5452"));
+            sky.SetFloat("_AtmosphereThickness", 2.6f);
+            sky.SetColor("_GroundColor", Hex("#2A2624"));
+            sky.SetFloat("_Exposure", 0.85f);
+            sky.SetFloat("_SunSize", 0.09f);
             EditorUtility.SetDirty(sky);
 
             RenderSettings.skybox = sky;
@@ -194,25 +199,25 @@ namespace Kneel.Lighting.EditorTools
 
             // Grey-blue shadows under a pale, smoke-yellowed light; fire is the only warmth that survives.
             var split = Get<SplitToning>(profile);
-            split.shadows.Override(Hex("#323C5A"));
-            split.highlights.Override(Hex("#E58A4E"));
-            split.balance.Override(-12f);
-            Get<WhiteBalance>(profile).temperature.Override(2f);
+            split.shadows.Override(Hex("#2A3236"));
+            split.highlights.Override(Hex("#BC8A5E"));
+            split.balance.Override(-25f);
+            Get<WhiteBalance>(profile).temperature.Override(-6f);
 
             var vignette = Get<Vignette>(profile);
-            vignette.intensity.Override(0.34f);
-            vignette.smoothness.Override(0.45f);
+            vignette.intensity.Override(0.44f);
+            vignette.smoothness.Override(0.4f);
 
             var bloom = Get<Bloom>(profile);
-            bloom.threshold.Override(0.95f);
-            bloom.intensity.Override(0.8f);
+            bloom.threshold.Override(0.9f);
+            bloom.intensity.Override(0.75f);
             bloom.scatter.Override(0.65f);
 
             var grain = Get<FilmGrain>(profile);
             grain.type.Override(FilmGrainLookup.Thin1);
-            grain.intensity.Override(0.24f);
+            grain.intensity.Override(0.36f);
             grain.response.Override(0.8f);
-            Get<ChromaticAberration>(profile).intensity.Override(0.08f);
+            Get<ChromaticAberration>(profile).intensity.Override(0.1f);
             EditorUtility.SetDirty(profile);
 
             var go = Named(lighting, "GlobalVolume");

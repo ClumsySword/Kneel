@@ -631,6 +631,18 @@ Then (owner, same day): "I would like the wheats here to be black indicating the
 
 The L3 reference captures showed L3's re-graded stone walls and its castle backdrop rendering pink in a script camera, although their materials and textures check out. That needs a look in L3 itself.
 
+**The farm's edge and an endgame grade (owner, 2026-10-21).**
+- "The line between farmlands ground and the rest of map is very harsh." The cause was a shading clash: the farm patch was smooth, textured ground beside flat-shaded palette facets. All the open land in `L4Surroundings` is now a smooth mesh on the same ground shader, painted from one shared colour function (`LandPaint`, in L3's palette: scorched straw, ash, soot and cinders). Faceted rock stays only on the cliffs, the scree, the ravine and the ledge at the walls' feet. The farm patch fades into `LandPaint` over its last 24 m, and both meshes take their normals from the same height samples, so neither the colour nor the shading breaks at the edge.
+- "Feel like endgame dark souls level... gritty and hardcore." `L4LightingPass` gives an ashen, overcast end of the world:
+  - a dull sun at 18° (#E2A47A, 1.9) smothered in grey ash;
+  - cold slate ambient;
+  - a pale ash haze at 34-220 m;
+  - saturation -30 and contrast 28, so only fire, lava, the crimson banners and the statues' eyes keep colour;
+  - split toning to slate shadows and muted amber highlights;
+  - vignette 0.44, grain 0.36 and exposure 1.5.
+
+  `L4Atmosphere` adds ash falling over the route and the farm track. The character fill is up to 0.6 to keep fights readable. The first try, with a dark haze at 26 m and exposure 1.08, was close to black.
+
 **Lore change:** the note's "three days after it fell" is now "fell long ago", per the owner. The vault note's refinement section says so.
 
 **Not yet checked in Play mode:** the fire vents and burning wrecks (contact and damage), the fading walls in the live camera, and the gates and hazards from before.
