@@ -274,7 +274,7 @@ namespace Kneel.EditorTools
             if (cam != null && cam.GetComponent<PlayerCamera>() == null)
             {
                 var follow = cam.gameObject.AddComponent<PlayerCamera>();
-                L3Build.Set(follow, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Player/Settings/PlayerCameraSettings.asset"));
+                L3Build.Set(follow, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Kneel/Player/Settings/PlayerCameraSettings.asset"));
             }
 
             return "test lane wired (3 rings + tender, 2 lights over slicks, gate with its pour, winch gate, postern, grille, scaffold demo, twins, breach)";

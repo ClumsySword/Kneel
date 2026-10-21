@@ -19,6 +19,7 @@ Other MCP gotchas:
 - `execute_code` blocks `AssetDatabase.DeleteAsset`.
 - URP's material validation copies `_BaseMap` into the legacy `_MainTex` slot when a material loads. If a third-party material suddenly shows up as modified with only a `_MainTex` change, that's this, and it's safe to commit (as was done for `PolyKnights_Mat_01` and `PolygonPrototype_Texture_01`).
 - About 18 Synty materials (PolygonPrototype `*_Global_Grid_*`, `*_Glass_*`, FX, and PolygonStarter/City sky and steam) still use Synty's custom or Built-in legacy shaders and the pre-2018 file format. They aren't URP-ready and will render magenta if used; convert them before relying on them.
+- Movement bugs can depend on frame rate: builds run uncapped (vSync is off), and hit-stop shrinks `deltaTime` 20×. Reproduce high-fps behaviour in Play mode with `Time.captureFramerate = N` (reset to 0 after). The player's `CharacterController.minMoveDistance` must stay 0: at 0.001, the tiny steps of walking from rest at ≥300 fps were dropped, and the wall clamp then pinned the player at 0.1 m/s until they jumped.
 - If Play-mode timings look stretched, check `Time.unscaledDeltaTime`. The Editor sometimes drops to about 1 fps, and gameplay `deltaTime` then caps at 0.33, which makes the results meaningless.
 
 ## Design docs
@@ -35,38 +36,46 @@ The code currently diverges from the ten-pager in a few places:
 
 ## Layout
 
-- The project's own code and assets:
-  - `Assets/Player/`: the player.
-  - `Assets/Combat/`: shared combat code.
-  - `Assets/Enemies/`: `TargetDummy`.
-- Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
+- **All team-made content lives under `Assets/Kneel/`, organized by feature.** Don't add new top-level `Assets/` folders.
+  - `Kneel/Player/`: the player, including `Models/Player.fbx`, `Animations/` (Mixamo clips) and `Settings/`.
+  - `Kneel/Combat/`: shared combat code.
+  - `Kneel/Enemies/`: `AI/` (enemy base and state machine), `AshenFootman/` (with its own `Animations/`), and `TargetDummy/`.
+  - `Kneel/Levels/L1/`: Patrick's level (`Scenes/L1_BrokenLine.unity` plus its lighting and NavMesh folder, and `Materials`, `Meshes`, `Prefabs`, `Lighting`, `Animations`, `Settings`).
+  - `Kneel/Scenes/`: team and test scenes that aren't a level.
+  - `Kneel/Core/`: game flow (`LevelRestartOnDeath`).
+  - `Kneel/Editor/L1/`: the level-building tools (`Kneel/L1` menu). They hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
+  - `Kneel/Shaders/`: shared shaders.
+- Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/` including `Toon_RTS_demo`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
+- Move assets inside Unity (or with `AssetDatabase.MoveAsset`), never in the file browser, so the `.meta` GUIDs travel with them. When scripting moves, don't wrap `AssetDatabase.CreateFolder` in `StartAssetEditing`: folders created inside the batch aren't registered, and retries produce numbered duplicates (`Levels 1`, `Levels 2`, …).
 - Physics layers: `Enemy` (8) is enemy hurtboxes, and it is what the sword's `WeaponHitbox` hits. `Player` (9) is the Player root, which is what enemy attacks overlap.
-- `Assets/Scenes/Sandbox_S.unity`: small movement test scene. `Assets/Scenes/Arena_S.unity`: a 30×30 walled arena (pillars, low walls, crates, a ramped platform) using `PlayerCamera`. Both follow the same layer convention: walkable surfaces on `Ground` (layer 6) and props on `Obstacles` (layer 7). The Player's `aimLayerMask` covers both, so new geometry must be on one of those layers for mouse aim to hit it.
+- **Scenes are owned by one person**, named with their initial (`_L` is Lucas); see the vault's `04-Tech/Scene Ownership.md`. Don't edit someone else's scene: copy it.
+- `Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity` (Build Settings index 0) is the playable level. It's a copy of Patrick's `Levels/L1/Scenes/L1_BrokenLine.unity`, with five Ashen Footmen under `_Gameplay/Enemies` (one per `Encounter_E1`–`E5`, at its first `EnemySpawn`, patrolling a ring inside the arena), the F1 `Debug` overlay, and `LevelFlow`. It shares Patrick's baked NavMesh and lighting data, so re-bakes of his scene carry over.
+- `Assets/Kneel/Scenes/Sandbox_S.unity`: small movement test scene. `Assets/Kneel/Scenes/Arena_S.unity`: a 30×30 walled arena (pillars, low walls, crates, a ramped platform) using `PlayerCamera`. Both follow the same layer convention: walkable surfaces on `Ground` (layer 6) and props on `Obstacles` (layer 7). The Player's `aimLayerMask` covers both, so new geometry must be on one of those layers for mouse aim to hit it.
 - `Assets/Settings/`: URP pipeline assets, with separate `PC_*` and `Mobile_*` renderer/RP assets.
 
 ## Player architecture
 
-The player is `Assets/Player/Player.prefab`: a `CharacterController`, `PlayerMovement`, and a child Animator driven by `AC_Player.controller`.
+The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `PlayerMovement`, and a child Animator driven by `AC_Player.controller`.
 
 - **Input**: `PlayerControls.inputactions` is the source of truth. `PlayerControls.cs` is **auto-generated** from it by the Input System ("Generate C# Class"). Never edit it by hand. Change the `.inputactions` asset and regenerate instead.
   - The `Character` map defines Movement, Aim (mouse screen position), Sprint, Jump, Zoom (scroll), Strike (LMB), Draw (R), Block (RMB), and Dodge (Ctrl).
   - The `Debug` map holds ToggleOverlay (F1).
   - Each script creates its own `new PlayerControls()`.
-- **Tuning lives in ScriptableObjects** in `Assets/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
+- **Tuning lives in ScriptableObjects** in `Assets/Kneel/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
 - **`PlayerMovement.cs`** owns all player logic in `Update()`. Input callbacks only cache values. Each frame it:
   1. Aims: raycasts the mouse against `aimLayerMask` and moves the `aim` dot to the hit point.
-  2. Resolves sprint and stamina.
+  2. Resolves sprint (no stamina; sprint is unlimited).
   3. Rotates at a capped turn rate: toward the aim point when walking, toward the move direction when sprinting.
   4. Moves planar velocity toward the target with accel/decel, and applies gravity and jump (`sqrt(2gh)`).
   5. Moves via `CharacterController.Move` (no Rigidbody, no root motion).
   6. Feeds the animator.
 
-  Walk speed depends on direction relative to facing, interpolated by angle across 5 speeds. Sprint velocity follows facing, scaled by how aligned facing is with the input, so turning bleeds speed.
-- **Animator contract**: the code sets `xVelocity` and `zVelocity` to the **actual local planar velocity in m/s**, plus `IsGrounded` (bool) and `Jump` (trigger).
+  Walk speed depends on direction relative to facing, interpolated by angle across 5 speeds. The speed fields hold the clips' measured speeds, and `walkSpeedMultiplier` / `sprintSpeedMultiplier` scale them. The sprint steers speed and direction separately: speed builds with the accel rates and drops when facing and input disagree (turning bleeds speed), while the travel direction swings to the facing at `sprintGrip` °/s, so the run follows the body instead of sliding through turns.
+- **Animator contract**: the code sets `xVelocity` and `zVelocity` to the **actual local planar velocity in m/s divided by `LocomotionSpeed`**, plus `LocomotionSpeed` (the `Locomotion` state's speed multiplier: 1 at rest, ramping to the walk multiplier at full walk speed in the current direction, then to the sprint multiplier at full sprint), `IsGrounded` (bool) and `Jump` (trigger). So the tree always sees the clips' own speeds, and the clips play faster to match the faster movement.
   - The `Locomotion` state is a Freeform Directional 2D tree whose child positions are each clip's real travel speed on the Knight. That is what keeps the feet from sliding.
   - If you add a clip or change a movement speed default, place the clip at its measured speed and keep the `PlayerMovementSettings` defaults in sync.
   - Renaming parameters means updating the string literals in `PlayerMovement.cs`.
-- **`PlayerCamera.cs`** (on Main Camera) is an angled top-down follow camera in `LateUpdate`. It reads `Zoom` and `Aim` (pointer position, for edge panning). It finds the player through `PlayerMovement` if `target` is unset. `AddShake()` is used for impacts.
+- **`PlayerCamera.cs`** (on Main Camera) is an angled top-down follow camera in `LateUpdate`. It reads only `Zoom` (edge panning was removed). It finds the player through `PlayerMovement` if `target` is unset. `AddShake()` is used for impacts.
 - **`PlayerCombat.cs`** is a code-driven state machine: `Sheathed → Drawing → Armed ⇄ Attacking / HitStun / Dodging → Sheathing`, with blocking as a flag while Armed. It runs before `PlayerMovement` (`[DefaultExecutionOrder(-10)]`).
   - The combo is two slashes (`Slash1` = `slash-1`, `Slash2` = `slash-3`). The pommel strike `attack-4` was dropped.
   - **Dodge roll** (base-layer `Dodge` state, trimmed `Stand To Roll` clip, frames 33–117, sped up to `dodgeDuration`):
@@ -77,23 +86,36 @@ The player is `Assets/Player/Player.prefab`: a `CharacterController`, `PlayerMov
     - Optionally rolls through enemies, via `Physics.IgnoreLayerCollision(Player, Enemy)`.
   - It doesn't use animator transitions or animation events. It `CrossFadeInFixedTime`s states on two layers and sets their weights itself:
     - `UpperBody`, masked by `AM_UpperBody.mask` (arms and head): ArmedIdle, Draw1/2, Sheath1/2, Block, BlockHit, Parry.
-    - `FullBody`: Slash1, Slash2, HitReact, GuardBreak.
+    - `FullBody`: Slash1, Slash2, HitReact, GuardBreak, Death.
   - All timings are clip-seconds in `PlayerCombatSettings`: each attack's `hitStart/hitEnd/comboWindow/recoveryEnd`, plus draw grab and sheathe release. They were measured from blade-tip speed and hand-to-hilt distance on the Knight. Re-measure them if you swap a clip.
-  - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame. Stamina goes through `TrySpendStamina` / `DrainStamina`.
-  - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, drains stamina; guard break at 0), then full damage plus hit-stun.
+  - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame.
+  - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, `blockPoiseMultiplier` of the poise damage; guard break when poise breaks), then full damage plus full poise damage. A broken poise staggers (`GuardBreak`, `staggerDuration`). An intact poise means a short `HitReact`, unless mid-action (attack/draw/sheathe/roll), which carries on.
 - **`PlayerEquipment.cs`** moves the sword and shield between sockets: `Socket_Sheath` on the scabbard, `Socket_ShieldBack` on the upper spine, `Socket_SwordHand` / `Socket_ShieldHand` on the hands.
   - Sockets carry a ×100 scale because the Knight's bones are in centimetres. They define the item pose exactly, so items sit at identity.
   - The sword has a `WeaponHitbox`: a capsule from `BladeBase` to `BladeTip`, swept between frames, hitting each target once per swing.
-- **Shared combat** (`Assets/Combat/`):
+- **Shared combat** (`Assets/Kneel/Combat/`):
   - `DamageInfo`, plus the interfaces `IDamageable` / `IParryable` / `IStaggerable`.
-  - `Health`: optional regenerate-to-full, so nobody dies yet.
+  - `Health`: optional regenerate-to-full (only the dummy uses it). The player and enemies can die. Player death (`PlayerCombat` `Dead` state, `OnDied`) reloads the scene through `LevelRestartOnDeath`, which only works for scenes in Build Settings.
+  - `Poise` (plain serializable class, owned by the player, `Enemy` and `TargetDummy`): depletes from `DamageInfo.poiseDamage`, regenerates after a delay, refills when it breaks. Hits during an enemy wind-up deal `windupPoiseMultiplier`× poise damage.
   - `HitStop`: global `Time.timeScale` freeze.
   - `DamageNumber`: runtime-built world-space TMP text.
   - `HitSpark`: runtime-built particle burst.
 - **`TargetDummy`** is a Synty `Character_Dummy_Male_01` humanoid playing the Mixamo impact/kick clips via `AC_TargetDummy`.
   - Its "attacks" toggle (in the F1 overlay) makes it telegraph (red tint), turn and kick, with an overlap sphere against the `Player` layer.
   - Being parried staggers it, and hits on a staggered dummy are critical.
-- **Clips**: Mixamo FBX files in `Assets/Player/SnS-Anims/`.
+- **Ashen Footman** (Olivia's, `Kneel/Enemies/AshenFootman`, base `Kneel/Enemies/AI/Enemy.cs`):
+  - It's a plain-C# state machine: one `EnemyState` subclass per behaviour, and each state sets an animator **bool** of the same name.
+  - The controller follows one pattern: Entry → state when its bool is true, state → Exit when it's false. Add new states the same way.
+  - States: Idle → Move (patrol) → Recovery (the pointing clip, which is also the post-attack punish window) → Chase → Attack, plus Hit and Dead.
+  - **Animation events** drive it: `AnimationTrigger` ends the Recovery and Attack clips, and `AttackHit` (on `Attack_B.anim` at 0.30 s) deals damage with an overlap sphere on the `Player` layer.
+  - Attack plays at 0.6× so the wind-up is at least 300 ms, with a red tint telegraph.
+  - The Hit and Dead states use `stateTimer` instead of events, because their clips (Mixamo `impact-1`, `death-1`) are shared with the player, whose animator has no receiver for them.
+  - It implements `IDamageable` / `IParryable` / `IStaggerable`:
+    - Hits that break its poise (30) stagger it (`StaggerState`, `Stagger` animator state on `impact-2` at 0.7×); hits that don't make it flinch (`Hit`), except during an attack, which carries on.
+    - A parry staggers it, and hits during the stagger are crits.
+    - It has 40 HP, which is 3 hits of the 12→20 combo.
+    - When it dies, its agent and collider switch off and the body stays.
+- **Clips**: Mixamo FBX files in `Assets/Kneel/Player/Animations/`.
   - The Humanoid ones copy their avatar from `Mixamo_POLYGON_Guy_Naked.fbx`. The combat clips in use have been converted and renamed (`draw-sword-1`, `attack-4`, `slash-1`, `block-idle`, `impact-1`, `kick`, …). The other `sword and shield *` clips are still Generic and must be switched to Humanoid (same avatar source) before use.
   - `draw sword 1`/`2` and `sheath sword 1`/`2` are two halves of one motion (reach to the hilt, then pull out; and the reverse).
   - Mixamo FBX files downloaded "with skin" can contain an extra `Take 001` bind-pose take. Pick the `mixamo.com` take when building `clipAnimations` (see `Stand To Roll.fbx`).

@@ -245,7 +245,7 @@ namespace Kneel.EditorTools
             var player = GameObject.Find("Player");
             if (player == null)
             {
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/Player.prefab");
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kneel/Player/Player.prefab");
                 player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 player.name = "Player";
             }

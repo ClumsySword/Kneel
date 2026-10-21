@@ -117,7 +117,7 @@ namespace Kneel.EditorTools
         {
             const string en = "14.7 Enemies";
             string hit = L3Build.Hittable;
-            list.Add(new Item { Id = "N01", Name = "AshenFootman", Folder = "", Table = en, Size = new Vector3(1f, 2f, 1f), Collider = Col.None, Layer = "Default", Status = "FOUND", Source = "Assets/Enemies/AshenFootman/AshenFootman.prefab", Notes = "The existing enemy, used as it is; shown with its AI switched off in the review.", ExistingPath = "Assets/Enemies/AshenFootman/AshenFootman.prefab" });
+            list.Add(new Item { Id = "N01", Name = "AshenFootman", Folder = "", Table = en, Size = new Vector3(1f, 2f, 1f), Collider = Col.None, Layer = "Default", Status = "FOUND", Source = "Assets/Kneel/Enemies/AshenFootman/AshenFootman.prefab", Notes = "The existing enemy, used as it is; shown with its AI switched off in the review.", ExistingPath = "Assets/Kneel/Enemies/AshenFootman/AshenFootman.prefab" });
             Add("N02", "L4_StandIn_IronHusk", "Enemies", en, 1.2f, 1.2f, 2.2f, Col.Custom, hit, "BUILT", "PolygonKnights Character_Knight_02 baked standing (x1.15), enemy black iron; generated plates",
                 "No Husk in the project. An armoured man a head taller than the player, black iron, three heavy plates marked on shoulders and chest (the armour that breaks to heavies). Capsule on the Enemy layer. Carries its SpawnMarker.",
                 root => StandIn(root, "Knight_02", "L1_Regiment_Enemy", EnemyType.IronHusk, 1.15f, 0.6f, Pose.Stand, true, false));

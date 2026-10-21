@@ -1,0 +1,40 @@
+using UnityEngine;
+
+// Everything a receiver needs to resolve a hit: how much, where, from which direction and who dealt it.
+public struct DamageInfo
+{
+    public float amount;
+
+    // How hard the hit knocks the receiver off balance (see Poise). Zero never staggers.
+    public float poiseDamage;
+
+    // World position of the contact.
+    public Vector3 point;
+
+    // Direction the hit travels in (attacker toward receiver), flattened to the ground plane.
+    public Vector3 direction;
+
+    public GameObject source;
+
+    public bool isCritical;
+
+    // Damage from the world (fire), not an attack: it can't be parried or blocked and causes no hit reaction.
+    public bool isEnvironmental;
+}
+
+public interface IDamageable
+{
+    void TakeHit(DamageInfo info);
+}
+
+// Implemented by attackers that react when their attack is parried.
+public interface IParryable
+{
+    void OnParried(GameObject parrier);
+}
+
+// Targets that can be knocked off balance; hits on a staggered target are critical.
+public interface IStaggerable
+{
+    bool IsStaggered { get; }
+}

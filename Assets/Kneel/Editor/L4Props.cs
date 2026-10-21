@@ -9,7 +9,7 @@ namespace Kneel.EditorTools
     // and hounds but never hides the player.
     public static partial class L4Assets
     {
-        private const string Corpses = "Assets/Kneel/Prefabs/L1/Corpses/";
+        private const string Corpses = "Assets/Kneel/Levels/L1/Prefabs/Corpses/";
 
         // The dead are bones now (owner, 2026-10-19: "replace soldiers with skeletons. This stronghold has been
         // overtaken by the evil master long ago"): L2's generated skeletons, with the kneeling and hanging poses.
@@ -79,7 +79,7 @@ namespace Kneel.EditorTools
                 root => Barricade(root, true));
             Add("C16", "L4_Ram", "Props", props, 10f, 2f, 2f, Col.None, cover, "FOUND", "L1_BatteringRam",
                 "L1's battering ram, buried in the burnt gate.",
-                root => Nest(root, "Assets/Kneel/Prefabs/L1/L1_BatteringRam.prefab", Vector3.zero, 0f));
+                root => Nest(root, "Assets/Kneel/Levels/L1/Prefabs/L1_BatteringRam.prefab", Vector3.zero, 0f));
             Add("C17", "L4_RefugeeCart", "Props", props, 2f, 3f, 1.5f, Col.Box, cover, "FOUND", "L3_GraveCart",
                 "L3's household cart, turned back toward the causeway.",
                 root => Nest(root, "Assets/Kneel/Prefabs/L3/Props/L3_GraveCart.prefab", Vector3.zero, 0f));
@@ -861,9 +861,9 @@ namespace Kneel.EditorTools
         private static void SiegeCamp(GameObject root)
         {
             var t = root.transform;
-            Nest(root, "Assets/Kneel/Prefabs/L1/L1_TentWreck.prefab", new Vector3(-5f, 0f, 2f), 20f);
-            Nest(root, "Assets/Kneel/Prefabs/L1/L1_TentWreck.prefab", new Vector3(4f, 0f, -3f), -35f, 0.9f);
-            Nest(root, "Assets/Kneel/Prefabs/L1/L1_SiegeTowerWreck_A.prefab", new Vector3(5f, 0f, 4f), 70f);
+            Nest(root, "Assets/Kneel/Levels/L1/Prefabs/L1_TentWreck.prefab", new Vector3(-5f, 0f, 2f), 20f);
+            Nest(root, "Assets/Kneel/Levels/L1/Prefabs/L1_TentWreck.prefab", new Vector3(4f, 0f, -3f), -35f, 0.9f);
+            Nest(root, "Assets/Kneel/Levels/L1/Prefabs/L1_SiegeTowerWreck_A.prefab", new Vector3(5f, 0f, 4f), 70f);
             L3Build.Seat(t, "K:SM_Bld_Tent_01", new Vector3(0f, 10f, 4f), 1f, new Vector2(-7f, -4f), 0f, Soot);
         }
 
