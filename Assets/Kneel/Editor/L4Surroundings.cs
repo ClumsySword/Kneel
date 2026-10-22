@@ -20,12 +20,12 @@ namespace Kneel.EditorTools
         public const string GroupName = "Surroundings";
 
         private const float Cell = 2f;
-        private const float MinX = -110f, MaxX = 230f, MinZ = -100f, MaxZ = 420f;
+        private const float MinX = -110f, MaxX = 230f, MinZ = -190f, MaxZ = 420f;
         private const int Tile = 32;
 
         // The ravine floor, and the causeway's line (its south end lands on the bank at y -10).
         public const float FloorY = -15f;
-        private const float CausewayX = 60f, CausewaySouth = -10f;
+        private const float CausewayX = 60f, CausewaySouth = -10f - L4Plan.Gap;
 
         // Land palette: rock light, mid, dark; scree; ravine earth; burnt earth; dry grass; ash; then L3's fields
         // (refinement: the farmland the player comes from) ripe wheat, stubble, pasture, ploughed earth.
@@ -38,7 +38,7 @@ namespace Kneel.EditorTools
         // broken up by noise so fields give way to burnt land in ragged tongues, never along a line.
         public static float Farm(Vector2 p)
         {
-            float south = Mathf.InverseLerp(-8f, -48f, p.y);
+            float south = Mathf.InverseLerp(-8f - L4Plan.Gap, -48f - L4Plan.Gap, p.y);
             float ragged = (Fbm(p.x * 0.06f + 70f, p.y * 0.06f) - 0.5f) * 0.9f;
             return Mathf.Clamp01(south + ragged);
         }
@@ -164,7 +164,7 @@ namespace Kneel.EditorTools
             }
 
             // The far bank. Near the causeway it is steep and sits exactly where the causeway ends.
-            float nearCauseway = Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(12f, 26f, Mathf.Abs(p.x - CausewayX))) * (p.y < 40f ? 1f : 0f);
+            float nearCauseway = Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(12f, 26f, Mathf.Abs(p.x - CausewayX))) * (p.y < 40f - L4Plan.Gap ? 1f : 0f);
             float bankAt = Mathf.Lerp(34f + (Fbm(p.x * 0.03f, p.y * 0.03f + 90f) - 0.5f) * 14f, 46f, nearCauseway);
             float rise = Mathf.Lerp(10f, 4f, nearCauseway);
             float land = Land(p, d);
@@ -368,7 +368,7 @@ namespace Kneel.EditorTools
 
         private static Material LandMaterial()
         {
-            const int w = 1024, h = 1536;
+            const int w = 1024, h = 1792;
             var pixels = new Color[w * h];
             for (int y = 0; y < h; y++)
             {
@@ -479,7 +479,7 @@ namespace Kneel.EditorTools
                     var p = new Vector2(x + (float)rng.NextDouble() * 2.4f, z + (float)rng.NextDouble() * 2.4f);
                     float d = Distance(p);
                     // Under the causeway nothing may rise near its deck.
-                    if (Mathf.Abs(p.x - CausewayX) < 7f && p.y > CausewaySouth - 2f && p.y < 42f)
+                    if (Mathf.Abs(p.x - CausewayX) < 7f && p.y > CausewaySouth - 2f && p.y < 42f - L4Plan.Gap)
                     {
                         continue;
                     }
@@ -530,7 +530,7 @@ namespace Kneel.EditorTools
                         continue;
                     }
 
-                    if (Mathf.Abs(p.x - CausewayX) < 9f && p.y < 44f)
+                    if (Mathf.Abs(p.x - CausewayX) < 9f && p.y < 44f - L4Plan.Gap)
                     {
                         continue;
                     }

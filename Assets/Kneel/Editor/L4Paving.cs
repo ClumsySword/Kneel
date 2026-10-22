@@ -252,8 +252,9 @@ namespace Kneel.EditorTools
             var src = mask.GetPixels();
             int w = mask.width, h = mask.height;
             var pixels = new Color[src.Length];
-            var stone = new Color(0.58f, 0.56f, 0.53f);
-            var earth = new Color(0.36f, 0.32f, 0.28f);
+            // A quarter darker than at first (owner, 2026-10-21: the floor "still feel[s] a bit too bright").
+            var stone = new Color(0.43f, 0.415f, 0.39f);
+            var earth = new Color(0.28f, 0.25f, 0.22f);
             var pitch = new Color(0.11f, 0.1f, 0.09f);
             var flecks = new System.Collections.Generic.List<Vector4>[splashes.Length];
             for (int s = 0; s < splashes.Length; s++)

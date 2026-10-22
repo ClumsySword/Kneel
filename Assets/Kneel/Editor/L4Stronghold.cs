@@ -94,7 +94,7 @@ namespace Kneel.EditorTools
         // ---------------------------------------------------------------- Helpers
 
         // A pack piece seated on 'at' (its y the ground), turned by yaw; 'solid' gives it a box collider on Obstacles.
-        private static GameObject Prop(Transform parent, string key, Vector3 at, float yaw, float scale, Material mat, bool solid)
+        internal static GameObject Prop(Transform parent, string key, Vector3 at, float yaw, float scale, Material mat, bool solid)
         {
             var go = L3Build.Seat(parent, key, new Vector3(0f, yaw, 0f), scale, new Vector2(at.x, at.z), at.y, mat);
             if (solid)
@@ -105,7 +105,7 @@ namespace Kneel.EditorTools
             return go;
         }
 
-        private static void Solid(GameObject go)
+        internal static void Solid(GameObject go)
         {
             var b = L3Build.LocalBounds(go, go.transform);
             var col = go.AddComponent<BoxCollider>();
@@ -115,7 +115,7 @@ namespace Kneel.EditorTools
         }
 
         // A pack beam stretched from a to b, 'thick' across.
-        private static GameObject Beam(Transform parent, Vector3 a, Vector3 b, float thick, Material mat)
+        internal static GameObject Beam(Transform parent, Vector3 a, Vector3 b, float thick, Material mat)
         {
             var go = L3Build.Part(parent, "K:SM_Prop_Beam_01", Vector3.zero, Vector3.zero, Vector3.one, mat);
             var lb = L3Build.LocalBounds(go, go.transform);
@@ -125,14 +125,14 @@ namespace Kneel.EditorTools
             return go;
         }
 
-        private static void Flag(Transform parent, Vector3 at, float yaw, float scale)
+        internal static void Flag(Transform parent, Vector3 at, float yaw, float scale)
         {
             L3Build.Part(parent, "K:SM_Bld_Castle_Flagpole_01", at, new Vector3(0f, yaw, 0f), Vector3.one * scale, KSoot).name = "Flagpole";
             L3Build.Part(parent, "K:SM_Bld_Castle_Flag_01", at + Vector3.up * 2.55f * scale, new Vector3(0f, yaw, 0f), Vector3.one * scale, L4Citadel.BannerRed).name = "Flag";
         }
 
         // A brazier with its fire; 'solid' on walkable ground.
-        private static void Brazier(Transform parent, Vector3 at, float scale = 1.2f)
+        internal static void Brazier(Transform parent, Vector3 at, float scale = 1.2f)
         {
             var b = Prop(parent, "K:SM_Prop_Brazier_01", at, 0f, scale, KSoot, true);
             var bb = L3Build.LocalBounds(b, parent);
@@ -140,7 +140,7 @@ namespace Kneel.EditorTools
         }
 
         // Stores: crates and barrels stacked against a wall, a sack or two.
-        private static void Stores(Transform parent, Vector3 at, float yaw, int seed, bool solid = true)
+        internal static void Stores(Transform parent, Vector3 at, float yaw, int seed, bool solid = true)
         {
             var rng = new System.Random(seed);
             var t = L3Build.Child(parent, "Stores", at, new Vector3(0f, yaw, 0f)).transform;
@@ -278,12 +278,13 @@ namespace Kneel.EditorTools
             var parent = L3Build.Child(g, "GateApproach").transform;
             foreach (float x in new[] { 53.2f, 66.8f })
             {
-                var pillar = L3Build.Fit(parent, "K:SM_Bld_Castle_Wall_01", 0, new Vector3(1.8f, 6.2f, 1.8f), new Vector2(x, 41.4f), 0f, KStone);
+                const float z = 41.4f - L4Plan.Gap;
+                var pillar = L3Build.Fit(parent, "K:SM_Bld_Castle_Wall_01", 0, new Vector3(1.8f, 6.2f, 1.8f), new Vector2(x, z), 0f, KStone);
                 Solid(pillar);
-                var cap = L3Build.Fit(parent, "K:SM_Bld_Castle_Wall_01", 0, new Vector3(2.3f, 0.5f, 2.3f), new Vector2(x, 41.4f), 6.2f, KStone);
-                var bowl = Prop(parent, "K:SM_Prop_Brazier_01", new Vector3(x, 6.7f, 41.4f), 0f, 1.5f, KSoot, false);
-                L2Fire.Fire(parent, "PillarFire", new Vector3(x, L3Build.LocalBounds(bowl, parent).max.y - 0.2f, 41.4f), 1.1f, 3.2f, 12f, true);
-                L4Citadel.HangBanner(parent, new Vector3(x, 5.9f, 40.46f), 0f, 1.45f, x < 60f ? 0 : 1);
+                var cap = L3Build.Fit(parent, "K:SM_Bld_Castle_Wall_01", 0, new Vector3(2.3f, 0.5f, 2.3f), new Vector2(x, z), 6.2f, KStone);
+                var bowl = Prop(parent, "K:SM_Prop_Brazier_01", new Vector3(x, 6.7f, z), 0f, 1.5f, KSoot, false);
+                L2Fire.Fire(parent, "PillarFire", new Vector3(x, L3Build.LocalBounds(bowl, parent).max.y - 0.2f, z), 1.1f, 3.2f, 12f, true);
+                L4Citadel.HangBanner(parent, new Vector3(x, 5.9f, z - 0.94f), 0f, 1.45f, x < 60f ? 0 : 1);
                 cap.name = "PillarCap";
             }
         }
@@ -292,7 +293,7 @@ namespace Kneel.EditorTools
 
         // A timber watchtower: four posts braced in two tiers, a ladder up the south side, the pack's octagonal
         // timber hoarding as its lookout hut on top, lamplight inside, the red flag on its roof.
-        private static void Watchtower(Transform parent, Vector3 at, float yaw, float height, bool solid, int seed)
+        internal static void Watchtower(Transform parent, Vector3 at, float yaw, float height, bool solid, int seed)
         {
             var t = L3Build.Child(parent, "Watchtower", at, new Vector3(0f, yaw, 0f)).transform;
             var rng = new System.Random(seed);
@@ -385,7 +386,7 @@ namespace Kneel.EditorTools
 
                 var b = r.bounds;
                 bool side = b.center.x < 30f || b.center.x > 95f || b.center.z > 345f;
-                if (side && b.max.y > -3.5f && b.center.z > 30f)
+                if (side && b.max.y > -3.5f && b.center.z > 30f - L4Plan.Gap)
                 {
                     candidates.Add(b);
                 }
@@ -509,8 +510,12 @@ namespace Kneel.EditorTools
             var parent = L3Build.Child(g, "Wreckage").transform;
             var spots = new (float x, float y, float z, float yaw)[]
             {
-                (74.6f, 0f, 41.8f, 20f),        // the apron, its south-east corner
-                (46.6f, 0f, 55.7f, -30f),       // the apron, by the lookout path
+                (74.6f, 0f, -34.2f, 20f),       // the apron, its south-east corner
+                (46.6f, 0f, -20.3f, -30f),      // the apron, by the lookout path
+                (37.8f, 0f, 11.8f, 40f),        // the mustering yard, south-west corner
+                (80.2f, 0f, 27.8f, -20f),       // the stable row, its east end
+                (57.8f, 0f, 43.8f, 75f),        // the forge yard, south-west corner
+                (52.2f, 0f, 62.2f, 10f),        // the barracks yard, north-east corner
                 (37.6f, 0f, 87.8f, 70f),        // the Lists, south-west corner
                 (53.6f, 0f, 125.6f, 10f),       // the courtyard, south-west corner
                 (91.4f, T1, 126.2f, 45f),       // the terrace, south end
@@ -553,7 +558,9 @@ namespace Kneel.EditorTools
             var parent = L3Build.Child(g, "FireVents").transform;
             var spots = new (float x, float y, float z)[]
             {
-                (49.5f, 0f, 44.5f), (70.5f, 0f, 46f),               // the apron
+                (49.5f, 0f, -31.5f), (70.5f, 0f, -30f),             // the apron
+                (47.5f, 0f, 14.5f), (60.8f, 0f, 19f),              // the mustering yard
+                (68.5f, 0f, 46.5f), (72.5f, 0f, 52f),              // the forge yard
                 (55.5f, 0f, 131.5f), (61.5f, 0f, 143.5f),           // the courtyard
                 (88.6f, T1, 131f),                                  // the terrace
                 (48.5f, 0f, 220.5f), (60.5f, 0f, 210.5f),           // the barbican yard

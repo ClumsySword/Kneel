@@ -63,8 +63,9 @@ namespace Kneel.EditorTools
                 return Color.HSVToRGB(0.075f, s * 0.38f, Mathf.Min(v * 0.62f, 0.44f));
             }
 
-            // Stone and everything else: toward a faintly cool grey.
-            return Color.HSVToRGB(Mathf.Lerp(h, 0.09f, 0.5f), s * 0.22f, Mathf.Min(v * 0.8f, 0.68f));
+            // Stone and everything else: toward a faintly cool grey, a quarter darker since the endgame grade (owner,
+            // 2026-10-21: "The walls and floor still feel a bit too bright").
+            return Color.HSVToRGB(Mathf.Lerp(h, 0.09f, 0.5f), s * 0.22f, Mathf.Min(v * 0.6f, 0.5f));
         }
 
         private static Color Bronze(float h, float s, float v)
@@ -144,7 +145,7 @@ namespace Kneel.EditorTools
             {
                 for (int x = 0; x < 4; x++)
                 {
-                    layout.SetPixel(x, y, new Color(0.58f, 0.56f, 0.53f, 0f));
+                    layout.SetPixel(x, y, new Color(0.43f, 0.415f, 0.39f, 0f));
                     pave.SetPixel(x, y, new Color(1f, 1f, 1f, 1f));
                 }
             }

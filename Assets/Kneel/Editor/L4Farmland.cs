@@ -28,10 +28,11 @@ namespace Kneel.EditorTools
     {
         public const string GroupName = "Farmland";
         private const string L3 = "Assets/Kneel/Prefabs/L3/";
-        private const float Track0 = -44f, Track1 = -10.6f, RoadX = 60f;
+        private const float Track0 = -120f, Track1 = -86.6f, RoadX = 60f;
 
-        // The painted patch, on the surroundings' 2 m grid (x -10 to 130, z -100 to -8).
-        public static readonly Rect Rect = Rect.MinMaxRect(-10f, -100f, 130f, -8f);
+        // The painted patch, on the surroundings' 2 m grid (x -10 to 130, z -176 to -84: 76 m further south since
+        // the outer ward went in, L4Plan.Gap).
+        public static readonly Rect Rect = Rect.MinMaxRect(-10f, -176f, 130f, -84f);
         private const float Grid = 2f;
         private const int TexWidth = 1024, TexHeight = 704;
         private const string TexturesPath = "Assets/Kneel/Textures/L4";
@@ -77,11 +78,11 @@ namespace Kneel.EditorTools
         // the ground is not black.
         public static float Scorch(Vector2 p)
         {
-            float front = -32f + (L3Ground.Fbm(p.x * 0.035f + 7f, p.y * 0.02f + 3f) - 0.5f) * 20f;
+            float front = -108f + (L3Ground.Fbm(p.x * 0.035f + 7f, p.y * 0.02f + 3f) - 0.5f) * 20f;
             float s = Mathf.InverseLerp(front, front + 22f, p.y);
             // Tongues of fire that ran down the fields along the strips.
             float tongue = L3Ground.Step(0.62f, 0.78f, L3Ground.Fbm(p.x * 0.05f + 31f, p.y * 0.012f + 9f));
-            return Mathf.Clamp01(Mathf.Max(s, tongue * Mathf.InverseLerp(-80f, -30f, p.y) * 0.85f));
+            return Mathf.Clamp01(Mathf.Max(s, tongue * Mathf.InverseLerp(-156f, -106f, p.y) * 0.85f));
         }
 
         private static float Burn(Vector2 p) => Mathf.Max(L3Ground.Burnt(p.x, p.y), Scorch(p));
@@ -91,8 +92,8 @@ namespace Kneel.EditorTools
         // The road down the track and on to the causeway, wandering a little inside the walls.
         private static readonly Vector2[] MainRoad =
         {
-            new Vector2(59.2f, -104f), new Vector2(60.6f, -86f), new Vector2(59.4f, -68f), new Vector2(60.8f, -52f), new Vector2(59.6f, -40f),
-            new Vector2(60.5f, -30f), new Vector2(59.7f, -20f), new Vector2(60f, -8f),
+            new Vector2(59.2f, -180f), new Vector2(60.6f, -162f), new Vector2(59.4f, -144f), new Vector2(60.8f, -128f), new Vector2(59.6f, -116f),
+            new Vector2(60.5f, -106f), new Vector2(59.7f, -96f), new Vector2(60f, -84f),
         };
 
         private static float Polyline(Vector2 p, Vector2[] line, out float t)
@@ -286,8 +287,8 @@ namespace Kneel.EditorTools
             var parent = L3Build.Child(g, "Fields").transform;
             var keep = new List<(Vector2 at, float r)>
             {
-                (new Vector2(42.5f, -27f), 2.5f), (new Vector2(-6f, -78f), 8f), (new Vector2(50.8f, -31f), 3f),
-                (new Vector2(76f, -27f), 3.5f), (new Vector2(71f, -16f), 3f), (new Vector2(92f, -47f), 13f),
+                (new Vector2(42.5f, -103f), 2.5f), (new Vector2(-6f, -154f), 8f), (new Vector2(50.8f, -107f), 3f),
+                (new Vector2(76f, -103f), 3.5f), (new Vector2(71f, -92f), 3f), (new Vector2(92f, -123f), 13f),
             };
             var bands = new Dictionary<int, L3Mesh>();
             L3Mesh Band(float z)
@@ -405,7 +406,7 @@ namespace Kneel.EditorTools
             {
                 for (float z = Track0 + 1f; z < Track1; z += 2f)
                 {
-                    bool wall = z < -26f;
+                    bool wall = z < -102f;
                     if (Put(parent, wall ? "Kit/L3_StoneWall_Low" : "Kit/L3_Rail", x, z, 90f, 1f, 0f, false) != null)
                     {
                         n++;
@@ -426,9 +427,9 @@ namespace Kneel.EditorTools
             var rng = new System.Random(812);
             foreach (var (start, dir, length) in new[]
             {
-                (new Vector2(66f, -24f), new Vector2(0.21f, -0.98f), 52f),
-                (new Vector2(54f, -26f), new Vector2(-0.21f, -0.98f), 48f),
-                (new Vector2(68f, -58f), new Vector2(0.98f, 0.21f), 36f),
+                (new Vector2(66f, -100f), new Vector2(0.21f, -0.98f), 52f),
+                (new Vector2(54f, -102f), new Vector2(-0.21f, -0.98f), 48f),
+                (new Vector2(68f, -134f), new Vector2(0.98f, 0.21f), 36f),
             })
             {
                 for (float s = 0f; s < length; s += 2f)
@@ -448,7 +449,7 @@ namespace Kneel.EditorTools
                 }
             }
 
-            foreach (var (x, z, yaw) in new[] { (44f, -60f, 12f), (46f, -64f, 15f), (78f, -70f, -10f), (80f, -66f, -14f) })
+            foreach (var (x, z, yaw) in new[] { (44f, -136f, 12f), (46f, -140f, 15f), (78f, -146f, -10f), (80f, -142f, -14f) })
             {
                 if (Put(parent, "Kit/L3_Hedge_Low", x, z, yaw) != null)
                 {
@@ -473,27 +474,27 @@ namespace Kneel.EditorTools
                 }
             }
 
-            Add(Put(parent, "Props/L3_Well", 42.5f, -27f, 20f));
-            Add(Put(parent, "Structures/L3_Windmill", -6f, -78f, 160f, 1f, 0.3f));
-            Add(Put(parent, "Props/L3_GrainCart", 50.8f, -31f, 170f));
-            Add(Put(parent, "Props/L3_HayWagon", 76f, -27f, 30f));
+            Add(Put(parent, "Props/L3_Well", 42.5f, -103f, 20f));
+            Add(Put(parent, "Structures/L3_Windmill", -6f, -154f, 160f, 1f, 0.3f));
+            Add(Put(parent, "Props/L3_GrainCart", 50.8f, -107f, 170f));
+            Add(Put(parent, "Props/L3_HayWagon", 76f, -103f, 30f));
             var rng = new System.Random(816);
             for (int i = 0; i < 9; i++)
             {
-                float x = 84f + (i % 3) * 6.5f + (float)rng.NextDouble() * 2f, z = -40f - (i / 3) * 7f + (float)rng.NextDouble() * 2f;
+                float x = 84f + (i % 3) * 6.5f + (float)rng.NextDouble() * 2f, z = -116f - (i / 3) * 7f + (float)rng.NextDouble() * 2f;
                 Add(Put(parent, "Structures/L3_OrchardTree", x, z, rng.Next(360), 0.9f + (float)rng.NextDouble() * 0.3f));
             }
 
-            foreach (var (x, z) in new[] { (51.5f, -16f), (68.5f, -38f), (47f, -52f), (26f, -58f), (88f, -20f) })
+            foreach (var (x, z) in new[] { (51.5f, -92f), (68.5f, -114f), (47f, -128f), (26f, -134f), (88f, -96f) })
             {
                 Add(Put(parent, "Structures/L3_BoundaryOak", x, z, rng.Next(360)));
             }
 
             // Toward the bank the farm burns: a rick alight, the fields smouldering, and the first of the dead.
-            L2Fire.Fire(parent, "BurningRick", new Vector3(71f, Ground(71f, -16f) + 0.2f, -16f), 1.4f, 3.5f, 11f, true, new Vector3(2.4f, 0f, 2.4f));
-            L2Fire.Smoulder(parent, "FieldSmoulder_W", new Vector3(44f, Ground(44f, -15f) + 0.1f, -15f), new Vector2(6f, 4f));
-            L2Fire.Smoulder(parent, "FieldSmoulder_E", new Vector3(82f, Ground(82f, -13f) + 0.1f, -13f), new Vector2(7f, 4f), 20f);
-            foreach (var (x, z, yaw, pose) in new[] { (66.6f, -13.8f, 40f, "Prone"), (52.4f, -12.6f, 200f, "Supine"), (48.5f, -19.5f, 120f, "Curled") })
+            L2Fire.Fire(parent, "BurningRick", new Vector3(71f, Ground(71f, -92f) + 0.2f, -92f), 1.4f, 3.5f, 11f, true, new Vector3(2.4f, 0f, 2.4f));
+            L2Fire.Smoulder(parent, "FieldSmoulder_W", new Vector3(44f, Ground(44f, -91f) + 0.1f, -91f), new Vector2(6f, 4f));
+            L2Fire.Smoulder(parent, "FieldSmoulder_E", new Vector3(82f, Ground(82f, -89f) + 0.1f, -89f), new Vector2(7f, 4f), 20f);
+            foreach (var (x, z, yaw, pose) in new[] { (66.6f, -89.8f, 40f, "Prone"), (52.4f, -88.6f, 200f, "Supine"), (48.5f, -95.5f, 120f, "Curled") })
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(L4Assets.Skeletons + pose + ".prefab");
                 if (prefab != null)

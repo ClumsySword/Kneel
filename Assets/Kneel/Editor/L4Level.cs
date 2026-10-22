@@ -98,6 +98,7 @@ namespace Kneel.EditorTools
                 log.Add(L4Atmosphere.Build(root));
                 log.Add(L4Dressing.Build(root));
                 log.Add(L4Stronghold.Build(root));
+                log.Add(L4OuterWard.Build(root));
             }
 
             var reset = L3Build.Child(root, "LevelReset").AddComponent<LevelReset>();
@@ -330,7 +331,7 @@ namespace Kneel.EditorTools
             var g = root.Find("Ravine");
             var kills = new[]
             {
-                ("RavineKill", new Vector3(60f, -24f, 150f), new Vector3(340f, 19.5f, 520f)),
+                ("RavineKill", new Vector3(60f, -24f, 110f), new Vector3(340f, 19.5f, 600f)),
                 ("BreachKill", new Vector3(101f, -12f, 148f), new Vector3(16f, 10.5f, 16f)),
             };
             foreach (var (name, at, size) in kills)
@@ -650,8 +651,11 @@ namespace Kneel.EditorTools
             Light("Corona", "Slick_Nave_Crossing");
             Light("Tripod_W", "Slick_Forecourt_W");
             Light("Tripod_E", "Slick_Forecourt_E");
+            Light("Tripod_Muster", "Slick_Muster");
+            Light("Tripod_Forge", "Slick_Forge");
             Partners("Kneeler_Twin_1", "Kneeler_Twin_2");
             Partners("Kneeler_Twin_3", "Kneeler_Twin_4");
+            Partners("Kneeler_Muster_Twin_1", "Kneeler_Muster_Twin_2");
 
             var rings = new List<MurderHole>();
             for (int i = 0; i < 3; i++)
@@ -866,7 +870,7 @@ namespace Kneel.EditorTools
             Physics.SyncTransforms();
             // At the plan's PlayerSpawn (since the refinement, on the farm track south of the causeway).
             var mark = L4Plan.Places.Find(p => p.Name == "PlayerSpawn");
-            var spawn = mark != null ? mark.Position : new Vector3(60f, 0f, 2f);
+            var spawn = mark != null ? mark.Position : new Vector3(60f, 0f, -74f);
             if (Physics.Raycast(spawn + Vector3.up * 20f, Vector3.down, out var hit, 40f, 1 << L3Build.Layer(L3Build.Walkable)))
             {
                 spawn = hit.point;
@@ -1096,7 +1100,7 @@ namespace Kneel.EditorTools
         // stair and its landing, the crypt, the tower roofs, the hoarding and the metrics map.
         private static readonly Rect[] Allowed =
         {
-            new Rect(55f, -10f, 10f, 50f), new Rect(69.5f, 137f, 11f, 10f), new Rect(44f, 254f, 20f, 12f), new Rect(82f, 190f, 10f, 13f),
+            new Rect(55f, -86f, 10f, 50f), new Rect(69.5f, 137f, 11f, 10f), new Rect(44f, 254f, 20f, 12f), new Rect(82f, 190f, 10f, 13f),
             new Rect(82f, 153f, 12f, 16f), new Rect(46.5f, 153f, 12f, 12f), new Rect(-120f, -20f, 60f, 90f), new Rect(39.5f, 105.5f, 21f, 3f),
         };
 
@@ -1155,7 +1159,7 @@ namespace Kneel.EditorTools
             var lines = new List<string>();
             int agent = L3Level.AgentType("Thrall", 0.5f, 2f);
             var filter = new NavMeshQueryFilter { agentTypeID = agent, areaMask = NavMesh.AllAreas };
-            NavMesh.SamplePosition(new Vector3(60f, 0f, 2f), out var start, 4f, filter);
+            NavMesh.SamplePosition(new Vector3(60f, 0f, -74f), out var start, 4f, filter);
             var unreachable = new List<string>();
             foreach (var f in L4Plan.Floors)
             {

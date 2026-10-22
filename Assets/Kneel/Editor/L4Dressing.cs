@@ -161,7 +161,7 @@ namespace Kneel.EditorTools
             }
 
             // Narrow joins the route passes through: the rubble gap, doorways, the shrine stair foot.
-            foreach (var v in new[] { new Vector2(62f, 85f), new Vector2(62f, 125f), new Vector2(64f, 159f), new Vector2(57.5f, 166f), new Vector2(50.4f, 178f), new Vector2(65.4f, 186f), new Vector2(54f, 206f), new Vector2(54f, 226f), new Vector2(54f, 240f) })
+            foreach (var v in new[] { new Vector2(62f, 9f), new Vector2(59f, 86f), new Vector2(64f, 30f), new Vector2(79f, 42f), new Vector2(55f, 54f), new Vector2(60f, 64f), new Vector2(62f, 125f), new Vector2(64f, 159f), new Vector2(57.5f, 166f), new Vector2(50.4f, 178f), new Vector2(65.4f, 186f), new Vector2(54f, 206f), new Vector2(54f, 226f), new Vector2(54f, 240f) })
             {
                 list.Add((v, 3f));
             }

@@ -647,6 +647,31 @@ The L3 reference captures showed L3's re-graded stone walls and its castle backd
 
 **Not yet checked in Play mode:** the fire vents and burning wrecks (contact and damage), the fading walls in the live camera, and the gates and hazards from before.
 
+### 3c. Darker stone and the outer ward (2026-10-22)
+
+The owner liked the endgame grade but said "the walls and floor still feel a bit too bright", and asked for two more arenas: "the level... is a bit too small... moving the gate/bridge further away and then adding stuff in between the gap... of the same quality as the rest of the level."
+
+**Darker stone.** The Knights stone grade is a quarter darker (`L4Look.Stone`: value × 0.6, capped at 0.5, was × 0.8 and 0.68), and so is the stone palette built from it. The paving layout is too: stone 0.43 (was 0.58), earth 0.28 (was 0.36), in `L4Paving` and `L4Look.Ground`. The lighting grade is unchanged.
+
+**The gate moved south.** Everything from E1's rubble gap southward stands 76 m further south (`L4Plan.Gap`): the gatehouse and E1, the apron and D4, the causeway, the farm track and the farm patch (`L4Farmland`, all coordinates), the surroundings' farm and road shaping, the gate's pillars, fires, wrecks and vents. The surroundings, lava and kill volume reach 76 m further south to match.
+
+**The outer ward** fills the gap between the rubble gap and the Lists, keeping the zigzag:
+
+| Floor | Area | What | Plan (x, z) |
+|---|---|---|---|
+| F30 | O1 | **The mustering yard** (arena): the garrison knelt here in its ranks when the master came and died kneeling. Nine kneeling dead in three ranks, three of them an ambush (one footman, two Twins). The herald's dais under the rampart with the master's standard and two braziers; weapon racks along the west wall, the quartermaster's cart, mantlets; a tripod over a spilt oil slick. Three Ashen Footmen. Camera-side wall fades. | 36-64, 10-34 |
+| F31, F31n | SR | **The stable row**: the leg east under the rampart, then north. Burnt stalls along the rampart's foot, a dead horse in one, the hay cart smouldering by the south wall, stores. | 64-82, 26-42 |
+| F32 | O2 | **The forge yard** (arena): the smithy that kept arming the dead. The forge against the north wall: hearth with a bed of coals and the master's red fire, a corbelled hood and a chimney above the wall. Anvils on their blocks (a half-made blade on one), the quench trough, iron stock, coal under a lean-to. The portcullis the smiths were mending, a wagon, racks, a chest, the pitch cauldron and oil jars; a slick under a tripod. The Iron Husk at the anvil, three footmen. | 56-82, 42-64 |
+| F33 | LG | **The Lists gate**: the lane north into the Lists, braziers, an abandoned cart, the dead who ran. | 54-64, 64-86 |
+| F34, F34g | D7 | **The barracks yard** (side path): through a breach in the forge yard's west wall. Lean-tos and tents (one burning), bunks with their sleepers, a smouldering fire, kit stacked; lore by the sentry, a consumable guarded by a kneeler that rises. | 36-54, 42-64 |
+| M07 | O1 | **The muster rampart**, out of reach between the two yards: a watchtower, a ballista over the mustering yard, a brazier, stores, a flag. | 36-76, 34-42, T+1 |
+
+Also: arena volumes `Arena_O1` and `Arena_O2`, the vista `Vista_V1b` through the rubble gap, four burning wrecks and four fire vents, ash and embers over the ward, three smoke columns from the ravine beside it. The dressing is `L4OuterWard` (its own group, rebuilt alone with `Kneel > L4 > Build > Outer Ward`). `L4Stronghold`'s prop helpers are internal so the ward reuses them.
+
+**Checks:** full rebuild, 14/14 agent rules, every floor reachable except F21w/F21e as before, 0 NavMesh leaks. The player-capsule sweep walks 1,563 m (was 1,228 m), through both new arenas, the stable row, the barracks and the Lists gate, with only the known stall at Shrine B's plinth.
+
+**Not yet checked in Play mode:** the new ambushes, slicks and tripods in the ward, along with the older hazards.
+
 ## Questions
 
 1. **The camera shows less than the note assumes.** About 20 × 13 m of ground and 8.8 m up-screen, against the note's assumed 32 × 20 m default and 48 × 30 m arena framings. L4's arenas are 16–28 m wide, so most yards will not fit in frame, and E3's crossbowman and E6a's wall-walk can be off-screen. L3's answer was "keep the camera as is"; L4 relies on `OnScreenGate` (section 12, decision 9) for ranged fairness. Built as written unless the owner says otherwise.

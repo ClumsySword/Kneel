@@ -20,7 +20,7 @@ namespace Kneel.EditorTools
         public const float LavaY = -12.8f;
 
         private const float Cell = 4f;
-        private const float MinX = -110f, MaxX = 230f, MinZ = -100f, MaxZ = 420f;
+        private const float MinX = -110f, MaxX = 230f, MinZ = -190f, MaxZ = 420f;
         private const int Tile = 24;
         private const string TexturesPath = "Assets/Kneel/Textures/L4";
 

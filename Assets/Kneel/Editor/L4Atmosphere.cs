@@ -53,6 +53,9 @@ namespace Kneel.EditorTools
                 (101f, 147f, 1.3f),     // under the E4 breach ("smoke rising from the ravine")
                 (16f, 112f, 1.1f),      // west ravine, below the Lists
                 (104f, 84f, 1f),        // east ravine, by the prison lane
+                (14f, 34f, 1.2f),       // west ravine, below the mustering yard
+                (77f, 76f, 0.9f),       // the lava inlet between the forge yard and the Lists' bastion
+                (100f, 10f, 1.1f),      // east ravine, by the stable row
                 (20f, 200f, 1.2f),      // west ravine, by the cloister
                 (100f, 228f, 1f),       // east ravine, by E6
                 (150f, 172f, 1.6f),     // the siege camp on the east bank
@@ -60,8 +63,8 @@ namespace Kneel.EditorTools
                 (190f, 260f, 2.6f),     // far east
                 (36f, 380f, 2.2f),      // behind the citadel
                 (90f, 395f, 2.8f),
-                (-30f, 40f, 2f),        // the south-west, seen from the causeway
-                (150f, 20f, 2.2f),
+                (-30f, -36f, 2f),       // the south-west, seen from the causeway
+                (150f, -56f, 2.2f),
             };
             foreach (var (x, z, scale) in columns)
             {
@@ -81,17 +84,17 @@ namespace Kneel.EditorTools
                 fires++;
             }
 
-            // The outer gatehouse's roof is still burning on the passage walls' tops (S01 at (62, 57), walls 7 m).
+            // The outer gatehouse's roof is still burning on the passage walls' tops (S01 at (62, -19), walls 7 m).
             // Kept to the flanking towers' tops (x 47 and 80): on the passage walls they burned right under the camera.
             // (The towers stand at x 47 and 73 since the refinement, 18 m tall.)
-            Fire("Gatehouse_W", new Vector3(47f, 18.4f, 60f), 1.3f, 3f, true, new Vector3(3f, 0f, 3f));
-            Fire("Gatehouse_E", new Vector3(73f, 18.4f, 60f), 1.2f, 3f, true, new Vector3(3f, 0f, 3f));
+            Fire("Gatehouse_W", new Vector3(47f, 18.4f, -16f), 1.3f, 3f, true, new Vector3(3f, 0f, 3f));
+            Fire("Gatehouse_E", new Vector3(73f, 18.4f, -16f), 1.2f, 3f, true, new Vector3(3f, 0f, 3f));
             // The refugee carts on the causeway and at the lookout.
-            L2Fire.Smoulder(fire, "Cart_1", new Vector3(57.8f, 0.4f, 14f), new Vector2(1.8f, 2.6f));
-            L2Fire.Smoulder(fire, "Cart_3", new Vector3(40.8f, 0.4f, 52.5f), new Vector2(1.6f, 2.4f));
+            L2Fire.Smoulder(fire, "Cart_1", new Vector3(57.8f, 0.4f, -62f), new Vector2(1.8f, 2.6f));
+            L2Fire.Smoulder(fire, "Cart_3", new Vector3(40.8f, 0.4f, -23.5f), new Vector2(1.6f, 2.4f));
             fires += 2;
             // The ram in the outer arch, its shed burnt down to embers.
-            L2Fire.Smoulder(fire, "Ram", new Vector3(65f, 0.2f, 54f), new Vector2(3f, 5f), 10f);
+            L2Fire.Smoulder(fire, "Ram", new Vector3(65f, 0.2f, -22f), new Vector2(3f, 5f), 10f);
             fires++;
             // Refuse burning on the ravine floor under each column, and in the siege camp.
             foreach (var (x, z, scale) in columns)
@@ -112,7 +115,8 @@ namespace Kneel.EditorTools
             var ember = L3Build.Child(g, "Embers").transform;
             var fields = new (Vector3 centre, Vector3 size)[]
             {
-                (new Vector3(60f, 3f, 40f), new Vector3(30f, 4f, 60f)),
+                (new Vector3(60f, 3f, -36f), new Vector3(30f, 4f, 60f)),
+                (new Vector3(58f, 4f, 37f), new Vector3(46f, 6f, 54f)),
                 (new Vector3(54f, 4f, 95f), new Vector3(50f, 6f, 40f)),
                 (new Vector3(68f, 5f, 140f), new Vector3(46f, 8f, 40f)),
                 (new Vector3(70f, 4f, 180f), new Vector3(50f, 6f, 40f)),
@@ -132,7 +136,7 @@ namespace Kneel.EditorTools
                 Ash(ashFall, centre + Vector3.up * 5f, size + new Vector3(10f, 0f, 10f));
             }
 
-            Ash(ashFall, new Vector3(60f, 8f, -20f), new Vector3(40f, 6f, 50f));
+            Ash(ashFall, new Vector3(60f, 8f, -96f), new Vector3(40f, 6f, 50f));
 
             return GroupName + ": " + plumes + " smoke columns, " + fires + " fires, " + embers + " ember fields";
         }

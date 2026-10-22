@@ -9,7 +9,11 @@ namespace Kneel.EditorTools
     // The route is a zigzag spine (owner's review of the first blockout, 2026-10-19: "more interesting than a
     // straight line"). Every arena sits to one side of the one before it, joined by a sideways leg, and the route
     // still only climbs up-screen through the arenas:
-    // - S, BA and E1 run up the middle (x 54-70) to the rubble gap at x 60-64.
+    // - S, BA and E1 run up the middle (x 54-70) to the rubble gap at x 60-64, 76 m further south since the
+    //   outer ward went in (Gap).
+    // - O1, the mustering yard, swings west (x 36-64); the stable row is the leg back east under the muster
+    //   rampart, into O2, the forge yard (x 56-82); the Lists gate runs north out of its west end into E2.
+    //   D7, the barracks yard, opens off the forge yard's west side.
     // - E2 the Lists swing west (x 36-64), mirrored from the spec, so their stair is at the far west end and the
     //   prison lane (D3) leaves the north-east corner, going east.
     // - WW, the curtain walk, is the long leg back east over the Lists (x 36-80) to the guardroom.
@@ -25,6 +29,11 @@ namespace Kneel.EditorTools
     {
         public const float T0 = 0f, T1 = 5f, TM1 = -3f;
         public const float RavineY = -12f;
+
+        // The outer ward (owner, 2026-10-21: the level is "a bit too small... add 2 more arena... moving the
+        // gate/bridge further away"): everything from E1's rubble gap south (the gatehouse, the apron, the causeway
+        // and the farm track) stands this far south of where it was, and the ward fills the gap.
+        public const float Gap = 76f;
 
         public enum Edit
         {
@@ -137,19 +146,39 @@ namespace Kneel.EditorTools
             // bridge should use the same cobblestones as the rest); the S12 spans carry its parapets and arches.
             // The farm track the player arrives by out of L3's fields (owner, 2026-10-19: "a smooth transition from lvl 3
             // Farmland... no hard lines"): open land, fenced (L4Farmland), the ground itself drawn by the surroundings.
-            var track = F("F00", "S", "Farm track", 56f, 64f, -44f, -10f, T0).Do('W', -44f, -10f, Edit.Skip).Do('E', -44f, -10f, Edit.Skip).Do('S', 56f, 64f, Edit.Skip);
+            var track = F("F00", "S", "Farm track", 56f, 64f, -120f, -86f, T0).Do('W', -120f, -86f, Edit.Skip).Do('E', -120f, -86f, Edit.Skip).Do('S', 56f, 64f, Edit.Skip);
             track.Bridge = track.Hidden = true;
-            F("F01", "S", "Causeway", 56f, 64f, -10f, 40f, T0).Do('W', -10f, 40f, Edit.Skip).Do('E', -10f, 40f, Edit.Skip).Do('S', 56f, 64f, Edit.Skip).Bridge = true;
-            F("F02", "BA", "Barbican apron", 44f, 76f, 40f, 57f, T0).Do('S', 56f, 64f, Edit.Skip).Do('N', 44f, 76f, Edit.Skip).Ravine = true;
-            F("F03", "E1", "Gatehouse passage", 54f, 70f, 57f, 84f, T0).Do('W', 57f, 84f, Edit.Skip).Do('E', 57f, 84f, Edit.Skip).Do('N', 54f, 70f, Edit.Skip)
-                .Splash(58f, 76f, 2.6f, 11).Splash(62f, 77f, 2.4f, 23).Splash(66f, 76f, 2.7f, 37).Splash(62f, 73f, 2.5f, 41);
-            F("F03g", "E1", "Rubble gap", 60f, 64f, 84f, 86f, T0).Do('W', 84f, 86f, Edit.Skip).Do('E', 84f, 86f, Edit.Skip);
+            F("F01", "S", "Causeway", 56f, 64f, -86f, -36f, T0).Do('W', -86f, -36f, Edit.Skip).Do('E', -86f, -36f, Edit.Skip).Do('S', 56f, 64f, Edit.Skip).Bridge = true;
+            F("F02", "BA", "Barbican apron", 44f, 76f, -36f, -19f, T0).Do('S', 56f, 64f, Edit.Skip).Do('N', 44f, 76f, Edit.Skip).Ravine = true;
+            F("F03", "E1", "Gatehouse passage", 54f, 70f, -19f, 8f, T0).Do('W', -19f, 8f, Edit.Skip).Do('E', -19f, 8f, Edit.Skip).Do('N', 54f, 70f, Edit.Skip)
+                .Splash(58f, 0f, 2.6f, 11).Splash(62f, 1f, 2.4f, 23).Splash(66f, 0f, 2.7f, 37).Splash(62f, -3f, 2.5f, 41);
+            F("F03g", "E1", "Rubble gap", 60f, 64f, 8f, 10f, T0).Do('W', 8f, 10f, Edit.Skip).Do('E', 8f, 10f, Edit.Skip);
             // D4, a side path off the apron's west end: a ledge over the ravine where the refugees left their dead.
-            F("F02w", "D4", "Ravine lookout", 34f, 44f, 46f, 54f, T0).Ravine = true;
+            F("F02w", "D4", "Ravine lookout", 34f, 44f, -30f, -22f, T0).Ravine = true;
+
+            // ---- The outer ward (refinement, 2026-10-21): two arenas, the legs between them and a side yard.
+            // O1, the mustering yard, west of the rubble gap. Its south (camera) side fades; the gatehouse's own
+            // rubble wall closes x 54-60.
+            F("F30", "O1", "Mustering yard", 36f, 64f, 10f, 34f, T0).Do('S', 54f, 60f, Edit.Skip).CutSouth = true;
+            // The stable row: east out of the yard under the muster rampart, then north into the forge yard.
+            F("F31", "SR", "Stable row", 64f, 82f, 26f, 34f, T0).CutSouth = true;
+            F("F31n", "SR", "Stable row (bend)", 76f, 82f, 34f, 42f, T0);
+            // O2, the forge yard, east; its west wall has the barracks gate in it.
+            F("F32", "O2", "Forge yard", 56f, 82f, 42f, 64f, T0);
+            // The Lists gate: north out of the forge yard's west end into the Lists (their old opening from E1).
+            F("F33", "LG", "Lists gate", 54f, 64f, 64f, 86f, T0);
+            // D7, the barracks yard, off the forge yard through a breach in its west wall (the forge yard's wall
+            // and the bailey's south wall are its own east and north walls).
+            F("F34", "D7", "Barracks yard", 36f, 54f, 42f, 64f, T0).Do('E', 42f, 64f, Edit.Skip).Do('N', 36f, 54f, Edit.Skip);
+            F("F34g", "D7", "Barracks breach", 54f, 56f, 52f, 56f, T0).Do('N', 54f, 56f, Edit.Skip).Do('S', 54f, 56f, Edit.Skip);
+            // The muster rampart between the mustering yard and the forge yard: solid, out of reach, manned once.
+            var rampart = F("M07", "O1", "Muster rampart", 36f, 76f, 34f, 42f, T1);
+            rampart.Mass = rampart.Outpost = true;
 
             // ---- E2 swings west; D3 leaves its north-east corner going east
             F("F04", "E2", "The Lists", 36f, 64f, 86f, 108f, T0).Do('S', 54f, 64f, Edit.Skip).Do('S', 36f, 54f, Edit.Cut).Do('E', 89f, 93f, Edit.Skip).CutSouth = true;
-            // Behind the Lists' cut wall, an enclosed outer bailey; east of them a bastion up to the curtain walk.
+            // Behind the Lists' cut wall, an enclosed outer bailey (its east wall the Lists gate's west wall); east of
+            // them a bastion up to the curtain walk.
             F("M01", "E2", "Outer bailey", 36f, 52f, 66f, 86f, T0).Do('E', 66f, 86f, Edit.Skip).Mass = true;
             // The bastion over the Lists is a lookout post, reached by a stair cut into it from the Lists' east side
             // (x 64-71.8, y 89-93): south and north of the stair well, and the landing at its head.
@@ -276,12 +305,12 @@ namespace Kneel.EditorTools
         public static readonly List<Place> Places = new List<Place>
         {
             // ---- Stage C: structures
-            P('C', "Structures", "S", "S12", "Causeway_0", 60f, -5f),
-            P('C', "Structures", "S", "S12", "Causeway_1", 60f, 5f),
-            P('C', "Structures", "S", "S12", "Causeway_2", 60f, 15f),
-            P('C', "Structures", "S", "S12", "Causeway_3", 60f, 25f),
-            P('C', "Structures", "S", "S12", "Causeway_4", 60f, 35f),
-            P('C', "Structures", "E1", "S01", "OuterGatehouse", 62f, 57f),
+            P('C', "Structures", "S", "S12", "Causeway_0", 60f, -81f),
+            P('C', "Structures", "S", "S12", "Causeway_1", 60f, -71f),
+            P('C', "Structures", "S", "S12", "Causeway_2", 60f, -61f),
+            P('C', "Structures", "S", "S12", "Causeway_3", 60f, -51f),
+            P('C', "Structures", "S", "S12", "Causeway_4", 60f, -41f),
+            P('C', "Structures", "E1", "S01", "OuterGatehouse", 62f, -19f),
             P('C', "Structures", "D3", "S10", "PrisonCells", 64f, 104f, 0f, 180f),
             P('C', "Structures", "A", "S02", "Guardroom", 66f, 118f, T1),
             P('C', "Structures", "E3", "S11", "Gallows", 75f, 142f),
@@ -295,12 +324,46 @@ namespace Kneel.EditorTools
             B('C', "Structures", "S09", "ThroneDoors", 54f, 268f, T1),
 
             // ---- Stage D: E1-E3 and Shrine A
-            P('D', "Markers", "S", "M10a", "PlayerSpawn", 60f, -38f),
-            P('D', "Hazards", "BA", "H04b", "OuterPortcullis", 60f, 57f),
-            P('D', "Markers", "BA", "M13", "Demo_OuterPortcullis", 60f, 47f),
-            P('D', "Props", "E1", "F04", "GateCaptain", 56f, 62f, 0f, 30f),
-            P('D', "Markers", "E1", "M03", "HeavyWeapon", 56.6f, 62.3f, 0.35f, 30f),
-            P('D', "Props", "E1", "C15a", "Barricade_Out", 62f, 60.5f),
+            P('D', "Markers", "S", "M10a", "PlayerSpawn", 60f, -114f),
+            P('D', "Hazards", "BA", "H04b", "OuterPortcullis", 60f, -19f),
+            P('D', "Markers", "BA", "M13", "Demo_OuterPortcullis", 60f, -29f),
+            P('D', "Props", "E1", "F04", "GateCaptain", 56f, -14f, 0f, 30f),
+            P('D', "Markers", "E1", "M03", "HeavyWeapon", 56.6f, -13.7f, 0.35f, 30f),
+            P('D', "Props", "E1", "C15a", "Barricade_Out", 62f, -15.5f),
+
+            // ---- O1, the mustering yard: the garrison knelt here in its ranks when the master came, and died
+            // kneeling. Racks along the west wall, the quartermaster's cart, mantlets the archers drilled behind; a
+            // tripod over a spilt oil jar by the racks; three of the kneeling ranks are an ambush.
+            P('D', "Props", "O1", "C21", "Rack_Muster_1", 37.6f, 18f, 0f, 90f),
+            P('D', "Props", "O1", "C21", "Rack_Muster_2", 37.6f, 23f, 0f, 90f),
+            P('D', "Props", "O1", "C21", "Rack_Muster_3", 37.6f, 28f, 0f, 90f),
+            P('D', "Props", "O1", "C03", "SupplyCart_Muster", 44.5f, 13.2f, 0f, 70f),
+            P('D', "Props", "O1", "C01", "Mantlet_Muster_1", 57.5f, 15.5f, 0f, -15f),
+            P('D', "Props", "O1", "C01", "Mantlet_Muster_2", 57.5f, 31.2f, 0f, 190f),
+            P('D', "Props", "O1", "C20", "OilJars_Muster", 39f, 31.5f, 0f, 120f),
+            P('D', "Hazards", "O1", "H02", "Slick_Muster", 42.5f, 29.5f),
+            P('D', "Hazards", "O1", "H03c", "Tripod_Muster", 42.5f, 27.3f),
+            P('D', "Hazards", "O1", "H08a", "Kneeler_Muster_1", 49f, 21f, 0f, 0f),
+            P('D', "Hazards", "O1", "H08b", "Kneeler_Muster_Twin_1", 53f, 24f, 0f, 0f),
+            P('D', "Hazards", "O1", "H08b", "Kneeler_Muster_Twin_2", 45f, 24f, 0f, 0f),
+
+            // ---- O2, the forge yard: the smithy that kept arming the dead, its forge against the north wall still
+            // burning; the portcullis the smiths were mending, the iron stock, the quench trough, the coal.
+            P('D', "Props", "O2", "C14", "FallenPortcullis_Forge", 64f, 49f, 0f, 75f),
+            P('D', "Props", "O2", "C13", "Wagon_Forge", 80f, 49f, 0f, 90f),
+            P('D', "Props", "O2", "C21", "Rack_Forge_1", 80.4f, 55f, 0f, -90f),
+            P('D', "Props", "O2", "C21", "Rack_Forge_2", 80.4f, 59.5f, 0f, -90f),
+            P('D', "Props", "O2", "C08", "Cauldron_Forge", 59.5f, 58.5f),
+            P('D', "Props", "O2", "C20", "OilJars_Forge", 58f, 61.6f, 0f, 30f),
+            P('D', "Hazards", "O2", "H02", "Slick_Forge", 61f, 55f),
+            P('D', "Hazards", "O2", "H03c", "Tripod_Forge", 63.2f, 55f),
+            P('D', "Props", "O2", "C19", "Chest_Forge", 80.5f, 62.6f, 0f, -90f),
+
+            // ---- D7, the barracks yard (side path): where the garrison slept, under lean-tos against the walls.
+            P('D', "Markers", "D7", "M05b", "Lore_D7", 38.6f, 61.2f),
+            P('D', "Markers", "D7", "M05a", "Consumable_D7", 40.4f, 45.2f),
+            P('D', "Hazards", "D7", "H08a", "Kneeler_Barracks", 41.8f, 46.6f, 0f, 200f),
+            P('D', "Props", "D7", "F02", "Kneeler_Sentry", 39.6f, 60.4f, 0f, 150f),
             P('D', "Props", "E2", "C01", "Mantlet", 50f, 90f),
             P('D', "Props", "E2", "C02", "DeadHorse", 60f, 96f, 0f, -80f),
             P('D', "Props", "E2", "C03", "SupplyCart", 43.5f, 92f, 0f, -15f),
@@ -369,9 +432,9 @@ namespace Kneel.EditorTools
             P('G', "Markers", "D1", "M05b", "Lore_D1", 84.5f, 200.5f, -3.15f),
             P('G', "Markers", "D1", "M05c", "Cordial_D1", 89.5f, 201f, -3.15f),
             // The side paths (owner's review, 2026-10-19): three dead ends, each with a lore fragment or healing.
-            P('G', "Props", "D4", "C17", "RefugeeCart_3", 40.8f, 52.5f, 0f, 95f),
-            P('G', "Props", "D4", "C06", "Coffins_Lookout", 37f, 47.7f, 0f, 0f),
-            P('G', "Markers", "D4", "M05b", "Lore_D4", 36.2f, 51.8f),
+            P('G', "Props", "D4", "C17", "RefugeeCart_3", 40.8f, -23.5f, 0f, 95f),
+            P('G', "Props", "D4", "C06", "Coffins_Lookout", 37f, -28.3f, 0f, 0f),
+            P('G', "Markers", "D4", "M05b", "Lore_D4", 36.2f, -24.2f),
             P('G', "Props", "D5", "C15b", "Barricade_Postern", 36.2f, 173.5f, 0f, 90f),
             P('G', "Props", "D5", "F01a", "Kneeler_Postern", 38.6f, 175.6f, 0f, -90f),
             P('G', "Markers", "D5", "M05a", "Consumable_D5", 38.4f, 170.6f),
@@ -382,14 +445,25 @@ namespace Kneel.EditorTools
             P('G', "Props", "D6", "C20", "Remedies_Garth", 77f, 213.6f, 0f, -90f),
             P('G', "Markers", "D6", "M05a", "Consumable_D6", 76.4f, 210.8f),
             P('G', "Markers", "D6", "M05b", "Lore_D6", 73.6f, 215.2f),
-            P('G', "Props", "S", "C17", "RefugeeCart_1", 57.8f, 14f, 0f, 175f),
-            P('G', "Props", "S", "C17", "RefugeeCart_2", 62.2f, 27f, 0f, 190f),
-            P('G', "Props", "BA", "C16", "Ram", 65f, 54f, 0f, 10f),
-            P('G', "Props", "BA", "F01a", "Kneeler_Gate_1", 52f, 52.5f, 0f, 180f),
-            P('G', "Props", "BA", "F01a", "Kneeler_Gate_2", 54.5f, 51.8f, 0f, 172f),
-            P('G', "Props", "BA", "F01b", "Kneeler_Gate_3", 57f, 52.8f, 0f, 186f),
-            P('G', "Props", "BA", "F01a", "Kneeler_Gate_4", 69.5f, 52.2f, 0f, 178f),
-            P('G', "Props", "BA", "F01b", "Kneeler_Gate_5", 72f, 51.6f, 0f, 190f),
+            P('G', "Props", "S", "C17", "RefugeeCart_1", 57.8f, -62f, 0f, 175f),
+            P('G', "Props", "S", "C17", "RefugeeCart_2", 62.2f, -49f, 0f, 190f),
+            P('G', "Props", "BA", "C16", "Ram", 65f, -22f, 0f, 10f),
+            P('G', "Props", "BA", "F01a", "Kneeler_Gate_1", 52f, -23.5f, 0f, 180f),
+            P('G', "Props", "BA", "F01a", "Kneeler_Gate_2", 54.5f, -24.2f, 0f, 172f),
+            P('G', "Props", "BA", "F01b", "Kneeler_Gate_3", 57f, -23.2f, 0f, 186f),
+            P('G', "Props", "BA", "F01a", "Kneeler_Gate_4", 69.5f, -23.8f, 0f, 178f),
+            P('G', "Props", "BA", "F01b", "Kneeler_Gate_5", 72f, -24.4f, 0f, 190f),
+            // The mustering yard's ranks: the dead still kneeling in their lines, facing the rampart where the
+            // master's herald stood (the ambush's three kneel among them).
+            P('G', "Props", "O1", "F01a", "Rank_1", 41f, 21f, 0f, 4f),
+            P('G', "Props", "O1", "F01b", "Rank_2", 45f, 21f, 0f, -6f),
+            P('G', "Props", "O1", "F01a", "Rank_3", 53f, 21f, 0f, 8f),
+            P('G', "Props", "O1", "F02", "Rank_4", 57f, 21f, 0f, -3f),
+            P('G', "Props", "O1", "F01b", "Rank_5", 41f, 24f, 0f, 2f),
+            P('G', "Props", "O1", "F02", "Rank_6", 49f, 24f, 0f, 0f),
+            P('G', "Props", "O1", "F01a", "Rank_7", 57f, 24f, 0f, 10f),
+            P('G', "Props", "O1", "F01b", "Rank_8", 45f, 18f, 0f, -12f),
+            P('G', "Props", "O1", "F01a", "Rank_9", 53f, 18f, 0f, 5f),
             P('G', "Props", "WW", "F05", "Cook", 49f, 107.2f, T1, 160f),
             P('G', "Props", "WW", "C20", "OilJars", 46.5f, 107f, T1, 180f),
             P('G', "Props", "E3", "F01a", "Kneeler_Block_1", 59.5f, 148f, 0f, 120f),
@@ -424,7 +498,14 @@ namespace Kneel.EditorTools
 
         public static readonly List<Enemy> Enemies = new List<Enemy>
         {
-            N('D', "E1", "N02", 62f, 80f, 0f, 180f, "Still, facing the breach. Wakes when the heavy weapon is taken"),
+            N('D', "E1", "N02", 62f, 4f, 0f, 180f, "Still, facing the breach. Wakes when the heavy weapon is taken"),
+            N('D', "O1", "N01", 49f, 30f, 0f, 180f, "Standing before the ranks, where the herald stood"),
+            N('D', "O1", "N01", 59f, 27.5f, 0f, 200f, "Standing by the stable row"),
+            N('D', "O1", "N01", 39.5f, 25.5f, 0f, 120f, "At the racks"),
+            N('D', "O2", "N02", 71f, 57.5f, 0f, 180f, "At the anvil, hammering; turns when the player passes the wagon"),
+            N('D', "O2", "N01", 62f, 46f, 0f, 150f, "By the portcullis"),
+            N('D', "O2", "N01", 75f, 51f, 0f, 200f, "Standing"),
+            N('D', "O2", "N01", 59f, 62f, 0f, 160f, "Holding the Lists gate"),
             N('D', "E3", "N02", 66f, 140f, 0f, 180f, "Patrols the yard; the tribunal key on his belt"),
             N('D', "E3", "N04", 75f, 144.5f, 2f, 200f, "On the gallows deck, covering the yard"),
             N('E', "E4", "N05", 88f, 150f, T1, 200f, "Two-thirds along the terrace"),
@@ -473,7 +554,8 @@ namespace Kneel.EditorTools
 
         public static readonly List<Volume> Volumes = new List<Volume>
         {
-            Vista('D', "Vista_V1", 60f, 4f, 0f, 8f, 4f, 10f, 44f, 12f, "Gatehouse low in frame, the spire in the upper third, the causeway parapets converging on the breach."),
+            Vista('D', "Vista_V1", 60f, -72f, 0f, 8f, 4f, 10f, 44f, 12f, "Gatehouse low in frame, the spire in the upper third, the causeway parapets converging on the breach."),
+            Vista('D', "Vista_V1b", 62f, 12f, 0f, 4f, 3f, 30f, 0f, 4f, "Through the rubble gap: the kneeling ranks of the mustering yard, the muster rampart behind them, the Lists' towers beyond."),
             Vista('D', "Vista_V2", 66f, 120.5f, T1, 6f, 3f, 34f, 0f, 0f, "From the loggia rail: the whole courtyard (Husk, crossbow, the pours), the belfry beyond, the spire in the upper third."),
             Vista('E', "Vista_V3", 88f, 138f, T1, 8f, 4f, 20f, 0f, 0f, "Framing north: the terrace, the breach, the Fool, the NE tower, the spire. The Fool waits for the player to leave this volume."),
             Vista('E', "Vista_V3b", 89f, 161.5f, T1 + 5f, 5f, 4f, 10f, 0f, -2f, "Secret (D2), on the NE tower roof: the throne hall's roofs and the spire; across the ravine, the foreign siege camp."),
@@ -482,7 +564,9 @@ namespace Kneel.EditorTools
             Vista('F', "Vista_V4", 58f, 202.5f, 0f, 10f, 5f, 14f, 0f, -4f, "From the cloister: the gate, the brazier-lit doors through it, the spire. E6a's enemies all in frame."),
             new Volume { Stage = 'F', Id = "M07", Name = "Vista_V5", Centre = new Vector3(54f, T1, 263.5f), Size = new Vector3(16f, 4f, 2f), Threshold = true, Pitch = 12f, Fov = 50f, PullBack = 6f,
                 Note = "Shrine B: the doors filling the upper third, the spire above them." },
-            V('D', "M08", "Arena_E1", 62f, 70.5f, 0f, 16f, 27f, 8f),
+            V('D', "M08", "Arena_E1", 62f, -5.5f, 0f, 16f, 27f, 8f),
+            V('D', "M08", "Arena_O1", 50f, 22f, 0f, 28f, 24f, 8f),
+            V('D', "M08", "Arena_O2", 69f, 53f, 0f, 26f, 22f, 8f),
             V('D', "M08", "Arena_E2", 50f, 97f, 0f, 28f, 22f, 8f),
             V('D', "M08", "Arena_E3", 66f, 139f, 0f, 28f, 30f, 8f),
             V('E', "M08", "Arena_E4", 86.5f, 139f, T1, 13f, 30f, 6f),
