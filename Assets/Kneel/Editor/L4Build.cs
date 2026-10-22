@@ -86,7 +86,8 @@ namespace Kneel.EditorTools
         // them. This merges them into saved meshes, one per bake group and material, each on a child "Baked" of
         // its group, and removes the loose ones. A group is the root, or the nearest ancestor that is inactive at
         // build time or named in BakeBoundaries, so state visuals and moving parts keep working.
-        public static void BakeLooseMeshes(GameObject root, string meshName)
+        // folder: where the baked meshes are saved (L4's Meshes/L4/Kit by default; other levels pass their own).
+        public static void BakeLooseMeshes(GameObject root, string meshName, string folder = null)
         {
             var groups = new System.Collections.Generic.Dictionary<Transform, System.Collections.Generic.List<MeshFilter>>();
             foreach (var filter in root.GetComponentsInChildren<MeshFilter>(true))
@@ -113,12 +114,12 @@ namespace Kneel.EditorTools
             int index = 0;
             foreach (var pair in groups)
             {
-                BakeGroup(pair.Key, pair.Value, meshName + (pair.Key == root.transform ? "" : "_" + pair.Key.name + "_" + index), root);
+                BakeGroup(pair.Key, pair.Value, meshName + (pair.Key == root.transform ? "" : "_" + pair.Key.name + "_" + index), root, folder ?? MeshesPath + "/Kit");
                 index++;
             }
         }
 
-        private static void BakeGroup(Transform owner, System.Collections.Generic.List<MeshFilter> loose, string meshName, GameObject root)
+        private static void BakeGroup(Transform owner, System.Collections.Generic.List<MeshFilter> loose, string meshName, GameObject root, string folder)
         {
             var byMaterial = new System.Collections.Generic.Dictionary<Material, System.Collections.Generic.List<CombineInstance>>();
             foreach (var filter in loose)
@@ -156,8 +157,8 @@ namespace Kneel.EditorTools
                 Object.DestroyImmediate(part.mesh);
             }
 
-            L2Build.EnsureFolder(MeshesPath + "/Kit");
-            string path = MeshesPath + "/Kit/" + meshName + ".asset";
+            L2Build.EnsureFolder(folder);
+            string path = folder + "/" + meshName + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing != null)
             {

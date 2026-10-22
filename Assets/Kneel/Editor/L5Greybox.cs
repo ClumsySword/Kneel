@@ -33,7 +33,7 @@ namespace Kneel.EditorTools
         public static readonly Vector2[] Braziers = { new Vector2(39f, 444f), new Vector2(69f, 444f), new Vector2(39f, 456f), new Vector2(69f, 456f) };
 
         // Gameplay points, at floor height.
-        public static readonly Vector3 PlayerStart = P(54f, 271f, 0f);
+        public static readonly Vector3 PlayerStart = P(54f, 273f, 0f);
         public static readonly Vector3 StairFoot = P(54f, 360f, 0f);
         public static readonly Vector3 ShrineC = P(54f, 400.5f, Hall);
         public static readonly Vector3 AggroLine = P(54f, 432.5f, Hall);
@@ -101,7 +101,7 @@ namespace Kneel.EditorTools
         // wall and the hidden alcove (D2) off the east wall.
         private static void Nave(Transform g)
         {
-            Box(g, "Apron", 45f, 63f, 262f, 268f, -0.5f, 0f, "Floor", "Ground");
+            Box(g, "Apron", 45f, 63f, 256f, 268f, -0.5f, 0f, "Floor", "Ground");
             Box(g, "Floor", 45f, 63f, 268f, 360f, -0.5f, 0f, "Floor", "Ground");
             Box(g, "OuterDoorWall_W", 45f, 51f, 268f, 269.5f, 0f, 3f, "Wall", "Obstacles");
             Box(g, "OuterDoorWall_E", 57f, 63f, 268f, 269.5f, 0f, 3f, "Wall", "Obstacles");
@@ -173,6 +173,8 @@ namespace Kneel.EditorTools
 
             Box(g, "HalfLanding", 34.5f, 73.5f, 372f, 384f, 0f, Landing, "Stone", "Ground");
             Box(g, "Pier", 46.5f, 61.5f, 384f, 396f, 0f, Hall, "Stone", "Ground");
+            // The pier's top is the terrace's balcony over the landing, a 3 m drop: a balustrade along its edge.
+            Box(g, "Balustrade_Pier", 46.5f, 61.5f, 384f, 384.3f, Hall, Hall + 0.9f, "Stone", "Obstacles");
             Box(g, "KingStatue_Kneeling", 52f, 56f, 384f, 386.5f, Landing, Landing + 4.5f, "Marble", "Obstacles");
             Steps(g, "Flight_W", 34.5f, 46.5f, 384f, 396f, Landing, Hall);
             Steps(g, "Flight_E", 61.5f, 73.5f, 384f, 396f, Landing, Hall);
@@ -264,7 +266,7 @@ namespace Kneel.EditorTools
             Zone(g, "Zone_FireLine_ArenaSeal", 33f, 75f, 431.5f, 432.5f, "ZoneSeal");
             Zone(g, "Door_Outer", 51f, 57f, 268f, 269.5f, "Wood", 0f);
             Zone(g, "Door_Grand", 49.5f, 58.5f, 406.5f, 408f, "Wood", Hall);
-            Pin(g, "ShrineB_LevelStart", PlayerStart, "Shrine", 1.2f);
+            Pin(g, "ShrineB_LevelStart", P(54f, 263.6f, 0f), "Shrine", 1.2f);
             Pin(g, "ShrineC_LastShrine", ShrineC, "Shrine", 1.2f);
             Pin(g, "RoyalGuard_UprightKneeler", P(54f, 378f, Landing), "Enemy", 2.1f);
             Pin(g, "Master_OnThrone", Throne, "Boss", 2.8f);

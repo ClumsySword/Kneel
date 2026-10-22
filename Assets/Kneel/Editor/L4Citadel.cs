@@ -155,7 +155,7 @@ namespace Kneel.EditorTools
         }
 
         // A tall burning window: a generated pane of firelight set into the wall, a pack window frame round it.
-        private static void Window(Transform parent, Vector3 at, float yaw, float width, float height)
+        internal static void Window(Transform parent, Vector3 at, float yaw, float width, float height)
         {
             var pane = L3Build.MeshChild(parent, "WindowGlow", L4LookDev.FlatQuad(), at, Glow);
             pane.transform.localRotation = Quaternion.Euler(-90f, yaw, 0f);
