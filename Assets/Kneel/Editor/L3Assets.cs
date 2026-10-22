@@ -382,9 +382,9 @@ namespace Kneel.EditorTools
             list.Add(new Item
             {
                 Id = "E01", Name = "AshenFootman", Folder = "Enemies", Table = enemies, Size = new Vector3(1f, 2f, 1f), Collider = Col.Custom, Layer = L3Build.Unlayered,
-                Status = "FOUND", Source = "Assets/Enemies/AshenFootman/AshenFootman.prefab",
+                Status = "FOUND", Source = "Assets/Kneel/Enemies/AshenFootman/AshenFootman.prefab",
                 Notes = "The existing enemy, used as it is (no L3 copy, no stand-in). It has a NavMeshAgent (radius 0.25, height 1.5) and no collider of its own.",
-                ExistingPath = "Assets/Enemies/AshenFootman/AshenFootman.prefab",
+                ExistingPath = "Assets/Kneel/Enemies/AshenFootman/AshenFootman.prefab",
             });
             Add("E02", "L3_StandIn_Hound", "Enemies", enemies, 0.8f, 1.4f, 0.8f, Col.Custom, L3Build.Hittable, "BUILT", "Primitives",
                 "No hound in the project. Horizontal capsule 1.4 long, 0.8 tall, radius 0.4, on the Enemy layer, dark with a bone-white collar. Collider only.",
