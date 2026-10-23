@@ -589,10 +589,13 @@ namespace Kneel.EditorTools
             var l = light.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = ChandelierColour;
-            l.intensity = 9f;
-            l.range = 10f;
+            // A pool of candlelight round its foot, about 4 m across (owner, 2026-10-23: "there is no light source coming
+            // out of the chandeliers and candelabras"), and a soft steady halo round the crown.
+            l.intensity = 24f;
+            l.range = 7f;
             l.shadows = LightShadows.None;
             FixtureGlow(c, new Vector3(0f, 4.8f, 0f), 2.5f);
+            Halo(c, new Vector3(0f, 2.45f, 0f), 2.2f);
             Obstacle(root, at, new Vector3(0.55f, 2.4f, 0.55f));
         }
 
@@ -1685,6 +1688,37 @@ namespace Kneel.EditorTools
             l.shadows = LightShadows.None;
         }
 
+        // A soft warm halo round a flame cluster, as the torches have: long-lived overlapping glow sprites, so its
+        // brightness holds steady.
+        // The halo fades out within a few metres of the camera, so a chandelier hung near the follow camera's height
+        // never fills the screen with glow as the player walks under it.
+        private static void Halo(Transform parent, Vector3 local, float size, float strength = 1f)
+        {
+            var halo = L1Wayfinding.Particles("Halo", parent, HaloMaterial(), 16, 6f, new Vector2(2.4f, 2.6f), Vector2.zero,
+                new Vector2(size * 0.95f, size * 1.05f), new Color(1f, 0.62f, 0.3f, 0.13f * strength), new Color(1f, 0.55f, 0.25f, 0.11f * strength));
+            halo.transform.localPosition = local;
+        }
+
+        private static Material HaloMaterial()
+        {
+            string path = MaterialsPath + "/L5_FX_Halo.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(L1Build.FxMat("L1_FX_Glow"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            const float near = 3f, far = 7f;
+            mat.SetFloat("_CameraFadingEnabled", 1f);
+            mat.SetFloat("_CameraNearFadeDistance", near);
+            mat.SetFloat("_CameraFarFadeDistance", far);
+            mat.SetVector("_CameraFadeParams", new Vector4(near, 1f / (far - near), 0f, 0f));
+            mat.EnableKeyword("_FADING_ON");
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
         private static void GatherFixtures(Transform area)
         {
             var found = new List<Transform>();
@@ -2083,9 +2117,12 @@ namespace Kneel.EditorTools
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = ChandelierColour;
-            light.intensity = 1.05f * drop * drop;
-            light.range = 1.8f * drop + 10f;
+            // A pool on the floor under it (2.4 lux straight below, fading out before the next chandelier), so the
+            // light visibly comes from it rather than filling the room evenly (owner, 2026-10-23).
+            light.intensity = 2.4f * drop * drop;
+            light.range = 1.35f * drop + 5f;
             FixtureGlow(c, new Vector3(0f, -4f, 0f), 3.6f);
+            Halo(c, new Vector3(0f, 0.2f, 0f), Mathf.Min(radius * 2.4f, 5.5f), radius > 2.5f ? 0.55f : 0.8f);
             // No shadows: seven shadowed point lights (six slices each) overflowed URP's shadow atlas, which then
             // swapped which lights got shadows as the camera moved, and the light flickered.
             light.shadows = LightShadows.None;
