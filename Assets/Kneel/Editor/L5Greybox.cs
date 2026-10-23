@@ -22,8 +22,34 @@ namespace Kneel.EditorTools
         public const string RootName = "L5_Root";
         private const string OutFolder = "Temp/L5";
 
-        // Heights: nave 0, half-landing +3, door terrace and throne hall +6.
-        public const float Landing = 3f, Hall = 6f;
+        // Heights: nave 0; the stair's landing, its gallery and the throne hall +9 (raised from 6 so the horseshoe stair
+        // is a real climb, owner 2026-10-23: "epic and grand").
+        public const float Hall = 9f;
+
+        // The horseshoe stair: two flights on one circle round StairCentre, from the floor either side of the hall up to
+        // the landing before the doors. The west flight runs from StairFrom down to StairTo degrees (counter-clockwise
+        // from east, plan y north); the east flight mirrors it about x 54. The player climbs away from the camera,
+        // curving in to meet the other flight at the top, never down-screen. The top tread is a wide wedge from
+        // StairTopFrom, the ray through the landing's corner, so no lower step runs under the landing's edge (a 0.5 m
+        // ledge there stopped the climb one step short).
+        public static readonly Vector2 StairCentre = new Vector2(54f, 382f);
+        public const float StairInner = 12f, StairOuter = 18f, StairFrom = 235f, StairTopFrom = 120.5f, StairTo = 110f;
+        public const int StairSteps = 36;
+        public static readonly Vector3 Centrepiece = new Vector3(54f, 0f, 380f);
+
+        public static float StairAngle(int i, bool west)
+        {
+            float a = i >= StairSteps ? StairTo : Mathf.Lerp(StairFrom, StairTopFrom, i / (float)(StairSteps - 1));
+            return west ? a : 180f - a;
+        }
+
+        public static float StairTop(int i) => Hall * (i + 1) / StairSteps;
+
+        public static Vector3 StairPoint(float radius, float degrees, float h)
+        {
+            float a = degrees * Mathf.Deg2Rad;
+            return P(StairCentre.x + radius * Mathf.Cos(a), StairCentre.y + radius * Mathf.Sin(a), h);
+        }
 
         // The arena (section 5 of the note): the hall's north part, framed by one fixed camera.
         public static readonly Rect ArenaFloor = Rect.MinMaxRect(33f, 432f, 75f, 466.5f);
@@ -97,8 +123,8 @@ namespace Kneel.EditorTools
             return "Built " + ScenePath + " (" + root.GetComponentsInChildren<Transform>(true).Length + " objects)";
         }
 
-        // The Long Nave: one 90 m corridor, 5 R wide, kneeling courtiers along both walls, the chapel (D1) off the west
-        // wall and the hidden alcove (D2) off the east wall.
+        // The Long Nave: one 90 m corridor, 5 R wide, the chapel (D1) off the west wall and the hidden alcove (D2) off
+        // the east wall. Its statues, candelabras and their colliders are L5Level's.
         private static void Nave(Transform g)
         {
             Box(g, "Apron", 45f, 63f, 256f, 268f, -0.5f, 0f, "Floor", "Ground");
@@ -123,21 +149,6 @@ namespace Kneel.EditorTools
                 Box(g, "Lancet", 46.4f, 46.55f, y - 0.75f, y + 0.75f, 2.5f, 7.5f, "Ember", null);
             }
 
-            // Kneeling courtiers: two files along each wall, slumped toward the stair, 1.5 m apart.
-            var kneelers = Group(g, "Kneelers");
-            foreach (float x in new[] { 47.25f, 48.75f, 59.25f, 60.75f })
-            {
-                for (float y = 277f; y <= 353f; y += 1.5f)
-                {
-                    bool chapelGap = x < 54f && y > 306f && y < 315f;
-                    bool alcoveGap = x > 54f && y > 333.5f && y < 338.5f;
-                    if (!chapelGap && !alcoveGap)
-                    {
-                        Box(kneelers, "Kneeler", x - 0.4f, x + 0.4f, y - 0.4f, y + 0.4f, 0f, 0.9f, "Bone", "Obstacles");
-                    }
-                }
-            }
-
             // D1, the Master's private chapel.
             Box(g, "D1_Floor", 31.5f, 45f, 303f, 318f, -0.5f, 0f, "Floor", "Ground");
             Box(g, "D1_Wall_W", 30f, 31.5f, 301.5f, 319.5f, 0f, 6f, "Wall", "Obstacles");
@@ -155,8 +166,10 @@ namespace Kneel.EditorTools
             Box(g, "D2_Handprint", 61.4f, 61.5f, 337.6f, 338.1f, 1.1f, 1.6f, "Ember", null);
         }
 
-        // The imperial stair: a central flight to a half-landing (the royal guard), the kneeling statue on the pier, two
-        // side flights running on north (so the player keeps facing up-screen) to the door terrace, Shrine C and the doors.
+        // The imperial stair, a double horseshoe (owner's reference, 2026-10-23): two curved flights rise from the floor
+        // either side of the stair hall and meet on a landing before the doors, the landing bridging an arched niche; an
+        // upper gallery runs along the back wall. A round plinth with a great brazier stands in the well between them.
+        // Balustrade colliders are 2.2 m tall, so nobody vaults a rail into the 9 m drop.
         private static void Stair(Transform g)
         {
             Box(g, "Floor", 33f, 75f, 358.5f, 406.5f, -0.5f, 0f, "Floor", "Ground");
@@ -165,20 +178,70 @@ namespace Kneel.EditorTools
             Box(g, "Wall_W", 33f, 34.5f, 360f, 406.5f, 0f, 15f, "Wall", "Obstacles");
             Box(g, "Wall_E", 73.5f, 75f, 360f, 406.5f, 0f, 15f, "Wall", "Obstacles");
 
-            Box(g, "Masonry_W", 34.5f, 46.5f, 360f, 372f, 0f, Landing, "Stone", "Ground");
-            Box(g, "Masonry_E", 61.5f, 73.5f, 360f, 372f, 0f, Landing, "Stone", "Ground");
-            Box(g, "Balustrade_W", 46.2f, 46.5f, 360f, 372f, Landing, Landing + 0.9f, "Stone", "Obstacles");
-            Box(g, "Balustrade_E", 61.5f, 61.8f, 360f, 372f, Landing, Landing + 0.9f, "Stone", "Obstacles");
-            Steps(g, "Flight_Centre", 46.5f, 61.5f, 360f, 372f, 0f, Landing);
+            foreach (bool west in new[] { true, false })
+            {
+                var flight = Group(g, west ? "Flight_W" : "Flight_E");
+                for (int i = 0; i < StairSteps; i++)
+                {
+                    float a0 = StairAngle(i, west), a1 = StairAngle(i + 1, west);
 
-            Box(g, "HalfLanding", 34.5f, 73.5f, 372f, 384f, 0f, Landing, "Stone", "Ground");
-            Box(g, "Pier", 46.5f, 61.5f, 384f, 396f, 0f, Hall, "Stone", "Ground");
-            // The pier's top is the terrace's balcony over the landing, a 3 m drop: a balustrade along its edge.
-            Box(g, "Balustrade_Pier", 46.5f, 61.5f, 384f, 384.3f, Hall, Hall + 0.9f, "Stone", "Obstacles");
-            Box(g, "KingStatue_Kneeling", 52f, 56f, 384f, 386.5f, Landing, Landing + 4.5f, "Marble", "Obstacles");
-            Steps(g, "Flight_W", 34.5f, 46.5f, 384f, 396f, Landing, Hall);
-            Steps(g, "Flight_E", 61.5f, 73.5f, 384f, 396f, Landing, Hall);
-            Box(g, "DoorTerrace", 34.5f, 73.5f, 396f, 406.5f, 0f, Hall, "Stone", "Ground");
+                    // Boxes of at most 4 degrees, so the wide top tread's box doesn't overhang its wedge.
+                    int parts = Mathf.CeilToInt(Mathf.Abs(a1 - a0) / 4f);
+                    for (int k = 0; k < parts; k++)
+                    {
+                        float b0 = Mathf.Lerp(a0, a1, k / (float)parts), b1 = Mathf.Lerp(a0, a1, (k + 1) / (float)parts), mid = (b0 + b1) * 0.5f;
+                        float depth = StairOuter * Mathf.Abs(b1 - b0) * Mathf.Deg2Rad * 1.08f;
+                        RotBox(flight, "Step", StairPoint((StairInner + StairOuter) * 0.5f, mid, 0f), -mid, StairOuter - StairInner + 0.1f, depth, 0f, StairTop(i), "Stone", "Ground");
+                    }
+
+                    foreach (float r in new[] { StairInner + 0.12f, StairOuter - 0.12f })
+                    {
+                        Rail(flight, StairPoint(r, a0, 0f), StairPoint(r, a1, 0f), StairTop(i));
+                    }
+                }
+            }
+
+            // The landing over the niche, the niche's cheeks, the gallery, and their rails.
+            Box(g, "Landing", 47f, 61f, 394f, 402f, Hall - 1.4f, Hall, "Stone", "Ground");
+            Box(g, "NicheWall_W", 47f, 50.5f, 394f, 402f, 0f, Hall - 1.4f, "Stone", "Obstacles");
+            Box(g, "NicheWall_E", 57.5f, 61f, 394f, 402f, 0f, Hall - 1.4f, "Stone", "Obstacles");
+            Box(g, "Gallery", 34.5f, 73.5f, 402f, 406.5f, 0f, Hall, "Stone", "Ground");
+            Rail(g, P(49.6f, 394.12f, 0f), P(58.4f, 394.12f, 0f), Hall);
+            Rail(g, P(47.12f, 398.8f, 0f), P(47.12f, 402f, 0f), Hall);
+            Rail(g, P(60.88f, 398.8f, 0f), P(60.88f, 402f, 0f), Hall);
+            Rail(g, P(34.5f, 402.12f, 0f), P(47f, 402.12f, 0f), Hall);
+            Rail(g, P(61f, 402.12f, 0f), P(73.5f, 402.12f, 0f), Hall);
+
+            // The centrepiece: a round plinth and the great brazier on it.
+            var plinth = new GameObject("Centrepiece_Plinth");
+            plinth.transform.SetParent(g, false);
+            plinth.transform.position = Centrepiece;
+            plinth.layer = L3Build.Layer("Obstacles");
+            L3Build.StandingCylinder(plinth, 6.6f, 0.9f);
+            var brazier = new GameObject("Centrepiece_Brazier");
+            brazier.transform.SetParent(g, false);
+            brazier.transform.position = Centrepiece + Vector3.up * 0.9f;
+            brazier.layer = L3Build.Layer("Obstacles");
+            L3Build.StandingCylinder(brazier, 1.6f, 4.6f);
+        }
+
+        // A box turned 'yaw' degrees about Y, its base centred on 'baseCentre', sx along its local x, sz along local z.
+        private static GameObject RotBox(Transform parent, string name, Vector3 baseCentre, float yaw, float sx, float sz, float h0, float h1, string material, string layer)
+        {
+            var go = Box(parent, name, -0.5f, 0.5f, -0.5f, 0.5f, h0, h1, material, layer);
+            go.transform.position = new Vector3(baseCentre.x, (h0 + h1) * 0.5f, baseCentre.z);
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            go.transform.localScale = new Vector3(sx, h1 - h0, sz);
+            return go;
+        }
+
+        // A balustrade's collider from a to b (plan points), standing on 'floor', 2.2 m tall.
+        private static void Rail(Transform parent, Vector3 a, Vector3 b, float floor)
+        {
+            var dir = b - a;
+            dir.y = 0f;
+            var mid = (a + b) * 0.5f;
+            RotBox(parent, "Balustrade", mid, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, 0.25f, dir.magnitude + 0.05f, floor, floor + 2.2f, "Stone", "Obstacles");
         }
 
         // The throne hall: 14 R wide and 22 R long. The south 8 R is the processional between the doors and the arena;
@@ -268,7 +331,7 @@ namespace Kneel.EditorTools
             Zone(g, "Door_Grand", 49.5f, 58.5f, 406.5f, 408f, "Wood", Hall);
             Pin(g, "ShrineB_LevelStart", P(54f, 263.6f, 0f), "Shrine", 1.2f);
             Pin(g, "ShrineC_LastShrine", ShrineC, "Shrine", 1.2f);
-            Pin(g, "RoyalGuard_UprightKneeler", P(54f, 378f, Landing), "Enemy", 2.1f);
+            Pin(g, "RoyalGuard_UprightKneeler", P(54f, 373.5f, 0f), "Enemy", 2.1f);
             Pin(g, "Master_OnThrone", Throne, "Boss", 2.8f);
             Pin(g, "Herald", P(54f, 355f, 0f), "Bone", 0.4f);
             // Stand-ins at fighting distance, to judge scale in the fixed frame.

@@ -27,12 +27,12 @@ namespace Kneel.EditorTools
         private const string VolumesPath = "Assets/Kneel/Lighting/L5/Volumes";
         private const string Skeletons = "Assets/Kneel/Prefabs/L2/Skeletons/L2_Skeleton_";
         private const string L4Prefabs = "Assets/Kneel/Prefabs/L4/";
-        private const float Hall = L5Greybox.Hall, Landing = L5Greybox.Landing;
+        private const float Hall = L5Greybox.Hall;
 
         // Heights of the shell. The follow camera rides 8.7 m over the player, so every chandelier and every
         // vault springs above that; the fixed arena camera sees through the one-sided vaults.
         private const float NaveTop = 11f, NaveRise = 8.6f;
-        private const float StairTop = 16f, StairRise = 22f;
+        private const float StairTop = 20f, StairRise = 22f;
         private const float HallTop = Hall + 16f, Capital = Hall + 10f, ArcadeTop = Hall + 15.5f, AisleCeiling = Hall + 13f, HallRise = 16f;
 
         private static Material Stone => L4Build.Mat("L4_Knights_Stone");
@@ -45,8 +45,8 @@ namespace Kneel.EditorTools
         private static Material Tapestry => Flat("L5_TapestryBurnt", "#2E0F11", 0.05f);
         private static Material Marble => Flat("L5_KingMarble", "#77726B", 0.25f);
         private static Material Wax => Flat("L5_Wax", "#A89D86", 0.25f);
-        private static Material Parchment => Flat("L5_Parchment", "#7A6C55", 0.1f);
         private static Material WindowDark => Flat("L5_WindowDark", "#060505", 0.3f);
+        private static Material StatueStone => Flat("L5_StatueStone", "#4E4A45", 0.22f);
 
         private static readonly Color TorchColour = new Color(1f, 0.54f, 0.24f);
         private static readonly Color ChandelierColour = new Color(1f, 0.7f, 0.43f);
@@ -83,6 +83,7 @@ namespace Kneel.EditorTools
             HideGreybox(root);
 
             var art = Group(root, "Art");
+            wallCores = new ShellMesh();
             log.Add(Floors(Group(art, "Floors")));
             log.Add(Walls(Group(art, "Walls"), root));
             Nave(Group(art, "Nave"), root);
@@ -96,6 +97,8 @@ namespace Kneel.EditorTools
             Phases(root);
             Figures(Group(art, "Figures"), root);
             Atmosphere(Group(art, "Atmosphere"));
+            L3Build.MeshChild(art.Find("Walls"), "WallCores", wallCores.Save("L5_WallCores", 1), Vector3.zero, Blocks);
+            wallCores = null;
 
             foreach (Transform area in art)
             {
@@ -140,17 +143,13 @@ namespace Kneel.EditorTools
         private static readonly (string id, float x0, float x1, float y0, float y1, float h, bool ash)[] FloorRects =
         {
             ("Apron", 45f, 63f, 256f, 268f, 0f, false),
-            ("Nave", 46.5f, 61.5f, 268f, 358.5f, 0f, true),
-            ("D1", 31.5f, 46.5f, 303f, 318f, 0f, false),
-            ("D2", 61.5f, 70.5f, 333f, 339f, 0f, false),
-            ("Foot", 46.5f, 61.5f, 358.5f, 360f, 0f, true),
-            ("MasonryW", 34.5f, 46.5f, 360f, 372f, Landing, false),
-            ("MasonryE", 61.5f, 73.5f, 360f, 372f, Landing, false),
-            ("Landing", 34.5f, 73.5f, 372f, 384f, Landing, false),
-            ("Pier", 46.5f, 61.5f, 384f, 396f, Hall, false),
-            ("Terrace", 34.5f, 73.5f, 396f, 406.5f, Hall, false),
-            ("Threshold", 49.5f, 58.5f, 406.5f, 408f, Hall, false),
-            ("Hall", 33f, 75f, 408f, 466.5f, Hall, true),
+            ("Nave", 45f, 63f, 268f, 358.5f, 0f, false),
+            ("D1", 30f, 45f, 301.5f, 319.5f, 0f, false),
+            ("D2", 63f, 72f, 331.5f, 340.5f, 0f, false),
+            ("StairHall", 33f, 75f, 358.5f, 406.5f, 0f, false),
+            ("Landing", 47f, 61f, 394f, 402f, Hall, false),
+            ("Gallery", 33f, 75f, 402f, 406.5f, Hall, false),
+            ("Hall", 31.5f, 76.5f, 406.5f, 474f, Hall, true),
         };
 
         private static string Floors(Transform g)
@@ -245,16 +244,25 @@ namespace Kneel.EditorTools
 
                     if (id == "Nave")
                     {
-                        // Drag marks: furrows in the dust from the files toward the doors, ending a body-length short.
-                        foreach (float fx in new[] { 48.4f, 50.1f, 58.2f, 59.6f })
+                        // A dark inlaid border either side of the runner.
+                        float d = Mathf.Min(Mathf.Abs(p.x - 51.05f), Mathf.Abs(p.x - 56.95f));
+                        c = Color.Lerp(c, soot * 1.2f, 0.75f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.22f, 0.12f, d)));
+                    }
+
+                    if (id == "StairHall")
+                    {
+                        // The inlaid rose round the centrepiece: an eight-pointed star of pale stone inside a dark ring, a
+                        // second ring further out, laid into the flags like the marble of a palace floor.
+                        var q = p - new Vector2(L5Greybox.Centrepiece.x, L5Greybox.Centrepiece.z);
+                        float rad = q.magnitude, phi = Mathf.Atan2(q.y, q.x);
+                        float star = 3.3f + 3f * Mathf.Pow(0.5f + 0.5f * Mathf.Cos(8f * phi), 3f);
+                        if (rad > 3.3f && rad < star)
                         {
-                            float along = Mathf.InverseLerp(285f, 272.5f, p.y);
-                            float wobble = Mathf.Sin(p.y * 0.9f + fx) * 0.12f;
-                            if (along > 0f && along < 1f && Mathf.Abs(p.x - fx - wobble) < 0.22f)
-                            {
-                                c = Color.Lerp(c, soot, 0.55f * (1f - along * 0.6f));
-                            }
+                            c = Color.Lerp(c, new Color(0.6f, 0.58f, 0.54f), 0.65f);
                         }
+
+                        float ring = Mathf.Min(Mathf.Abs(rad - 6.9f) - 0.3f, Mathf.Abs(rad - 9.7f) - 0.15f);
+                        c = Color.Lerp(c, soot * 1.3f, 0.85f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.05f, -0.05f, ring)));
                     }
 
                     if (id == "Hall")
@@ -312,7 +320,8 @@ namespace Kneel.EditorTools
             int pieces = 0;
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
-                if (t.IsChildOf(g) || !(t.name.Contains("Wall") || t.name.StartsWith("Apse_")) || t.name.StartsWith("OuterDoorWall") || t.GetComponent<MeshRenderer>() == null)
+                // The niche's cheeks under the landing are coursed by Stair(); clad here, they rose through the landing.
+                if (t.IsChildOf(g) || !(t.name.Contains("Wall") || t.name.StartsWith("Apse_")) || t.name.StartsWith("OuterDoorWall") || t.name.StartsWith("NicheWall") || t.GetComponent<MeshRenderer>() == null)
                 {
                     continue;
                 }
@@ -360,8 +369,11 @@ namespace Kneel.EditorTools
             return pieces + " wall pieces";
         }
 
+        private static ShellMesh wallCores;
+
         private static int Clad(Transform g, float x0, float x1, float y0, float y1, float h0, float h1)
         {
+            wallCores?.Box(0, new Vector3((x0 + x1) * 0.5f, (h0 + h1) * 0.5f - 0.02f, (y0 + y1) * 0.5f), Quaternion.identity, new Vector3(x1 - x0 - 0.08f, h1 - h0 - 0.04f, y1 - y0 - 0.08f), L4Kit.Cell(L2PolyKit.Joint));
             bool alongZ = (y1 - y0) > (x1 - x0);
             float length = alongZ ? y1 - y0 : x1 - x0;
             float thickness = alongZ ? x1 - x0 : y1 - y0;
@@ -385,22 +397,25 @@ namespace Kneel.EditorTools
 
         private static readonly float[] NavePilasters = { 274.5f, 283.5f, 292.5f, 301.5f, 310.5f, 319.5f, 328.5f, 337.5f, 346.5f, 355.5f };
 
+        // The nave as the castle's hall of honour: a stone knight kneels on a plinth in every bay, sword planted before
+        // him, turned toward the stair; iron candelabras flank the runner; shields of the master's crimson on crossed
+        // swords hang over the torches on the pilasters.
         private static void Nave(Transform g, Transform root)
         {
-            // Pilasters up both walls carrying the vault's ribs, a torch on each; blind lancets between them on the west,
-            // burnt tapestries on the east (none across D1's or D2's door).
             foreach (float y in NavePilasters)
             {
                 if (y < 306f || y > 315f)
                 {
                     L3Build.Fit(g, "K:SM_Bld_Castle_Pillar_01", 90, new Vector3(0.6f, NaveTop, 1.1f), new Vector2(46.8f, y), 0f, Stone);
                     Sconce(g, new Vector3(47.1f, 0f, y), Vector3.right, 3.5f);
+                    Trophy(g, new Vector3(47.1f, 0f, y), Vector3.right, 6.4f);
                 }
 
                 if (y < 333f || y > 339f)
                 {
                     L3Build.Fit(g, "K:SM_Bld_Castle_Pillar_01", 90, new Vector3(0.6f, NaveTop, 1.1f), new Vector2(61.2f, y), 0f, Stone);
                     Sconce(g, new Vector3(60.9f, 0f, y), Vector3.left, 3.5f);
+                    Trophy(g, new Vector3(60.9f, 0f, y), Vector3.left, 6.4f);
                 }
             }
 
@@ -408,13 +423,13 @@ namespace Kneel.EditorTools
             {
                 if (y < 305f || y > 316f)
                 {
-                    BlindLancet(g, new Vector3(46.52f, 6.4f, y), -90f, 1.3f, 4.2f);
+                    BlindLancet(g, new Vector3(46.52f, 7.4f, y), -90f, 1.3f, 3.8f);
                 }
 
                 if (y < 333f || y > 339f)
                 {
-                    var banner = L3Build.Part(g, rng.NextDouble() < 0.5 ? "K:SM_Prop_Banner_02" : "K:SM_Prop_Banner_03", new Vector3(61.4f, 8.6f, y), new Vector3(0f, 90f, ((float)rng.NextDouble() - 0.5f) * 4f), Vector3.one * 1.6f, Tapestry);
-                    banner.name = "Tapestry";
+                    var banner = L3Build.Part(g, rng.NextDouble() < 0.5 ? "K:SM_Prop_Banner_02" : "K:SM_Prop_Banner_03", new Vector3(61.4f, 9.6f, y), new Vector3(0f, 90f, ((float)rng.NextDouble() - 0.5f) * 4f), Vector3.one * 1.4f, L4Citadel.BannerRed);
+                    banner.name = "Banner";
                 }
             }
 
@@ -424,47 +439,114 @@ namespace Kneel.EditorTools
                 Chandelier(g, new Vector3(54f, 9.8f, y), 1.4f, 10, VaultHeight(46.5f, 61.5f, NaveTop, NaveRise, 54f), 0f, false);
             }
 
-            // The kneeling household: two files a side, slumped toward the stair. The greybox kneelers are their
-            // colliders; each figure keeps its collider in step with its jitter, and kneelers a pilaster stands on go.
-            var files = root.Find("Nave/Kneelers");
-            var figures = Group(g, "Courtiers");
-            foreach (Transform k in files)
+            var knight = Bake("L5_Kneeling_Knight_02_Black", KneelPose).mesh;
+            for (float y = 279f; y < 356f; y += 9f)
             {
-                var at = k.position;
-                bool outer = Mathf.Abs(at.x - 54f) > 6f;
-                bool underPilaster = outer && System.Array.Exists(NavePilasters, y => Mathf.Abs(y - at.z) < 0.85f);
-                if (underPilaster)
+                KneelingStatue(g, root, new Vector3(48.5f, 0f, y), 60f, knight, StatueStone, 1.3f);
+                KneelingStatue(g, root, new Vector3(59.5f, 0f, y), -60f, knight, StatueStone, 1.3f);
+            }
+
+            foreach (float y in new[] { 284f, 302f, 320f, 338f, 356f })
+            {
+                Candelabra(g, root, new Vector3(50.3f, 0f, y));
+            }
+
+            foreach (float y in new[] { 293f, 311f, 329f, 347f })
+            {
+                Candelabra(g, root, new Vector3(57.7f, 0f, y));
+            }
+
+            Runner(g, Rect.MinMaxRect(51.5f, 270f, 56.5f, 375.6f), 0f, false, 911);
+        }
+
+        // A knight in stone kneeling on a plinth, his sword planted point-down before him, candles at its foot.
+        private static void KneelingStatue(Transform g, Transform root, Vector3 at, float yaw, Mesh mesh, Material mat, float scale, bool plinth = true)
+        {
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            var forward = rot * Vector3.forward;
+            float top = plinth ? 0.55f : 0f;
+            if (plinth)
+            {
+                var block = L3Build.MeshChild(g, "Plinth", L2PolyKit.Tread(new Vector3(1.8f, 0.55f, 1.8f), rng.Next(100000)), at + Vector3.up * 0.275f, Blocks);
+                block.transform.rotation = rot;
+                Obstacle(root, at, new Vector3(2f, 2.7f, 2f));
+            }
+
+            var statue = L3Build.MeshChild(g, "KneelingKnight", mesh, at + Vector3.up * (top - mesh.bounds.min.y * scale), mat);
+            statue.transform.rotation = rot;
+            statue.transform.localScale = Vector3.one * scale;
+            var sword = L3Build.Seat(g, "K:SM_Wep_Broadsword_01", new Vector3(180f, yaw, 0f), 1.15f, new Vector2((at + forward * 0.62f * scale).x, (at + forward * 0.62f * scale).z), at.y + top, mat);
+            sword.name = "PlantedSword";
+            if (plinth)
+            {
+                Candles(g, at + forward * 1.3f, 3, 1);
+            }
+        }
+
+        // An iron floor candelabra: base, shaft, three crossed arms with a candle at each end and one at the crown,
+        // one light for the lot.
+        private static void Candelabra(Transform g, Transform root, Vector3 at)
+        {
+            var c = Group(g, "Candelabra");
+            c.position = at;
+            int seed = rng.Next(100000);
+            Part(c, L2PolyKit.Tread(new Vector3(0.55f, 0.12f, 0.55f), seed), new Vector3(0f, 0.06f, 0f), Quaternion.identity);
+            Part(c, L2PolyKit.Tread(new Vector3(0.09f, 2.1f, 0.09f), seed + 1), new Vector3(0f, 1.17f, 0f), Quaternion.identity);
+            Part(c, L2PolyKit.Tread(new Vector3(0.2f, 0.08f, 0.2f), seed + 2), new Vector3(0f, 2.22f, 0f), Quaternion.identity);
+            for (int k = 0; k < 3; k++)
+            {
+                Part(c, L2PolyKit.Tread(new Vector3(0.95f, 0.05f, 0.05f), seed + 3 + k), new Vector3(0f, 2.24f, 0f), Quaternion.Euler(0f, k * 60f, 0f));
+            }
+
+            for (int k = 0; k <= 6; k++)
+            {
+                var p = k == 6 ? new Vector3(0f, 2.3f, 0f) : new Vector3(Mathf.Cos(k * Mathf.PI / 3f) * 0.46f, 2.27f, Mathf.Sin(k * Mathf.PI / 3f) * 0.46f);
+                float h = k == 6 ? 0.3f : 0.22f;
+                L3Build.MeshChild(c, "Candle", L2PolyKit.Tread(new Vector3(0.06f, h, 0.06f), seed + 10 + k), p + Vector3.up * h * 0.5f, Wax);
+                L2Fire.Candle(c, "Flame", p + Vector3.up * (h + 0.04f), 0.01f, 0.1f);
+            }
+
+            StripLights(c);
+            var light = new GameObject("Light");
+            light.transform.SetParent(c, false);
+            light.transform.localPosition = new Vector3(0f, 2.6f, 0f);
+            var l = light.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = ChandelierColour;
+            l.intensity = 9f;
+            l.range = 10f;
+            l.shadows = LightShadows.None;
+            Obstacle(root, at, new Vector3(0.55f, 2.4f, 0.55f));
+        }
+
+        // A shield in the master's crimson over two crossed swords, hung on a face above its torch.
+        private static void Trophy(Transform g, Vector3 wall, Vector3 outward, float height)
+        {
+            var t = Group(g, "Trophy");
+            t.SetPositionAndRotation(wall + Vector3.up * height + outward * 0.14f, Quaternion.LookRotation(outward));
+            foreach (float s in new[] { -1f, 1f })
+            {
+                var arm = Group(t, "Sword");
+                arm.localPosition = new Vector3(0f, 0f, -0.06f);
+                arm.localRotation = Quaternion.Euler(0f, 0f, s * 38f);
+                L3Build.Seat(arm, "K:SM_Wep_Broadsword_01", Vector3.zero, 1.1f, Vector2.zero, -0.95f, Iron);
+            }
+
+            L3Build.Seat(t, "K:SM_Wep_Shield_01", new Vector3(0f, 180f, 0f), 1.5f, Vector2.zero, -0.55f, L4Citadel.BannerRed);
+        }
+
+        // Removes every light (and what depends on it) under a piece, before it gets its one light of its own.
+        private static void StripLights(Transform t)
+        {
+            foreach (var l in t.GetComponentsInChildren<Light>(true))
+            {
+                foreach (var dependant in l.GetComponents<MonoBehaviour>())
                 {
-                    Object.DestroyImmediate(k.gameObject.GetComponent<Collider>());
-                    continue;
+                    Object.DestroyImmediate(dependant);
                 }
 
-                var jitter = new Vector3(((float)rng.NextDouble() - 0.5f) * 0.3f, 0f, ((float)rng.NextDouble() - 0.5f) * 0.3f);
-                k.position = at + jitter;
-                double roll = rng.NextDouble();
-                string kind = roll < 0.62 ? "Kneeling" : roll < 0.84 ? "Slumped" : roll < 0.95 ? "Prone" : "Remains";
-                float yaw = (float)(rng.NextDouble() - 0.5) * 26f + (kind == "Slumped" ? 0f : 180f);
-                Prefab(Skeletons + kind, figures, new Vector3(at.x + jitter.x, 0f, at.z + jitter.z), yaw);
+                Object.DestroyImmediate(l);
             }
-
-            // The front ranks were the court: their books lie where they dropped them.
-            for (int i = 0; i < 14; i++)
-            {
-                float x = rng.NextDouble() < 0.5 ? 46.9f + (float)rng.NextDouble() * 2.8f : 58.3f + (float)rng.NextDouble() * 2.8f;
-                float y = 336f + (float)rng.NextDouble() * 20f;
-                var book = L3Build.Seat(g, "A:SM_Prop_Book_0" + (1 + rng.Next(3)), new Vector3(0f, rng.Next(360), 0f), 1f, new Vector2(x, y), 0f, L4Build.Mat("L4_Adventure_Soot"));
-                book.name = "Book";
-            }
-
-            // The herald at the head of the files with his roll.
-            Prefab(Skeletons + "Prone", g, new Vector3(54.6f, 0f, 354.6f), 170f);
-            var scroll = L3Build.MeshChild(g, "Roll", L2PolyKit.Tread(new Vector3(0.75f, 0.06f, 0.42f), 9101), new Vector3(53.2f, 0.03f, 354.1f), Parchment);
-            scroll.transform.rotation = Quaternion.Euler(0f, 24f, 0f);
-
-            Candles(g, new Vector3(50f, 0f, 356.4f), 5, 1);
-            Candles(g, new Vector3(58.2f, 0f, 356.1f), 5, 1);
-            Candles(g, new Vector3(48.2f, 0f, 309.9f), 3, 1);
-            Runner(g, Rect.MinMaxRect(51.5f, 270f, 56.5f, 358.4f), 0f, true, 911);
         }
 
         // ---------------------------------------------------------------- D1, the Master's private chapel
@@ -524,125 +606,314 @@ namespace Kneel.EditorTools
 
         // ---------------------------------------------------------------- The imperial stair
 
-        private static float StairFloor(float y) => y < 384f ? Landing : y < 396f ? Landing + (y - 384f) * 0.25f : Hall;
-
+        // The double horseshoe stair (owner's reference, 2026-10-23: "the same shape... but much more grand"): two
+        // curved flights of 36 steps rise 9 m from the floor either side of the hall and sweep in to meet on a landing
+        // before the doors. Each flight is massive coursed stone with a gold-edged crimson runner and wrought-iron scroll
+        // balustrades both sides, torch-topped newels at its foot. The landing bridges an arched niche where the old King
+        // stands in marble; a gallery runs along the back wall; a great brazier on an inlaid rose fills the well.
         private static void Stair(Transform g, Transform root)
         {
-            // The imperial stair: one broad flight up the middle to the half-landing, where the old King kneels in
-            // stone; two flights from there, one each side of him, up to the doors' terrace. A crimson runner with a
-            // gold edge climbs every step of the way.
-            Steps(g, "Flight_Centre", 46.5f, 61.5f, 360f, 0f, 3001);
-            Steps(g, "Flight_W", 34.5f, 46.5f, 384f, Landing, 3002);
-            Steps(g, "Flight_E", 61.5f, 73.5f, 384f, Landing, 3003);
-            StairRunner(g, 50.5f, 57.5f, 360f, 0f, 3101);
-            StairRunner(g, 37.5f, 43.5f, 384f, Landing, 3102);
-            StairRunner(g, 64.5f, 70.5f, 384f, Landing, 3103);
-            Runner(g, Rect.MinMaxRect(50.5f, 372f, 57.5f, 375.5f), Landing, false, 3111);
-            Runner(g, Rect.MinMaxRect(37.5f, 375.5f, 70.5f, 379.2f), Landing, false, 3112);
-            Runner(g, Rect.MinMaxRect(37.5f, 379.2f, 43.5f, 384f), Landing, false, 3113);
-            Runner(g, Rect.MinMaxRect(64.5f, 379.2f, 70.5f, 384f), Landing, false, 3114);
-            Runner(g, Rect.MinMaxRect(37.5f, 396f, 70.5f, 399.6f), Hall, false, 3115);
-            Runner(g, Rect.MinMaxRect(50.5f, 399.6f, 57.5f, 406.5f), Hall, false, 3116);
+            var rails = new ShellMesh();
+            foreach (bool west in new[] { true, false })
+            {
+                CurvedFlight(g, root, rails, west);
+            }
 
-            // Cheeks: the masonry beside the central flight and the pier between the side flights, in courses.
             var r = new System.Random(3010);
-            L4Kit.Courses(g, new Vector3(46.5f, 0f, 360f), Vector3.forward, Vector3.right, 12f, Landing, r, 0f, 0.6f, 2f);
-            L4Kit.Courses(g, new Vector3(61.5f, 0f, 372f), Vector3.back, Vector3.left, 12f, Landing, r, 0f, 0.6f, 2f);
-            L4Kit.Courses(g, new Vector3(46.5f, Landing, 384f), Vector3.right, Vector3.back, 15f, Hall - Landing, r, 0f, 0.6f, 2f);
-            L4Kit.Courses(g, new Vector3(46.5f, Landing, 396f), Vector3.back, Vector3.left, 12f, Hall - Landing, r, 0f, 0.6f, 2f);
-            L4Kit.Courses(g, new Vector3(61.5f, Landing, 384f), Vector3.forward, Vector3.right, 12f, Hall - Landing, r, 0f, 0.6f, 2f);
+            // The landing's front: the niche's arch, coursed fascia either side, coursed sides; the gallery's face.
+            var arch = Group(g, "NicheArch");
+            arch.position = new Vector3(54f, 0f, 394f);
+            L4Kit.GateArch(arch, 7f, 0.6f, 4.2f, 3.2f, Hall, 1.2f, 3201);
+            L4Kit.Courses(g, new Vector3(47f, 0f, 393.4f), Vector3.right, Vector3.back, 2.9f, Hall, r, 0f, 0.6f, 2f);
+            L4Kit.Courses(g, new Vector3(58.1f, 0f, 393.4f), Vector3.right, Vector3.back, 2.9f, Hall, r, 0f, 0.6f, 2f);
+            L4Kit.Courses(g, new Vector3(47f, 0f, 402f), Vector3.back, Vector3.left, 8f, Hall, r, 0f, 0.6f, 2f);
+            L4Kit.Courses(g, new Vector3(61f, 0f, 394f), Vector3.forward, Vector3.right, 8f, Hall, r, 0f, 0.6f, 2f);
+            Clad(g, 34.5f, 47f, 402f, 403.2f, 0f, Hall);
+            Clad(g, 61f, 73.5f, 402f, 403.2f, 0f, Hall);
 
-            Balustrade(g, new Vector3(46.35f, Landing, 360.2f), new Vector3(46.35f, Landing, 371.8f), 3020);
-            Balustrade(g, new Vector3(61.65f, Landing, 360.2f), new Vector3(61.65f, Landing, 371.8f), 3021);
-            Balustrade(g, new Vector3(46.7f, Hall, 384.15f), new Vector3(61.3f, Hall, 384.15f), 3022);
-
-            // Newel posts topped with torches at the foot and head of every flight.
-            foreach (var (x, y) in new[] { (46.95f, 360.45f), (61.05f, 360.45f), (34.95f, 384.45f), (46.05f, 384.45f), (61.95f, 384.45f), (73.05f, 384.45f), (34.95f, 395.6f), (73.05f, 395.6f) })
+            // Solid cores for the landing block (its cheeks either side of the niche, the mass over the niche's ceiling)
+            // and the gallery under its floor, so no joint between their faces opens onto a hollow.
+            foreach (var (x0, x1, y0, y1, h0) in new[] { (47f, 50.5f, 394f, 402f, 0f), (57.5f, 61f, 394f, 402f, 0f), (50.5f, 57.5f, 394f, 402f, Hall - 1.4f), (34.5f, 73.5f, 402f, 406.5f, 0f) })
             {
-                float floor = y < 361f ? 0f : y < 390f ? Landing : Hall;
-                StandingTorch(g, root, new Vector3(x, floor, y));
+                float coreFoot = h0 + 0.04f, coreTop = Hall - 0.04f;
+                wallCores?.Box(0, new Vector3((x0 + x1) * 0.5f, (coreFoot + coreTop) * 0.5f, (y0 + y1) * 0.5f), Quaternion.identity, new Vector3(x1 - x0 - 0.08f, coreTop - coreFoot, y1 - y0 - 0.08f), L4Kit.Cell(L2PolyKit.Joint));
             }
 
-            // The old King's statue, taken off at the knee and set back down, kneeling to the doors. The greybox box
-            // stood inside the pier; this one gets its own collider on the landing.
-            var statue = Group(g, "KingStatue");
-            statue.position = new Vector3(54f, Landing, 382f);
-            L3Build.Seat(statue, "K:SM_Prop_Statue_Base_01", new Vector3(0f, 180f, 0f), 1.9f, Vector2.zero, 0f, Stone);
-            var king = L3Build.Seat(statue, "K:SM_Prop_Statue_01", new Vector3(0f, 180f, 0f), 1.35f, Vector2.zero, 0.2f, Marble);
-            king.transform.localPosition += Vector3.down * 1.6f;
-            Fallen(statue, new Vector3(0f, 0f, -2.4f), 5, 1.6f);
-            Candles(g, new Vector3(52.4f, Landing, 380f), 5, 1);
-            Candles(g, new Vector3(55.8f, Landing, 380.1f), 5, 1);
-            Obstacle(root, statue.position, new Vector3(3.6f, 4.5f, 3.6f));
-            var greybox = root.Find("ImperialStair/KingStatue_Kneeling");
-            if (greybox != null)
+            // The niche: coursed walls, its low ceiling, the old King in marble on his plinth, candles, two torches.
+            L4Kit.Courses(g, new Vector3(50.5f, 0f, 402f), Vector3.right, Vector3.back, 7f, Hall - 1.4f, r, 0f, 0.6f, 2f);
+            L4Kit.Courses(g, new Vector3(50.5f, 0f, 394f), Vector3.forward, Vector3.right, 8f, Hall - 1.4f, r, 0f, 0.6f, 2f);
+            L4Kit.Courses(g, new Vector3(57.5f, 0f, 402f), Vector3.back, Vector3.left, 8f, Hall - 1.4f, r, 0f, 0.6f, 2f);
+            Ceiling(g, "NicheCeiling", 50.5f, 57.5f, 394f, 402f, Hall - 1.4f, 7302);
+            var king = Group(g, "KingStatue");
+            king.position = new Vector3(54f, 0f, 399.2f);
+            L3Build.Seat(king, "K:SM_Prop_Statue_Base_01", new Vector3(0f, 180f, 0f), 1.6f, Vector2.zero, 0f, Stone);
+            L3Build.Seat(king, "K:SM_Prop_Statue_01", new Vector3(0f, 180f, 0f), 1.25f, Vector2.zero, 1.6f, Marble);
+            Candles(g, new Vector3(52.2f, 0f, 397.2f), 6, 1);
+            Candles(g, new Vector3(55.8f, 0f, 397.2f), 6, 1);
+            Sconce(g, new Vector3(50.5f, 0f, 397.5f), Vector3.right, 3.2f);
+            Sconce(g, new Vector3(57.5f, 0f, 397.5f), Vector3.left, 3.2f);
+
+            // The landing's and the gallery's rails.
+            IronRail(rails, Straight(new Vector3(49.6f, Hall, 394.12f), new Vector3(58.4f, Hall, 394.12f)));
+            IronRail(rails, Straight(new Vector3(47.12f, Hall, 398.8f), new Vector3(47.12f, Hall, 402f)));
+            IronRail(rails, Straight(new Vector3(60.88f, Hall, 398.8f), new Vector3(60.88f, Hall, 402f)));
+            IronRail(rails, Straight(new Vector3(34.6f, Hall, 402.12f), new Vector3(47f, Hall, 402.12f)));
+            IronRail(rails, Straight(new Vector3(61f, Hall, 402.12f), new Vector3(73.4f, Hall, 402.12f)));
+            L3Build.MeshChild(g, "IronBalustrades", rails.Save("L5_IronBalustrades", 1), Vector3.zero, Iron);
+
+            Centrepiece(g);
+
+            // Runners: across the landing from flight to flight, and on to the doors.
+            Runner(g, Rect.MinMaxRect(48.6f, 395.4f, 59.4f, 397.0f), Hall, false, 3115);
+            Runner(g, Rect.MinMaxRect(51f, 397.0f, 57f, 406.5f), Hall, false, 3116);
+
+            // The gallery's back wall: blind arched doors either side of the grand doors, torches between.
+            foreach (float x in new[] { 40.5f, 67.5f })
             {
-                Object.DestroyImmediate(greybox.gameObject);
+                var blind = Group(g, "BlindDoor");
+                blind.position = new Vector3(x, Hall, 406.4f);
+                L4Kit.GateArch(blind, 3.2f, 0.45f, 3.4f, 1.6f, 5.8f, 0.5f, 3300 + (int)x);
+                L3Build.Fit(blind, "K:SM_Bld_Castle_Door_01", 0, new Vector3(3.2f, 3.4f, 0.3f), new Vector2(0f, 0.05f), 0f, Soot);
             }
 
-            // Earlier wardens along the plinth, each a little further gone.
-            Prefab(L4Prefabs + "Figures/L4_Kneeler_Slumped_Knight", g, new Vector3(50.6f, Landing, 381.2f), 15f);
-            Prefab(L4Prefabs + "Figures/L4_Kneeler_Slumped_Soldier", g, new Vector3(57.4f, Landing, 381.6f), -20f);
-            Prefab(Skeletons + "Remains", g, new Vector3(49.2f, Landing, 383.2f), 40f);
-
-            // Torches and banners down the stair hall's walls, a chandelier over the landing and one over the terrace,
-            // and the vault over it all.
-            foreach (float y in new[] { 364f, 376f, 389f, 401f })
+            foreach (float x in new[] { 36.5f, 44.5f, 63.5f, 71.5f })
             {
-                Sconce(g, new Vector3(34.5f, StairFloor(y), y), Vector3.right, 3.5f);
-                Sconce(g, new Vector3(73.5f, StairFloor(y), y), Vector3.left, 3.5f);
+                Sconce(g, new Vector3(x, Hall, 406.5f), Vector3.back, 3.5f);
             }
 
-            foreach (float y in new[] { 370f, 383f, 395f })
+            // Torches down the side walls, climbing with the flights beside them; banners above.
+            foreach (float y in new[] { 368f, 376f, 384f, 392f, 399f })
             {
-                L4Citadel.HangBanner(g, new Vector3(34.6f, 14f, y), -90f, 2.6f, (int)y);
-                L4Citadel.HangBanner(g, new Vector3(73.4f, 14f, y), 90f, 2.6f, (int)y + 1);
+                float h = FlightHeightBeside(y) + 3.2f;
+                Sconce(g, new Vector3(34.5f, 0f, y), Vector3.right, h);
+                Sconce(g, new Vector3(73.5f, 0f, y), Vector3.left, h);
             }
 
-            Sconce(g, new Vector3(49.2f, Landing, 383.95f), Vector3.back, 2.2f);
-            Sconce(g, new Vector3(58.8f, Landing, 383.95f), Vector3.back, 2.2f);
+            foreach (float y in new[] { 372f, 384f, 396f })
+            {
+                L4Citadel.HangBanner(g, new Vector3(34.6f, 17f, y), -90f, 2.8f, (int)y);
+                L4Citadel.HangBanner(g, new Vector3(73.4f, 17f, y), 90f, 2.8f, (int)y + 1);
+            }
+
+            // The great chandelier over the well, one over the landing, the vault over all.
             float crown = VaultHeight(34.5f, 73.5f, StairTop, StairRise, 54f);
-            Chandelier(g, new Vector3(54f, Landing + 10f, 377.5f), 2.6f, 16, crown, Landing, true);
-            Chandelier(g, new Vector3(54f, Hall + 9.6f, 401f), 1.8f, 12, crown, Hall, false);
+            Chandelier(g, new Vector3(54f, 18.6f, 380f), 3.4f, 22, crown, 0f, true);
+            Chandelier(g, new Vector3(39.5f, 19.2f, 384f), 1.9f, 12, crown, 4.5f, false);
+            Chandelier(g, new Vector3(68.5f, 19.2f, 384f), 1.9f, 12, crown, 4.5f, false);
+            Chandelier(g, new Vector3(54f, Hall + 9.6f, 400.5f), 1.8f, 12, crown, Hall, false);
             Vault(g, "StairVault", 34.5f, 73.5f, 358.5f, 406.5f, StairTop, StairRise, new[] { 366f, 378f, 390f, 402f }, true, true, 7301);
         }
 
-        // A flight of 12 steps 1 m deep and 0.25 m high, each a row of worn blocks from the floor below up.
-        private static void Steps(Transform g, string name, float x0, float x1, float y0, float baseH, int seed)
+        // The height of a flight's outer edge where it passes the side wall at plan y (both flights are mirror images).
+        private static float FlightHeightBeside(float y)
         {
-            var flight = Group(g, name);
-            var r = new System.Random(seed);
-            for (int i = 0; i < 12; i++)
+            float s = Mathf.Clamp((y - L5Greybox.StairCentre.y) / L5Greybox.StairOuter, -1f, 1f);
+            float a = Mathf.Clamp(180f - Mathf.Asin(s) * Mathf.Rad2Deg, L5Greybox.StairTopFrom, L5Greybox.StairFrom);
+            return Hall * (L5Greybox.StairFrom - a) / (L5Greybox.StairFrom - L5Greybox.StairTopFrom) * (L5Greybox.StairSteps - 1) / L5Greybox.StairSteps;
+        }
+
+        // One flight: its steps (three courses of worn blocks across, each from the floor up), its runner over every
+        // tread and riser, its rails, and a torch-topped newel either side of its foot.
+        private static void CurvedFlight(Transform g, Transform root, ShellMesh rails, bool west)
+        {
+            var flight = Group(g, west ? "Flight_W" : "Flight_E");
+            var r = new System.Random(west ? 3001 : 3002);
+            var runner = new ShellMesh();
+            var stone = new ShellMesh();
+            var inner = new List<Vector3>();
+            var outer = new List<Vector3>();
+            float down = west ? 1f : -1f;
+            for (int i = 0; i <= L5Greybox.StairSteps; i++)
             {
-                float top = 0.25f * (i + 1);
-                float x = x0;
-                while (x < x1 - 0.05f)
+                float a = L5Greybox.StairAngle(i, west);
+                float nose = Hall * (i + 0.5f) / L5Greybox.StairSteps;
+                inner.Add(L5Greybox.StairPoint(L5Greybox.StairInner + 0.12f, a, Mathf.Min(nose, Hall)));
+                outer.Add(L5Greybox.StairPoint(L5Greybox.StairOuter - 0.12f, a, Mathf.Min(nose, Hall)));
+                if (i == L5Greybox.StairSteps)
                 {
-                    float w = Mathf.Min(1.6f + (float)r.NextDouble() * 1.4f, x1 - x);
-                    L3Build.MeshChild(flight, "Step", L2PolyKit.Tread(new Vector3(w - 0.02f, top, 1f), r.Next(100000)), new Vector3(x + w * 0.5f, baseH + top * 0.5f, y0 + i + 0.5f), Blocks);
-                    x += w;
+                    break;
                 }
+
+                float a1 = L5Greybox.StairAngle(i + 1, west), mid = (a + a1) * 0.5f, top = L5Greybox.StairTop(i);
+                bool last = i == L5Greybox.StairSteps - 1;
+
+                // The top tread runs onto the landing's corner: it sits just under the landing slab and its runner just
+                // over the landing's runner, so neither z-fights.
+                SectorStep(stone, a, a1, i == 0 ? 0f : L5Greybox.StairTop(i - 1), last ? top - 0.012f : top, last, west, r);
+
+                // The runner: tread (in two parts along the arc) and riser, gold-edged.
+                float lift = top + (last ? 0.024f : 0.015f), below = i == 0 ? 0f : L5Greybox.StairTop(i - 1);
+                var facing = (L5Greybox.StairPoint(15f, a + down, 0f) - L5Greybox.StairPoint(15f, a, 0f)).normalized;
+                foreach (var (r0, r1, sub) in new[] { (14.2f, 15.8f, 0), (14.05f, 14.2f, 1), (15.8f, 15.95f, 1) })
+                {
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float b0 = Mathf.Lerp(a, a1, k * 0.5f), b1 = Mathf.Lerp(a, a1, (k + 1) * 0.5f);
+                        runner.Quad(sub, L5Greybox.StairPoint(r0, b0, lift), L5Greybox.StairPoint(r1, b0, lift), L5Greybox.StairPoint(r1, b1, lift), L5Greybox.StairPoint(r0, b1, lift), Vector2.zero, Vector3.up);
+                    }
+
+                    runner.Quad(sub, L5Greybox.StairPoint(r0, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, lift) + facing * 0.012f, L5Greybox.StairPoint(r0, a, lift) + facing * 0.012f, Vector2.zero, facing);
+                }
+            }
+
+            L3Build.MeshChild(flight, "Steps", stone.Save("L5_FlightSteps_" + (west ? "W" : "E"), 1), Vector3.zero, Blocks);
+            var carpet = L3Build.MeshChild(flight, "Runner", runner.Save("L5_FlightRunner_" + (west ? "W" : "E"), 2), Vector3.zero, Carpet, Bronze);
+            carpet.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            IronRail(rails, inner);
+            IronRail(rails, outer);
+
+            float foot = L5Greybox.StairAngle(0, west) + (west ? 2.5f : -2.5f);
+            StandingTorch(g, root, L5Greybox.StairPoint(L5Greybox.StairInner + 0.3f, foot, 0f));
+            StandingTorch(g, root, L5Greybox.StairPoint(L5Greybox.StairOuter - 0.3f, foot, 0f));
+        }
+
+        // One step of a curved flight as solid stone between angles a and a1: its tread laid in slabs (three across,
+        // two along, each a palette tone, over a dark joint bed so the joints read), its riser, and its curved cheeks
+        // down to the floor inside and out, so the flight is one closed mass with no slits between steps.
+        private static void SectorStep(ShellMesh m, float a, float a1, float below, float top, bool last, bool west, System.Random r)
+        {
+            float r0 = L5Greybox.StairInner, r1 = L5Greybox.StairOuter;
+            Vector3 P(float radius, float deg, float h) => L5Greybox.StairPoint(radius, deg, h);
+            int[] tones = { L2PolyKit.Top, L2PolyKit.TopLight, L2PolyKit.Top, L2PolyKit.TopDark };
+            m.Quad(0, P(r0, a, top - 0.006f), P(r1, a, top - 0.006f), P(r1, a1, top - 0.006f), P(r0, a1, top - 0.006f), L4Kit.Cell(L2PolyKit.Joint), Vector3.up);
+            const float joint = 0.025f;
+            float da = (a1 - a) * 0.5f, jointDeg = joint / ((r0 + r1) * 0.5f) * Mathf.Rad2Deg * Mathf.Sign(da);
+            for (int k = 0; k < 3; k++)
+            {
+                float ra = r0 + k * 2f + joint, rb = r0 + (k + 1) * 2f - joint;
+                for (int h = 0; h < 2; h++)
+                {
+                    float b0 = a + h * da + jointDeg, b1 = a + (h + 1) * da - jointDeg;
+                    m.Quad(0, P(ra, b0, top), P(rb, b0, top), P(rb, b1, top), P(ra, b1, top), L4Kit.Cell(tones[r.Next(tones.Length)]), Vector3.up);
+                }
+            }
+
+            var down = (P(15f, a + (west ? 1f : -1f), 0f) - P(15f, a, 0f)).normalized;
+            m.Quad(0, P(r0, a, 0f), P(r1, a, 0f), P(r1, a, top), P(r0, a, top), L4Kit.Cell(L2PolyKit.Side), down);
+            if (last)
+            {
+                m.Quad(0, P(r0, a1, 0f), P(r1, a1, 0f), P(r1, a1, top), P(r0, a1, top), L4Kit.Cell(L2PolyKit.Side), -down);
+            }
+
+            for (int h = 0; h < 2; h++)
+            {
+                float b0 = a + h * da, b1 = a + (h + 1) * da, mid = (b0 + b1) * 0.5f;
+                var outward = (P(1f, mid, 0f) - P(0f, mid, 0f)).normalized;
+                int cell = (h + (int)(top * 4f)) % 2 == 0 ? L2PolyKit.Side : L2PolyKit.End;
+                m.Quad(0, P(r1, b0, 0f), P(r1, b1, 0f), P(r1, b1, top), P(r1, b0, top), L4Kit.Cell(cell), outward);
+                m.Quad(0, P(r0, b0, 0f), P(r0, b1, 0f), P(r0, b1, top), P(r0, b0, top), L4Kit.Cell(cell), -outward);
             }
         }
 
-        // The runner up a flight: over each tread and down each riser, a gold edge either side.
-        private static void StairRunner(Transform g, float x0, float x1, float y0, float baseH, int seed)
+        // The well's centrepiece: a round plinth in two tiers, a great stone fire bowl on a pedestal burning on it (the
+        // stair hall's heart of light), candles round its foot.
+        private static void Centrepiece(Transform g)
         {
-            var m = new ShellMesh();
-            const float lift = 0.015f, trim = 0.14f;
-            for (int i = 0; i < 12; i++)
+            var c = Group(g, "Centrepiece");
+            c.position = L5Greybox.Centrepiece;
+            var r = new System.Random(3401);
+            foreach (var (radius, h0, n) in new[] { (2.9f, 0f, 16), (2.1f, 0.45f, 12) })
             {
-                float top = baseH + 0.25f * (i + 1) + lift;
-                float y = y0 + i;
-                foreach (var (a, b, sub) in new[] { (x0, x1, 0), (x0 - trim, x0, 1), (x1, x1 + trim, 1) })
+                float seg = 2f * Mathf.PI * radius / n;
+                for (int i = 0; i < n; i++)
                 {
-                    m.Quad(sub, new Vector3(a, top, y), new Vector3(a, top, y + 1f), new Vector3(b, top, y + 1f), new Vector3(b, top, y), Vector2.zero, Vector3.up);
-                    m.Quad(sub, new Vector3(a, top - 0.25f, y - lift), new Vector3(a, top, y - lift), new Vector3(b, top, y - lift), new Vector3(b, top - 0.25f, y - lift), Vector2.zero, Vector3.back);
+                    float a = (i + 0.5f) / n * Mathf.PI * 2f;
+                    var block = L3Build.MeshChild(c, "Block", L2PolyKit.Tread(new Vector3(seg + 0.05f, 0.45f, 0.9f), r.Next(100000)), new Vector3(Mathf.Cos(a) * radius, h0 + 0.225f, Mathf.Sin(a) * radius), Blocks);
+                    block.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
+                }
+
+                foreach (float yaw in new[] { 0f, 45f })
+                {
+                    var fill = L3Build.MeshChild(c, "Fill", L2PolyKit.Tread(new Vector3(radius * 1.5f, 0.44f, radius * 1.5f), r.Next(100000)), new Vector3(0f, h0 + 0.22f, 0f), Blocks);
+                    fill.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
                 }
             }
 
-            var go = L3Build.MeshChild(g, "StairRunner", m.Save("L5_StairRunner_" + seed, 2), Vector3.zero, Carpet, Bronze);
-            go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            foreach (float yaw in new[] { 0f, 45f })
+            {
+                var pedestal = L3Build.MeshChild(c, "Pedestal", L2PolyKit.Tread(new Vector3(1.5f, 1.3f, 1.5f), r.Next(100000)), new Vector3(0f, 0.9f + 0.65f, 0f), Blocks);
+                pedestal.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                var floor = L3Build.MeshChild(c, "BowlFloor", L2PolyKit.Tread(new Vector3(2.5f, 0.25f, 2.5f), r.Next(100000)), new Vector3(0f, 2.3f, 0f), Blocks);
+                floor.transform.localRotation = Quaternion.Euler(0f, yaw + 22.5f, 0f);
+            }
+
+            for (int i = 0; i < 12; i++)
+            {
+                float a = (i + 0.5f) / 12f * Mathf.PI * 2f;
+                var lip = L3Build.MeshChild(c, "Bowl", L2PolyKit.Tread(new Vector3(0.82f, 0.6f, 0.36f), r.Next(100000)), new Vector3(Mathf.Cos(a) * 1.5f, 2.6f, Mathf.Sin(a) * 1.5f), Blocks);
+                lip.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f) * Quaternion.Euler(-14f, 0f, 0f);
+            }
+
+            var fire = L2Fire.Fire(c, "Flames", new Vector3(0f, 2.55f, 0f), 1.4f, 60f, 28f, true, new Vector3(2f, 0f, 2f), L2Fire.Shape.Box, 1.3f);
+            foreach (var l in fire.GetComponentsInChildren<Light>(true))
+            {
+                l.color = TorchColour;
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                float a = i * Mathf.PI * 0.5f + Mathf.PI * 0.25f;
+                Candles(g, c.position + new Vector3(Mathf.Cos(a) * 3.6f, 0f, Mathf.Sin(a) * 3.6f), 4, 1);
+            }
+        }
+
+        // Points every 1.2 m along a straight run, for a rail.
+        private static List<Vector3> Straight(Vector3 a, Vector3 b)
+        {
+            int n = Mathf.Max(1, Mathf.RoundToInt((b - a).magnitude / 1.2f));
+            var points = new List<Vector3>();
+            for (int i = 0; i <= n; i++)
+            {
+                points.Add(Vector3.Lerp(a, b, i / (float)n));
+            }
+
+            return points;
+        }
+
+        // A wrought-iron balustrade along points at walking height: a post at each point, top and bottom rails, and in
+        // each panel two scroll rings and a bar between them.
+        private static void IronRail(ShellMesh m, List<Vector3> points)
+        {
+            const float top = 1.02f;
+            for (int k = 0; k + 1 < points.Count; k++)
+            {
+                var a = points[k];
+                var b = points[k + 1];
+                Bar(m, a + Vector3.up * top, b + Vector3.up * top, 0.075f);
+                Bar(m, a + Vector3.up * 0.1f, b + Vector3.up * 0.1f, 0.045f);
+                Bar(m, a, a + Vector3.up * (top + 0.06f), 0.06f);
+                var along = b - a;
+                along.y = 0f;
+                along.Normalize();
+                foreach (float s in new[] { 0.28f, 0.72f })
+                {
+                    var c = Vector3.Lerp(a, b, s) + Vector3.up * 0.56f;
+                    const int segments = 10;
+                    for (int i = 0; i < segments; i++)
+                    {
+                        float t0 = i / (float)segments * Mathf.PI * 2f, t1 = (i + 1) / (float)segments * Mathf.PI * 2f;
+                        Bar(m, c + (along * Mathf.Cos(t0) + Vector3.up * Mathf.Sin(t0)) * 0.17f, c + (along * Mathf.Cos(t1) + Vector3.up * Mathf.Sin(t1)) * 0.17f, 0.025f);
+                    }
+                }
+
+                var middle = Vector3.Lerp(a, b, 0.5f);
+                Bar(m, middle + Vector3.up * 0.1f, middle + Vector3.up * top, 0.03f);
+            }
+
+            var last = points[points.Count - 1];
+            Bar(m, last, last + Vector3.up * (top + 0.06f), 0.06f);
+        }
+
+        private static void Bar(ShellMesh m, Vector3 p, Vector3 q, float thickness)
+        {
+            var d = q - p;
+            if (d.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            var rot = Quaternion.LookRotation(d, Mathf.Abs(Vector3.Dot(d.normalized, Vector3.up)) > 0.95f ? Vector3.right : Vector3.up);
+            m.Box(0, (p + q) * 0.5f, rot, new Vector3(thickness, thickness, d.magnitude + thickness * 0.5f), L4Kit.Cell(L2PolyKit.Iron));
         }
 
         // A flat runner over a floor rectangle, gold-edged along its long sides; 'burnt' tears it through in places.
@@ -692,27 +963,6 @@ namespace Kneel.EditorTools
 
             var go = L3Build.MeshChild(g, "Runner", m.Save("L5_Runner_" + seed, 3), new Vector3(0f, floor, 0f), Carpet, Bronze, L2PolyKit.CharredWood);
             go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-        }
-
-        // Balusters every 0.45 m under a stone rail, from a to b (on the same height).
-        private static void Balustrade(Transform g, Vector3 a, Vector3 b, int seed)
-        {
-            var bal = Group(g, "Balustrade");
-            var r = new System.Random(seed);
-            var dir = (b - a).normalized;
-            float length = (b - a).magnitude;
-            var rot = Quaternion.LookRotation(Vector3.Cross(dir, Vector3.up));
-            for (float s = 0f; s <= length; s += 0.45f)
-            {
-                L3Build.MeshChild(bal, "Baluster", L2PolyKit.Tread(new Vector3(0.22f, 0.75f, 0.22f), r.Next(100000)), a + dir * s + Vector3.up * 0.375f, Blocks);
-            }
-
-            for (float s = 0f; s < length - 0.05f; s += 2.4f)
-            {
-                float piece = Mathf.Min(2.4f, length - s);
-                var rail = L3Build.MeshChild(bal, "Rail", L2PolyKit.Tread(new Vector3(piece, 0.16f, 0.36f), r.Next(100000)), a + dir * (s + piece * 0.5f) + Vector3.up * 0.83f, Blocks);
-                rail.transform.rotation = rot * Quaternion.Euler(0f, 90f, 0f);
-            }
         }
 
         // ---------------------------------------------------------------- The doors
@@ -841,13 +1091,10 @@ namespace Kneel.EditorTools
                 }
             }
 
-            // Those who came before the player: remains and dropped blades along the arena's edges, never in the ring.
-            var remains = new[] { (36f, 436f, "Remains"), (42.5f, 447f, "Prone"), (35.5f, 455f, "Slumped"), (71.5f, 441f, "Supine"), (65.6f, 459f, "Remains"), (72.5f, 452f, "Curled"), (44f, 464.5f, "Prone"), (64.5f, 434.5f, "Remains") };
-            foreach (var (x, y, kind) in remains)
+            // Iron candelabras down the processional and either side of the dais front (outside the duel ring).
+            foreach (var (x, y) in new[] { (49.6f, 414f), (58.4f, 414f), (49.6f, 426f), (58.4f, 426f), (44.2f, 465.6f), (63.8f, 465.6f) })
             {
-                Prefab(Skeletons + kind, g, new Vector3(x, Hall, y), rng.Next(360));
-                var blade = L3Build.Seat(g, "K:SM_Wep_Broadsword_01", new Vector3(90f, rng.Next(360), 0f), 1f, new Vector2(x + 0.8f, y + 0.5f), Hall, Iron);
-                blade.name = "Blade";
+                Candelabra(g, g.parent.parent, new Vector3(x, Hall, y));
             }
         }
 
@@ -906,8 +1153,8 @@ namespace Kneel.EditorTools
 
             Throne(g, root, r);
 
-            // The old King, kneeling at the foot of his own dais, his crown fallen before him.
-            Prefab(Skeletons + "Kneeling", g, new Vector3(54f, y + 0.2f, 466.75f), 180f);
+            // The old King in marble, kneeling at the foot of his own dais, his crown fallen before him.
+            KneelingStatue(g, root, new Vector3(54f, y + 0.2f, 466.75f), 0f, Bake("L5_Kneeling_Knight_02_Black", KneelPose).mesh, Marble, 1.15f, false);
             var crown = Group(g, "Crown");
             crown.position = new Vector3(54.2f, y + 0.02f, 466.0f);
             crown.rotation = Quaternion.Euler(14f, 30f, 0f);
@@ -981,12 +1228,11 @@ namespace Kneel.EditorTools
             Obstacle(root, L5Greybox.Throne + new Vector3(0f, 0f, 0.4f), new Vector3(3.6f, 6f, 3f));
         }
 
-        // The PolygonKnights black knight, baked seated: thighs forward, shins down, forearms on the armrests.
-        private static (Mesh mesh, float hipsY) SeatedMaster()
+        // The PolygonKnights black knight baked in a pose, and the height of its hips in that pose.
+        private static (Mesh mesh, float hipsY) Bake(string name, L1Bakers.PoseFn pose)
         {
-            string path = MeshesPath + "/Figures/L5_Seated_Knight_02_Black.asset";
             L2Build.EnsureFolder(MeshesPath + "/Figures");
-            var mesh = L1Bakers.BakeStanding("Assets/SyntyStudios/PolygonKnights/Prefabs/Characters/Character_Knight_02_Black.prefab", "Character_Knight_02", SeatedPose, null, out var rig);
+            var mesh = L1Bakers.BakeStanding("Assets/SyntyStudios/PolygonKnights/Prefabs/Characters/Character_Knight_02_Black.prefab", "Character_Knight_02", pose, null, out var rig);
             float hips = 0f;
             foreach (var t in rig.GetComponentsInChildren<Transform>(true))
             {
@@ -997,8 +1243,24 @@ namespace Kneel.EditorTools
             }
 
             Object.DestroyImmediate(rig);
-            mesh.name = "L5_Seated_Knight_02_Black";
+            mesh.name = name;
             return (SaveMesh(mesh, MeshesPath + "/Figures"), hips);
+        }
+
+        private static (Mesh mesh, float hipsY) SeatedMaster() => Bake("L5_Seated_Knight_02_Black", SeatedPose);
+
+        // Kneeling on the right knee, the left foot planted, back straight, both hands forward on a sword's pommel.
+        private static void KneelPose(Transform r, float s)
+        {
+            var l = new Vector3(s, 0f, 0f);
+            Aim(r, "UpperLeg_L", "LowerLeg_L", l * 0.12f + new Vector3(0f, -0.2f, 1f));
+            Aim(r, "LowerLeg_L", "Ankle_L", new Vector3(0f, -1f, -0.05f));
+            Aim(r, "UpperLeg_R", "LowerLeg_R", -l * 0.1f + new Vector3(0f, -1f, -0.12f));
+            Aim(r, "LowerLeg_R", "Ankle_R", -l * 0.05f + new Vector3(0f, -0.12f, -1f));
+            Aim(r, "Shoulder_L", "Elbow_L", l * 0.12f + new Vector3(0f, -0.75f, 0.7f));
+            Aim(r, "Elbow_L", "Hand_L", -l * 0.55f + new Vector3(0f, -0.35f, 0.65f));
+            Aim(r, "Shoulder_R", "Elbow_R", -l * 0.12f + new Vector3(0f, -0.75f, 0.7f));
+            Aim(r, "Elbow_R", "Hand_R", l * 0.55f + new Vector3(0f, -0.35f, 0.65f));
         }
 
         private static void SeatedPose(Transform r, float s)
@@ -1077,7 +1339,7 @@ namespace Kneel.EditorTools
             Prefab(L4Prefabs + "Markers/L4_Shrine", g, L5Greybox.P(54f, 263.6f, 0f), 0f).name = "Shrine_B";
 
             // The Royal Guard (stand-in: L4's black-iron knight; AI comes later).
-            var guard = Prefab(L4Prefabs + "Enemies/L4_StandIn_IronHusk", g, L5Greybox.P(54f, 377.6f, Landing), 0f);
+            var guard = Prefab(L4Prefabs + "Enemies/L4_StandIn_IronHusk", g, L5Greybox.P(54f, 373.5f, 0f), 0f);
             guard.name = "RoyalGuard (stand-in)";
             foreach (var marker in guard.GetComponentsInChildren<Kneel.Markers.SpawnMarker>(true))
             {
@@ -1101,7 +1363,7 @@ namespace Kneel.EditorTools
         private static void Atmosphere(Transform g)
         {
             L4Atmosphere.Ash(g, new Vector3(54f, 7f, 314f), new Vector3(14f, 2f, 90f));
-            L4Atmosphere.Ash(g, new Vector3(54f, 12f, 383f), new Vector3(36f, 2f, 44f));
+            L4Atmosphere.Ash(g, new Vector3(54f, 16f, 383f), new Vector3(36f, 2f, 44f));
             L4Atmosphere.Ash(g, new Vector3(54f, Hall + 10f, 440f), new Vector3(34f, 2f, 62f));
             L4Atmosphere.Embers(g, new Vector3(54f, Hall + 1.5f, 458f), new Vector3(30f, 6f, 24f));
         }
@@ -1214,6 +1476,25 @@ namespace Kneel.EditorTools
             if (player != null)
             {
                 L1LightingShots.SetCharacterLayer(player.gameObject);
+            }
+
+            // The fires breathe slowly and only a little: L2Fire's flicker, made for single campfires, read as strobing
+            // across a hundred torches.
+            foreach (var flicker in root.GetComponentsInChildren<Kneel.Lighting.LightFlicker>(true))
+            {
+                var so = new SerializedObject(flicker);
+                so.FindProperty("amplitude").floatValue = 0.06f;
+                so.FindProperty("speed").floatValue = 0.8f;
+                so.FindProperty("rangeBreath").floatValue = 0f;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            foreach (var l in root.GetComponentsInChildren<Light>(true))
+            {
+                if (l.type != LightType.Directional)
+                {
+                    l.shadows = LightShadows.None;
+                }
             }
 
             int lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Length;
@@ -1331,16 +1612,7 @@ namespace Kneel.EditorTools
 
             // The candles' own lights go: one light for the whole chandelier, hung under the hub (inside it, the hub's
             // shadow swallowed it), as bright as its height over the floor needs.
-            foreach (var l in c.GetComponentsInChildren<Light>(true))
-            {
-                // The flicker requires its light, so it goes first.
-                foreach (var dependant in l.GetComponents<MonoBehaviour>())
-                {
-                    Object.DestroyImmediate(dependant);
-                }
-
-                Object.DestroyImmediate(l);
-            }
+            StripLights(c);
 
             float drop = at.y - floor;
             var lightGo = new GameObject("Light");
@@ -1351,7 +1623,9 @@ namespace Kneel.EditorTools
             light.color = ChandelierColour;
             light.intensity = 1.05f * drop * drop;
             light.range = 1.8f * drop + 10f;
-            light.shadows = shadows ? LightShadows.Soft : LightShadows.None;
+            // No shadows: seven shadowed point lights (six slices each) overflowed URP's shadow atlas, which then
+            // swapped which lights got shadows as the camera moved, and the light flickered.
+            light.shadows = LightShadows.None;
             light.shadowStrength = 0.85f;
         }
 
@@ -1547,6 +1821,18 @@ namespace Kneel.EditorTools
                 Sub(sub).AddRange(flip ? new[] { k, k + 2, k + 1 } : new[] { k, k + 1, k + 2 });
             }
 
+            public void Box(int sub, Vector3 centre, Quaternion rot, Vector3 size, Vector2 uv)
+            {
+                var h = size * 0.5f;
+                Vector3 V(float x, float y, float z) => centre + rot * new Vector3(x * h.x, y * h.y, z * h.z);
+                Quad(sub, V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1), uv, rot * Vector3.forward);
+                Quad(sub, V(1, -1, -1), V(-1, -1, -1), V(-1, 1, -1), V(1, 1, -1), uv, rot * Vector3.back);
+                Quad(sub, V(1, -1, 1), V(1, -1, -1), V(1, 1, -1), V(1, 1, 1), uv, rot * Vector3.right);
+                Quad(sub, V(-1, -1, -1), V(-1, -1, 1), V(-1, 1, 1), V(-1, 1, -1), uv, rot * Vector3.left);
+                Quad(sub, V(-1, 1, 1), V(1, 1, 1), V(1, 1, -1), V(-1, 1, -1), uv, rot * Vector3.up);
+                Quad(sub, V(-1, -1, -1), V(1, -1, -1), V(1, -1, 1), V(-1, -1, 1), uv, rot * Vector3.down);
+            }
+
             public Mesh Save(string name, int subMeshes)
             {
                 var mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
@@ -1695,8 +1981,8 @@ namespace Kneel.EditorTools
 
             Play("nave_mid", 54f, 312f, 0f);
             Play("chapel", 38f, 310.5f, 0f);
-            Play("stair_foot", 54f, 362f, 0f);
-            Play("landing", 54f, 376f, Landing);
+            Play("stair_well", 54f, 368f, 0f);
+            Play("stair_flight", 39.1f, 384f, 4.75f);
             Play("terrace", 54f, 400f, Hall);
             Play("processional", 54f, 420f, Hall);
             var arena = GameObject.Find("CM_Arena_FixedFrame");
@@ -1706,7 +1992,15 @@ namespace Kneel.EditorTools
             }
 
             shots.Add(("vista_nave", new Vector3(54f, 7f, 272f), new Vector3(12f, 0f, 0f), 45f, new Vector3(54f, 0f, 280f)));
-            shots.Add(("stair_low", new Vector3(54f, 2.2f, 344f), new Vector3(-6f, 0f, 0f), 58f, new Vector3(54f, 0f, 352f)));
+            shots.Add(("nave_knights", new Vector3(52f, 2.2f, 296f), new Vector3(4f, -28f, 0f), 60f, new Vector3(54f, 0f, 300f)));
+            // Inspection angles for holes and seams: from the gallery down over the flights, beside a flight's outer
+            // cheek, into the niche, and the throne hall's north-west corner.
+            shots.Add(("inspect_gallery", new Vector3(54f, Hall + 2.2f, 404.8f), new Vector3(24f, 180f, 0f), 75f, new Vector3(54f, Hall, 403f)));
+            shots.Add(("inspect_cheek", new Vector3(37.2f, 1.8f, 366f), new Vector3(-4f, 20f, 0f), 70f, new Vector3(36f, 0f, 368f)));
+            shots.Add(("inspect_niche", new Vector3(54f, 1.8f, 389f), new Vector3(2f, 0f, 0f), 65f, new Vector3(54f, 0f, 391f)));
+            shots.Add(("inspect_corner", new Vector3(44f, Hall + 2f, 430f), new Vector3(8f, -35f, 0f), 70f, new Vector3(44f, Hall, 432f)));
+            shots.Add(("stair_low", new Vector3(54f, 2.4f, 346f), new Vector3(-9f, 0f, 0f), 72f, new Vector3(54f, 0f, 356f)));
+            shots.Add(("stair_plan", new Vector3(54f, 34f, 350f), new Vector3(44f, 0f, 0f), 62f, new Vector3(54f, 0f, 366f)));
             shots.Add(("concept", new Vector3(54f, Hall + 2.4f, 410.5f), new Vector3(3f, 0f, 0f), 55f, new Vector3(54f, Hall, 417f)));
             shots.Add(("throne", new Vector3(54f, Hall + 6f, 452f), new Vector3(16f, 0f, 0f), 52f, new Vector3(54f, Hall, 462f)));
             var player = GameObject.Find("Player");
