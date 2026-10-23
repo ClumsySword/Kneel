@@ -46,8 +46,15 @@ namespace Kneel.EditorTools
         private static Material carpet;
         private static Material Tapestry => Flat("L5_TapestryBurnt", "#2E0F11", 0.05f);
         private static Material Marble => Flat("L5_KingMarble", "#77726B", 0.25f);
-        private static Material Wax => Glow(Flat("L5_Wax", "#A89D86", 0.25f), "#4A2A12");
-        private static Material FixtureIron => Glow(Flat("L5_FixtureIron", "#3A322C", 0.3f), "#3A2010");
+        // The fixtures' iron and wax take only their own gentle glow light (FixtureGlow): warm, never past the bloom
+        // threshold, so the thin parts can't shimmer.
+        private static Material Wax => Glow(Flat("L5_Wax", "#7A705E", 0.2f), "#3A2010");
+        private static Material FixtureIron => Glow(Flat("L5_FixtureIron", "#6A5440", 0.2f), "#1A0D06");
+
+        // The master's colour, a shade darker than L4's banner red (owner, 2026-10-23: carpets and banners "a slightly
+        // darker red").
+        private static Material BannerDark => Flat("L5_BannerRed", "#3D1216", 0.1f);
+        private static Material Bone => Flat("L5_Bone", "#857B6A", 0.15f);
         private static Material WindowDark => Flat("L5_WindowDark", "#060505", 0.3f);
         private static Material StatueStone => Flat("L5_StatueStone", "#4E4A45", 0.22f);
 
@@ -81,6 +88,8 @@ namespace Kneel.EditorTools
             var root = GameObject.Find(L5Greybox.RootName).transform;
             rng = new System.Random(5);
             carpet = null;
+            sootMesh = null;
+            sootMaterial = null;
             L2Build.EnsureFolder(TexturesPath);
             L2Build.EnsureFolder(MeshesPath + "/Floors");
             L2Build.EnsureFolder(MeshesPath + "/Shell");
@@ -104,6 +113,16 @@ namespace Kneel.EditorTools
                 wallCores.Box(0, new Vector3((x0 + x1) * 0.5f, NaveTop * 0.5f, 268.15f), Quaternion.identity, new Vector3(x1 - x0 - 0.08f, NaveTop - 0.04f, 2.62f), L4Kit.Cell(L2PolyKit.Joint));
             }
 
+            // The torches' soot plumes stay out of the fade (a faded multiply material makes no sense).
+            var outerSoot = Group(art, "OuterDoorSoot");
+            foreach (var t in outerDoors.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name == "Soot")
+                {
+                    t.SetParent(outerSoot, true);
+                }
+            }
+
             L4Build.BakeLooseMeshes(outerDoors.gameObject, "L5_OuterDoors", MeshesPath + "/Kit");
             L4Build.AddFade(outerDoors.gameObject);
             Portal(Group(art, "GrandDoors"), L5Greybox.P(54f, 407.1f, Hall), 13f, 811, true, new[] { -1f, 1f });
@@ -112,6 +131,7 @@ namespace Kneel.EditorTools
             Phases(root);
             Figures(Group(art, "Figures"), root);
             Atmosphere(Group(art, "Atmosphere"));
+            Wear(art);
             L3Build.MeshChild(art.Find("Walls"), "WallCores", wallCores.Save("L5_WallCores", 1), Vector3.zero, Blocks);
             wallCores = null;
 
@@ -141,6 +161,28 @@ namespace Kneel.EditorTools
                 if (phaseArt != null)
                 {
                     L4Build.BakeLooseMeshes(phaseArt.gameObject, "L5_" + phase, MeshesPath + "/Kit");
+                }
+            }
+
+            // Banners, trophy shields and the throne's cushion in L5's darker red (L4's material stays L4's).
+            var l4Red = L4Citadel.BannerRed;
+            var darkRed = BannerDark;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] == l4Red)
+                    {
+                        mats[i] = darkRed;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    r.sharedMaterials = mats;
                 }
             }
 
@@ -271,6 +313,12 @@ namespace Kneel.EditorTools
                         float lay = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.55f, 0.78f, Mathf.PerlinNoise(p.x * 0.3f + seed, p.y * 0.3f)));
                         c = Color.Lerp(c, ashTone, Mathf.Max(drift * 0.55f, lay * 0.3f));
                     }
+
+                    // Neglect: a few old dark stains where something bled or burned, and hairline cracks in the flags.
+                    float blot = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.7f, 0.8f, Mathf.PerlinNoise(p.x * 0.21f + seed * 0.37f, p.y * 0.21f + 11f)));
+                    c = Color.Lerp(c, new Color(0.17f, 0.09f, 0.08f), 0.5f * blot * (0.6f + 0.4f * Mathf.PerlinNoise(p.x * 1.4f, p.y * 1.4f + seed)));
+                    float crack = Mathf.Abs(Mathf.PerlinNoise(p.x * 0.55f + 70f, p.y * 0.55f + seed) - 0.5f);
+                    c = Color.Lerp(c, soot, 0.45f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.012f, 0.004f, crack)));
 
                     if (id == "Nave")
                     {
@@ -544,6 +592,7 @@ namespace Kneel.EditorTools
             l.intensity = 9f;
             l.range = 10f;
             l.shadows = LightShadows.None;
+            FixtureGlow(c, new Vector3(0f, 4.8f, 0f), 2.5f);
             Obstacle(root, at, new Vector3(0.55f, 2.4f, 0.55f));
         }
 
@@ -1580,22 +1629,15 @@ namespace Kneel.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            // The fixtures' own lights (chandeliers, candelabras, floor candles) never light the Fixtures layer, so they
-            // don't burn their own iron and wax white (FixtureLayer); the torches and braziers, metres away, light it
-            // softly, so the fixtures don't stand black either.
+            // The Fixtures layer (FixtureLayer) takes only the fixtures' gentle glow lights; every other light, the
+            // candles' own included, lights the Default layer only, so nothing burns the thin iron and wax white.
             uint fixtures = FixturesMask();
             foreach (var l in root.GetComponentsInChildren<Light>(true))
             {
                 if (l.type != LightType.Directional)
                 {
                     l.shadows = LightShadows.None;
-                    bool own = false;
-                    for (var t = l.transform; t != null; t = t.parent)
-                    {
-                        own |= t.name == FixturesGroup;
-                    }
-
-                    uint mask = own ? 1u : 1u | fixtures;
+                    uint mask = l.name == FixtureGlowName ? fixtures : 1u;
                     l.renderingLayerMask = (int)mask;
                     var data = l.GetComponent<UniversalAdditionalLightData>();
                     if (data == null)
@@ -1623,6 +1665,25 @@ namespace Kneel.EditorTools
         private const string FixturesGroup = "Fixtures";
         private const string FixturesRenderingLayer = "Fixtures";
         private static readonly string[] FixtureNames = { "Chandelier", "Candelabra", "Candles" };
+
+        // The candles' light on their own fixture (owner, 2026-10-23: "add the light back to the chandeliers and the
+        // candelabras, but make sure it does not flicker"): a steady light that touches only the Fixtures layer, set
+        // 'distance' metres off the nearest part so near and far parts light alike, about 3 lux on the nearest: warm
+        // iron and wax, never past the bloom threshold. No flicker script.
+        private const string FixtureGlowName = "FixtureGlow";
+
+        private static void FixtureGlow(Transform fixture, Vector3 local, float distance)
+        {
+            var go = new GameObject(FixtureGlowName);
+            go.transform.SetParent(fixture, false);
+            go.transform.localPosition = local;
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = ChandelierColour;
+            l.intensity = 3f * distance * distance;
+            l.range = distance * 3f;
+            l.shadows = LightShadows.None;
+        }
 
         private static void GatherFixtures(Transform area)
         {
@@ -1747,6 +1808,181 @@ namespace Kneel.EditorTools
             {
                 l.color = TorchColour;
             }
+
+            // Years of the torch's smoke on the wall over it.
+            var soot = L3Build.MeshChild(s, "Soot", SootMesh(), new Vector3(0f, 0.2f, 0.12f), SootMaterial());
+            soot.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        // ---------------------------------------------------------------- Wear (owner, 2026-10-23: "rough the place up a
+        // bit (subtle). Right now it looks too clean. This place was inhabited by the evil guys.")
+
+        private static Mesh sootMesh;
+        private static Material sootMaterial;
+
+        // A plume of soot on a wall: a quad 1.5 m wide and 2.6 m tall facing +z, darkening what is behind it
+        // (multiply blend), narrow over the flame and spreading as it rises.
+        private static Mesh SootMesh()
+        {
+            if (sootMesh == null)
+            {
+                // White vertex colours: the particle shader multiplies by them (without, its alpha read as zero).
+                var m = new Mesh { name = "L5_SootPlume" };
+                m.SetVertices(new[] { new Vector3(-0.75f, 0f, 0f), new Vector3(0.75f, 0f, 0f), new Vector3(0.75f, 2.6f, 0f), new Vector3(-0.75f, 2.6f, 0f) });
+                m.SetUVs(0, new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f) });
+                m.SetColors(new[] { Color.white, Color.white, Color.white, Color.white });
+                m.SetNormals(new[] { Vector3.forward, Vector3.forward, Vector3.forward, Vector3.forward });
+                m.SetTriangles(new[] { 0, 1, 2, 0, 2, 3 }, 0);
+                m.RecalculateBounds();
+                sootMesh = SaveMesh(m, MeshesPath + "/Shell");
+            }
+
+            return sootMesh;
+        }
+
+        private static Material SootMaterial()
+        {
+            if (sootMaterial != null)
+            {
+                return sootMaterial;
+            }
+
+            const int w = 64, h = 128;
+            var px = new Color[w * h];
+            var soot = L1Build.Hex("#1A1310");
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, t = (y + 0.5f) / h;
+                    float width = 0.12f + 0.34f * t;
+                    float across = Mathf.Exp(-2f * Mathf.Pow((u - 0.5f + (Mathf.PerlinNoise(t * 3f, 4f) - 0.5f) * 0.12f * t) / width, 2f));
+                    float up = Mathf.SmoothStep(0f, 1f, t / 0.1f) * Mathf.Pow(1f - t, 1.1f);
+                    float streak = 0.7f + 0.3f * Mathf.PerlinNoise(u * 9f, t * 2.5f);
+                    var c = soot;
+                    c.a = Mathf.Clamp01(1.45f * across * up * streak);
+                    px[y * w + x] = c;
+                }
+            }
+
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, true);
+            tex.SetPixels(px);
+            tex.Apply();
+            string texPath = TexturesPath + "/L5_SootPlume.png";
+            File.WriteAllBytes(texPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
+
+            string path = MaterialsPath + "/L5_Soot.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            // Multiply: the colour fades to white where the alpha does, and the wall is multiplied by it.
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            mat.SetColor("_BaseColor", Color.white);
+            mat.SetFloat("_Surface", 1f);
+            mat.SetFloat("_Blend", 3f);
+            mat.SetFloat("_SrcBlend", (float)BlendMode.DstColor);
+            mat.SetFloat("_DstBlend", (float)BlendMode.Zero);
+            mat.SetFloat("_ZWrite", 0f);
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.EnableKeyword("_ALPHAMODULATE_ON");
+            mat.renderQueue = (int)RenderQueue.Transparent;
+            EditorUtility.SetDirty(mat);
+            return sootMaterial = mat;
+        }
+
+        // A spill of rubble: a broken block or two and a scatter of chips, within 'spread' metres of 'at'.
+        private static void Rubble(Transform g, Vector3 at, int count, float spread, System.Random r)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float a = (float)r.NextDouble() * Mathf.PI * 2f, d = spread * Mathf.Sqrt((float)r.NextDouble());
+                float s = i < 2 ? 0.28f + (float)r.NextDouble() * 0.2f : 0.06f + (float)r.NextDouble() * 0.14f;
+                var size = new Vector3(s * (0.8f + (float)r.NextDouble() * 0.6f), s * 0.6f, s);
+                var chip = L3Build.MeshChild(g, "Rubble", L2PolyKit.Tread(size, r.Next(100000)), at + new Vector3(Mathf.Cos(a) * d, size.y * 0.35f, Mathf.Sin(a) * d), Blocks);
+                chip.transform.rotation = Quaternion.Euler(((float)r.NextDouble() - 0.5f) * 30f, r.Next(360), ((float)r.NextDouble() - 0.5f) * 30f);
+            }
+        }
+
+        // Shackles on a wall: a ring bolted at 'height', a chain sagging to a cuff and back up to a second ring.
+        private static void Shackles(Transform g, Vector3 wall, Vector3 outward, float height, int seed)
+        {
+            var side = Vector3.Cross(Vector3.up, outward).normalized;
+            var a = wall + outward * 0.12f + Vector3.up * height - side * 0.45f;
+            var b = a + side * 0.9f;
+            var low = (a + b) * 0.5f + Vector3.down * 0.85f + outward * 0.06f;
+            Chain(g, a, low, seed);
+            Chain(g, low, b, seed + 50);
+            foreach (var p in new[] { a, b })
+            {
+                L3Build.MeshChild(g, "Ring", L2PolyKit.Tread(new Vector3(0.14f, 0.14f, 0.05f), seed + 90), p, Iron).transform.rotation = Quaternion.LookRotation(outward);
+            }
+
+            L3Build.MeshChild(g, "Cuff", L2PolyKit.Tread(new Vector3(0.16f, 0.07f, 0.16f), seed + 91), low + Vector3.down * 0.06f, Iron);
+        }
+
+        // The signs of who lived here, kept to the walls' feet and the corners, off every walking line: rubble, a few
+        // bones, dropped arms, tipped cups, shackles; stores in the stair hall's dark pockets.
+        private static void Wear(Transform art)
+        {
+            var r = new System.Random(6101);
+            var nave = art.Find("Nave");
+            var stair = art.Find("Stair");
+            var hall = art.Find("Hall");
+            var chapel = art.Find("Chapel");
+
+            foreach (var (x, y) in new[] { (47.1f, 277.2f), (47.1f, 323.8f), (47.0f, 350.7f), (60.9f, 288.3f), (60.9f, 330.6f), (60.9f, 352.2f) })
+            {
+                Rubble(nave, new Vector3(x, 0f, y), 7, 0.6f, r);
+            }
+
+            Shackles(nave, new Vector3(46.5f, 0f, 281f), Vector3.right, 2.9f, 6201);
+            Shackles(nave, new Vector3(46.5f, 0f, 326f), Vector3.right, 2.9f, 6202);
+            Shackles(nave, new Vector3(61.5f, 0f, 295f), Vector3.left, 2.9f, 6203);
+            Shackles(nave, new Vector3(61.5f, 0f, 349f), Vector3.left, 2.9f, 6204);
+            Prefab(Skeletons + "Remains", nave, new Vector3(47.6f, 0f, 299.6f), 30f);
+            Prefab(Skeletons + "Remains", nave, new Vector3(60.3f, 0f, 342.2f), 200f);
+            L3Build.Fit(nave, "P:SM_Icon_Skull_01", 90, new Vector3(0.2f, 0.22f, 0.25f), new Vector2(47.3f, 343.2f), 0f, Bone);
+            L3Build.Seat(nave, "P:SM_Icon_Cup_01", new Vector3(90f, 40f, 0f), 0.22f, new Vector2(49.5f, 290.5f), 0f, Bronze);
+            L3Build.Seat(nave, "P:SM_Icon_Cup_02", new Vector3(90f, 210f, 0f), 0.22f, new Vector2(58.6f, 316.4f), 0f, Bronze);
+
+            // The stair hall's pockets outside the flights' tops: stores, and the floor at the corners.
+            foreach (float s in new[] { -1f, 1f })
+            {
+                float x = 54f + s * 17.8f;
+                L3Build.Seat(stair, "A:SM_Prop_Barrel_01", new Vector3(0f, r.Next(360), 0f), 1f, new Vector2(x, 399.6f), 0f);
+                L3Build.Seat(stair, "A:SM_Prop_Sack_0" + (s < 0 ? 1 : 2), new Vector3(0f, r.Next(360), 0f), 1f, new Vector2(x + s * -1.1f, 400.6f), 0f);
+                Rubble(stair, new Vector3(x - s * 0.8f, 0f, 398.2f), 5, 0.5f, r);
+                Rubble(stair, new Vector3(54f + s * 18.6f, 0f, 361.2f), 6, 0.6f, r);
+            }
+
+            // The throne hall: rubble at pillar feet, arms dropped in the aisles, bones, cups before the dais.
+            foreach (var (x, y) in new[] { (37.0f, 431.5f), (71.0f, 444.0f), (37.0f, 456.5f), (71.0f, 419.5f) })
+            {
+                Rubble(hall, new Vector3(x, Hall, y), 6, 0.55f, r);
+            }
+
+            L3Build.Part(hall, "K:SM_Wep_Halberd_01", new Vector3(33.45f, Hall, 438.6f), new Vector3(0f, 90f, -12f), Vector3.one, Iron);
+            L3Build.Part(hall, "K:SM_Wep_Shield_02", new Vector3(34.6f, Hall + 0.06f, 437.3f), new Vector3(-88f, 35f, 0f), Vector3.one * 1.3f, Iron);
+            Prefab(Skeletons + "Remains", hall, new Vector3(74.0f, Hall, 450.5f), 120f);
+            L3Build.Fit(hall, "P:SM_Icon_Skull_01", 180, new Vector3(0.2f, 0.22f, 0.25f), new Vector2(73.9f, 431.0f), Hall, Bone);
+            Shackles(hall, new Vector3(33f, Hall, 450f), Vector3.right, 2.9f, 6205);
+            Shackles(hall, new Vector3(75f, Hall, 426f), Vector3.left, 2.9f, 6206);
+            L3Build.Seat(hall, "P:SM_Icon_Cup_03", new Vector3(90f, 120f, 0f), 0.22f, new Vector2(47.0f, 464.0f), Hall, Bronze);
+            L3Build.Seat(hall, "P:SM_Icon_Cup_01", new Vector3(90f, 300f, 0f), 0.22f, new Vector2(61.5f, 463.2f), Hall, Bronze);
+
+            Rubble(chapel, new Vector3(32.2f, 0f, 317.2f), 5, 0.5f, r);
+            L3Build.Seat(chapel, "P:SM_Icon_Cup_02", new Vector3(90f, 75f, 0f), 0.22f, new Vector2(35.2f, 304.0f), 0f, Bronze);
         }
 
         // A torch on a stone newel post (with its own collider), for the foot and head of each flight.
@@ -1849,6 +2085,7 @@ namespace Kneel.EditorTools
             light.color = ChandelierColour;
             light.intensity = 1.05f * drop * drop;
             light.range = 1.8f * drop + 10f;
+            FixtureGlow(c, new Vector3(0f, -4f, 0f), 3.6f);
             // No shadows: seven shadowed point lights (six slices each) overflowed URP's shadow atlas, which then
             // swapped which lights got shadows as the camera moved, and the light flickered.
             light.shadows = LightShadows.None;
@@ -2232,21 +2469,32 @@ namespace Kneel.EditorTools
         // The runners' weave (owner, 2026-10-23: "add some nice texture to the red carpet"): a crimson field with a
         // chain of dark lozenges down the middle, each with a gold heart, a dark border band inside the bronze trims
         // carrying small gold diamonds, thin gold rules, and a fine weave grain. u runs across the runner, v along it,
-        // one repeat per runner width, so a 1.6 m stair runner and the 5 m nave runner carry the same proportions.
+        // one lozenge per runner width, so a 1.6 m stair runner and the 5 m nave runner carry the same proportions. The
+        // texture holds four lozenges (tiled at a quarter), so its wear doesn't repeat every runner width: the nap
+        // trodden flat down the middle, the borders grimed, a few old dark stains (owner, 2026-10-23: "rough the place
+        // up a bit... too clean"; and "a slightly darker red").
         private static Material CarpetMaterial()
         {
-            const int w = 256, h = 256;
+            const int w = 256, h = 1024, lozenges = 4;
             var px = new Color[w * h];
-            var field = L1Build.Hex("#5A1820");
-            var deep = L1Build.Hex("#2C0A0E");
-            var band = L1Build.Hex("#3C1015");
-            var gold = L1Build.Hex("#8C6A34");
-            var rose = L1Build.Hex("#73242B");
+            var field = L1Build.Hex("#47131A");
+            var deep = L1Build.Hex("#200709");
+            var band = L1Build.Hex("#2E0B0F");
+            var gold = L1Build.Hex("#7E5E2E");
+            var rose = L1Build.Hex("#5B1B21");
+            var stainColour = L1Build.Hex("#1C0B09");
+            var stains = new List<Vector3>();
+            var sr = new System.Random(9177);
+            for (int i = 0; i < 9; i++)
+            {
+                stains.Add(new Vector3(0.15f + (float)sr.NextDouble() * 0.7f, (float)sr.NextDouble(), 0.03f + (float)sr.NextDouble() * 0.05f));
+            }
+
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
                 {
-                    float u = (x + 0.5f) / w, v = (y + 0.5f) / h;
+                    float u = (x + 0.5f) / w, whole = (y + 0.5f) / h, v = Mathf.Repeat(whole * lozenges, 1f);
                     float edge = Mathf.Min(u, 1f - u);
                     Color c = field;
                     if (edge < 0.1f)
@@ -2283,7 +2531,22 @@ namespace Kneel.EditorTools
 
                     // The weave: fine rows across, a little noise in every thread.
                     float grain = 0.93f + 0.07f * Mathf.PerlinNoise(x * 0.9f, y * 0.13f) + ((y & 1) == 0 ? 0.025f : -0.025f);
-                    px[y * w + x] = c * grain;
+                    c *= grain;
+
+                    // Wear: the nap trodden flat and dulled down the middle, grime toward the borders, old stains.
+                    float tread = Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) / 0.22f) * (0.6f + 0.4f * Mathf.PerlinNoise(u * 6f, whole * 40f));
+                    c = Color.Lerp(c, new Color(c.grayscale, c.grayscale * 0.8f, c.grayscale * 0.75f) * 1.15f, 0.22f * tread);
+                    c *= 1f - 0.18f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.16f, 0.02f, edge)) * Mathf.PerlinNoise(u * 20f, whole * 90f);
+                    foreach (var s in stains)
+                    {
+                        float dv = Mathf.Abs(whole - s.y);
+                        dv = Mathf.Min(dv, 1f - dv) * lozenges;
+                        float d = new Vector2(u - s.x, dv).magnitude / s.z + (Mathf.PerlinNoise(x * 0.15f, y * 0.15f) - 0.5f) * 0.8f;
+                        c = Color.Lerp(c, stainColour, 0.55f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.1f, 0.6f, d)));
+                    }
+
+                    c.a = 1f;
+                    px[y * w + x] = c;
                 }
             }
 
@@ -2302,6 +2565,7 @@ namespace Kneel.EditorTools
 
             var mat = Flat("L5_Carpet", "#FFFFFF", 0.04f);
             mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f / lozenges));
             EditorUtility.SetDirty(mat);
             return mat;
         }
