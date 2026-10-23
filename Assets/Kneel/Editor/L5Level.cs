@@ -33,7 +33,8 @@ namespace Kneel.EditorTools
         // vault springs above that; the fixed arena camera sees through the one-sided vaults.
         private const float NaveTop = 11f, NaveRise = 8.6f;
         private const float StairTop = 20f, StairRise = 22f;
-        private const float HallTop = Hall + 16f, Capital = Hall + 10f, ArcadeTop = Hall + 15.5f, AisleCeiling = Hall + 13f, HallRise = 16f;
+        // The aisle ceilings sit above the arcade arches' crowns (Hall + 14.5), or the arches showed open air over them.
+        private const float HallTop = Hall + 16f, Capital = Hall + 10f, ArcadeTop = Hall + 15.5f, AisleCeiling = Hall + 15f, HallRise = 16f;
 
         private static Material Stone => L4Build.Mat("L4_Knights_Stone");
         private static Material Soot => L4Build.Mat("L4_Knights_Soot");
@@ -41,10 +42,12 @@ namespace Kneel.EditorTools
         private static Material Bronze => L4Build.Mat("L4_Knights_Bronze");
         private static Material Basalt => L4Build.Mat("L4_Basalt");
         private static Material Blocks => L4Kit.Stone;
-        private static Material Carpet => Flat("L5_Carpet", "#4A151A", 0.04f);
+        private static Material Carpet => carpet != null ? carpet : (carpet = CarpetMaterial());
+        private static Material carpet;
         private static Material Tapestry => Flat("L5_TapestryBurnt", "#2E0F11", 0.05f);
         private static Material Marble => Flat("L5_KingMarble", "#77726B", 0.25f);
-        private static Material Wax => Flat("L5_Wax", "#A89D86", 0.25f);
+        private static Material Wax => Glow(Flat("L5_Wax", "#A89D86", 0.25f), "#4A2A12");
+        private static Material FixtureIron => Glow(Flat("L5_FixtureIron", "#3A322C", 0.3f), "#3A2010");
         private static Material WindowDark => Flat("L5_WindowDark", "#060505", 0.3f);
         private static Material StatueStone => Flat("L5_StatueStone", "#4E4A45", 0.22f);
 
@@ -77,6 +80,7 @@ namespace Kneel.EditorTools
             var log = new List<string> { L5Greybox.Build() };
             var root = GameObject.Find(L5Greybox.RootName).transform;
             rng = new System.Random(5);
+            carpet = null;
             L2Build.EnsureFolder(TexturesPath);
             L2Build.EnsureFolder(MeshesPath + "/Floors");
             L2Build.EnsureFolder(MeshesPath + "/Shell");
@@ -87,10 +91,21 @@ namespace Kneel.EditorTools
             log.Add(Floors(Group(art, "Floors")));
             log.Add(Walls(Group(art, "Walls"), root));
             Nave(Group(art, "Nave"), root);
-            Chapel(Group(art, "Chapel"));
-            Alcove(Group(art, "Alcove"));
+            Chapel(Group(art, "Chapel"), root);
+            Alcove(Group(art, "Alcove"), root);
             Stair(Group(art, "Stair"), root);
-            Portal(Group(art, "OuterDoors"), L5Greybox.P(54f, 268.6f, 0f), NaveTop, 801, false, new[] { 1f });
+            // The outer doors are shut behind the player: a collider across them, and the portal fades when the follow
+            // camera, as the player walks back to them, ends up behind it (as the hall's pillars do).
+            var outerDoors = Group(art, "OuterDoors");
+            Portal(outerDoors, L5Greybox.P(54f, 268.6f, 0f), NaveTop, 801, false, new[] { 1f }, true);
+            Obstacle(root, L5Greybox.P(54f, 268.6f, 0f), new Vector3(8.4f, 7f, 0.6f));
+            foreach (var (x0, x1) in new[] { (45f, 48.6f), (59.4f, 63f) })
+            {
+                wallCores.Box(0, new Vector3((x0 + x1) * 0.5f, NaveTop * 0.5f, 268.15f), Quaternion.identity, new Vector3(x1 - x0 - 0.08f, NaveTop - 0.04f, 2.62f), L4Kit.Cell(L2PolyKit.Joint));
+            }
+
+            L4Build.BakeLooseMeshes(outerDoors.gameObject, "L5_OuterDoors", MeshesPath + "/Kit");
+            L4Build.AddFade(outerDoors.gameObject);
             Portal(Group(art, "GrandDoors"), L5Greybox.P(54f, 407.1f, Hall), 13f, 811, true, new[] { -1f, 1f });
             ThroneHall(Group(art, "Hall"));
             Dais(Group(art, "Dais"), root);
@@ -102,8 +117,23 @@ namespace Kneel.EditorTools
 
             foreach (Transform area in art)
             {
-                L4Build.BakeLooseMeshes(area.gameObject, "L5_" + area.name, MeshesPath + "/Kit");
+                GatherFixtures(area);
             }
+
+            L4Build.BakeBoundaries.Add(FixturesGroup);
+            try
+            {
+                foreach (Transform area in art)
+                {
+                    L4Build.BakeLooseMeshes(area.gameObject, "L5_" + area.name, MeshesPath + "/Kit");
+                }
+            }
+            finally
+            {
+                L4Build.BakeBoundaries.Remove(FixturesGroup);
+            }
+
+            log.Add(FixtureLayer(art));
 
             foreach (var phase in new[] { "Phase1", "Phase2" })
             {
@@ -251,8 +281,8 @@ namespace Kneel.EditorTools
 
                     if (id == "StairHall")
                     {
-                        // The inlaid rose round the centrepiece: an eight-pointed star of pale stone inside a dark ring, a
-                        // second ring further out, laid into the flags like the marble of a palace floor.
+                        // The inlaid rose round the centrepiece: an eight-pointed star of pale stone laid into the flags
+                        // like the marble of a palace floor. (Its two dark rings went, owner 2026-10-23.)
                         var q = p - new Vector2(L5Greybox.Centrepiece.x, L5Greybox.Centrepiece.z);
                         float rad = q.magnitude, phi = Mathf.Atan2(q.y, q.x);
                         float star = 3.3f + 3f * Mathf.Pow(0.5f + 0.5f * Mathf.Cos(8f * phi), 3f);
@@ -260,9 +290,6 @@ namespace Kneel.EditorTools
                         {
                             c = Color.Lerp(c, new Color(0.6f, 0.58f, 0.54f), 0.65f);
                         }
-
-                        float ring = Mathf.Min(Mathf.Abs(rad - 6.9f) - 0.3f, Mathf.Abs(rad - 9.7f) - 0.15f);
-                        c = Color.Lerp(c, soot * 1.3f, 0.85f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.05f, -0.05f, ring)));
                     }
 
                     if (id == "Hall")
@@ -490,7 +517,8 @@ namespace Kneel.EditorTools
             var c = Group(g, "Candelabra");
             c.position = at;
             int seed = rng.Next(100000);
-            Part(c, L2PolyKit.Tread(new Vector3(0.55f, 0.12f, 0.55f), seed), new Vector3(0f, 0.06f, 0f), Quaternion.identity);
+            // The foot stands outside the fixture (FixtureLayer): lit from 2.4 m above it reads as iron, not a black hole.
+            Part(g, L2PolyKit.Tread(new Vector3(0.55f, 0.12f, 0.55f), seed), at + new Vector3(0f, 0.06f, 0f), Quaternion.identity);
             Part(c, L2PolyKit.Tread(new Vector3(0.09f, 2.1f, 0.09f), seed + 1), new Vector3(0f, 1.17f, 0f), Quaternion.identity);
             Part(c, L2PolyKit.Tread(new Vector3(0.2f, 0.08f, 0.2f), seed + 2), new Vector3(0f, 2.22f, 0f), Quaternion.identity);
             for (int k = 0; k < 3; k++)
@@ -549,10 +577,27 @@ namespace Kneel.EditorTools
             }
         }
 
+        // A side room's doorway in a nave wall (owner, 2026-10-23: "make the holes to the secret rooms more beautiful.
+        // I want arch and everything. They should still be small"): a round arch of voussoirs 2.4 m wide, its crown at
+        // 3.6 m, on coursed piers that fill the greybox's 3 m gap, the haunches coursed up to the wall top so no slot
+        // is left over it. The piers get colliders. 'wallX' is the wall's centre line, 'y' the doorway's centre.
+        private static void SideDoor(Transform g, Transform root, float wallX, float y, int seed)
+        {
+            var door = Group(g, "Doorway");
+            door.position = new Vector3(wallX, 0f, y);
+            door.rotation = Quaternion.Euler(0f, 90f, 0f);
+            L4Kit.GateArch(door, 2.4f, 0.3f, 2.4f, 1.2f, NaveTop, 1.5f, seed);
+            foreach (float s in new[] { -1f, 1f })
+            {
+                Obstacle(root, new Vector3(wallX, 0f, y + s * 1.35f), new Vector3(1.5f, 2.4f, 0.3f));
+            }
+        }
+
         // ---------------------------------------------------------------- D1, the Master's private chapel
 
-        private static void Chapel(Transform g)
+        private static void Chapel(Transform g, Transform root)
         {
+            SideDoor(g, root, 45.75f, 310.5f, 9301);
             var altar = L3Build.MeshChild(g, "Altar", L2PolyKit.Tread(new Vector3(2.4f, 1.1f, 3f), 9201), new Vector3(33.2f, 0.55f, 310.5f), Blocks);
             altar.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
             // The socket where the old stone sat, cracked and empty.
@@ -585,10 +630,12 @@ namespace Kneel.EditorTools
 
         // ---------------------------------------------------------------- D2, the hidden alcove
 
-        private static void Alcove(Transform g)
+        private static void Alcove(Transform g, Transform root)
         {
-            // The tapestry over the doorway, and the scorched handprint on the jamb beside it (the game's one tell).
-            L3Build.Fit(g, "K:SM_Prop_Banner_01", 90, new Vector3(0.15f, 4.3f, 3.3f), new Vector2(61.58f, 336f), 0.25f, Tapestry);
+            // The arched doorway, the tapestry hung in it from the springing (the dark of the alcove shows over it), and
+            // the scorched handprint on the jamb beside it (the game's one tell).
+            SideDoor(g, root, 62.25f, 336f, 9302);
+            L3Build.Fit(g, "K:SM_Prop_Banner_01", 90, new Vector3(0.12f, 2.3f, 2.3f), new Vector2(61.9f, 336f), 0.1f, Tapestry);
             Prefab(L4Prefabs + "Markers/L4_SecretTell", g, new Vector3(61.42f, 0f, 338.3f), 90f);
 
             // The cupbearer: sitting, not kneeling, against the wall; empty cups round him; one guttering candle.
@@ -746,13 +793,18 @@ namespace Kneel.EditorTools
                 var facing = (L5Greybox.StairPoint(15f, a + down, 0f) - L5Greybox.StairPoint(15f, a, 0f)).normalized;
                 foreach (var (r0, r1, sub) in new[] { (14.2f, 15.8f, 0), (14.05f, 14.2f, 1), (15.8f, 15.95f, 1) })
                 {
+                    // The weave's v is the carpet's own length from the foot: along each tread, then up each riser.
+                    float u0 = (r0 - 14.2f) / 1.6f, u1 = (r1 - 14.2f) / 1.6f;
+                    float CarpetV(float deg, float h) => (Mathf.Abs(deg - L5Greybox.StairAngle(0, west)) * Mathf.Deg2Rad * 15f + h) / 1.6f;
                     for (int k = 0; k < 2; k++)
                     {
                         float b0 = Mathf.Lerp(a, a1, k * 0.5f), b1 = Mathf.Lerp(a, a1, (k + 1) * 0.5f);
-                        runner.Quad(sub, L5Greybox.StairPoint(r0, b0, lift), L5Greybox.StairPoint(r1, b0, lift), L5Greybox.StairPoint(r1, b1, lift), L5Greybox.StairPoint(r0, b1, lift), Vector2.zero, Vector3.up);
+                        runner.Quad(sub, L5Greybox.StairPoint(r0, b0, lift), L5Greybox.StairPoint(r1, b0, lift), L5Greybox.StairPoint(r1, b1, lift), L5Greybox.StairPoint(r0, b1, lift),
+                            new Vector2(u0, CarpetV(b0, top)), new Vector2(u1, CarpetV(b0, top)), new Vector2(u1, CarpetV(b1, top)), new Vector2(u0, CarpetV(b1, top)), Vector3.up);
                     }
 
-                    runner.Quad(sub, L5Greybox.StairPoint(r0, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, lift) + facing * 0.012f, L5Greybox.StairPoint(r0, a, lift) + facing * 0.012f, Vector2.zero, facing);
+                    runner.Quad(sub, L5Greybox.StairPoint(r0, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, below) + facing * 0.012f, L5Greybox.StairPoint(r1, a, lift) + facing * 0.012f, L5Greybox.StairPoint(r0, a, lift) + facing * 0.012f,
+                        new Vector2(u0, CarpetV(a, below)), new Vector2(u1, CarpetV(a, below)), new Vector2(u1, CarpetV(a, top)), new Vector2(u0, CarpetV(a, top)), facing);
                 }
             }
 
@@ -958,7 +1010,9 @@ namespace Kneel.EditorTools
                 int edge = torn ? 2 : 1;
                 m.Quad(edge, P(s0, lo[j]), P(s1, lo[j + 1]), P(s1, lo[j + 1] + t1), P(s0, lo[j] + t0), Vector2.zero, Vector3.up);
                 m.Quad(edge, P(s0, hi[j] - t0), P(s1, hi[j + 1] - t1), P(s1, hi[j + 1]), P(s0, hi[j]), Vector2.zero, Vector3.up);
-                m.Quad(0, P(s0, lo[j] + t0), P(s1, lo[j + 1] + t1), P(s1, hi[j + 1] - t1), P(s0, hi[j] - t0), Vector2.zero, Vector3.up);
+                float a0 = alongY ? r.xMin : r.yMin, v0 = (s0 - (alongY ? r.yMin : r.xMin)) / width, v1 = v0 + step / width;
+                Vector2 UV(float across, float v) => new Vector2((across - a0) / width, v);
+                m.Quad(0, P(s0, lo[j] + t0), P(s1, lo[j + 1] + t1), P(s1, hi[j + 1] - t1), P(s0, hi[j] - t0), UV(lo[j] + t0, v0), UV(lo[j + 1] + t1, v1), UV(hi[j + 1] - t1, v1), UV(hi[j] - t0, v0), Vector3.up);
             }
 
             var go = L3Build.MeshChild(g, "Runner", m.Save("L5_Runner_" + seed, 3), new Vector3(0f, floor, 0f), Carpet, Bronze, L2PolyKit.CharredWood);
@@ -971,7 +1025,9 @@ namespace Kneel.EditorTools
         // swung back inside against the wall. Inside the castle it has no towers: torches either side of it on each
         // face, and (for the grand doors) great braziers on plinths before it. 'at' is the door line's centre on its
         // floor; the orders step out toward -Z.
-        private static void Portal(Transform g, Vector3 at, float wall, int seed, bool braziers, float[] faces)
+        // 'closed' (the outer doors, owner 2026-10-23: "make sure the door is closed so that player is confined within
+        // the level"): the leaves shut across the opening and a planked tympanum fills the arch over them.
+        private static void Portal(Transform g, Vector3 at, float wall, int seed, bool braziers, float[] faces, bool closed = false)
         {
             var r = new System.Random(seed);
             g.position = at;
@@ -982,9 +1038,32 @@ namespace Kneel.EditorTools
                 L4Kit.GateArch(ring, span, 0.6f, 6.6f, span * 0.5f, wall, o == 0 ? 1.2f : 0.6f, seed + o);
             }
 
+            if (closed)
+            {
+                // Planks from the floor to the arch behind the leaves (the pack's leaves are round-headed, so the
+                // planks fill round them and make the tympanum over them), and a board behind the planks' joints.
+                const float radius = 4.2f, plank = 0.42f;
+                for (int i = 0; i < 20; i++)
+                {
+                    float x = -radius + (i + 0.5f) * plank;
+                    float h = 6.6f + Mathf.Sqrt(radius * radius - x * x) + 0.1f;
+                    L3Build.MeshChild(g, "Planks", L2PolyKit.Plank(new Vector3(plank - 0.02f, h, 0.14f), seed + 40 + i), new Vector3(x, h * 0.5f, -0.32f), L2PolyKit.CharredWood);
+                }
+
+                L3Build.MeshChild(g, "Board", L2PolyKit.Plank(new Vector3(8.4f, 10.8f, 0.08f), seed + 70), new Vector3(0f, 5.4f, -0.46f), L2PolyKit.CharredWood);
+            }
+
             foreach (float s in new[] { -1f, 1f })
             {
-                L3Build.Fit(g, "K:SM_Bld_Castle_Door_01", 90, new Vector3(0.45f, 6.6f, 4.2f), new Vector2(s * 4.15f, 3.2f), 0f, Soot);
+                if (closed)
+                {
+                    L3Build.Fit(g, "K:SM_Bld_Castle_Door_01", s < 0f ? 0 : 180, new Vector3(4.2f, 6.6f, 0.45f), new Vector2(s * 2.1f, 0f), 0f, Soot);
+                }
+                else
+                {
+                    L3Build.Fit(g, "K:SM_Bld_Castle_Door_01", 90, new Vector3(0.45f, 6.6f, 4.2f), new Vector2(s * 4.15f, 3.2f), 0f, Soot);
+                }
+
                 foreach (float f in faces)
                 {
                     Sconce(g, at + new Vector3(s * 7.4f, 0f, f < 0 ? -0.6f : 0.9f), new Vector3(0f, 0f, f), 3.8f);
@@ -1047,6 +1126,18 @@ namespace Kneel.EditorTools
                     L4Kit.GateArch(bay, span, 0.05f, Capital - Hall, span * 0.5f, ArcadeTop - Hall, 1.2f, 4100 + i + (x < 54f ? 0 : 50));
                     L4Build.BakeLooseMeshes(bay.gameObject, "L5_Arcade_" + Mathf.RoundToInt(x) + "_" + i, MeshesPath + "/Kit");
                     L4Build.AddFade(bay.gameObject);
+                }
+
+                // The wall over each pillar, from its capital to the arcade top, between the two arches it carries
+                // (the bays stop at the pillar's faces; this was open air up to the vault).
+                foreach (float y in L5Greybox.PillarRows)
+                {
+                    var over = Group(arcades, "OverPillar");
+                    over.position = new Vector3(x, Capital, y);
+                    over.rotation = Quaternion.Euler(0f, 90f, 0f);
+                    L4Kit.Courses(over, new Vector3(-1.55f, 0f, -0.6f), Vector3.right, Vector3.back, 3.1f, ArcadeTop - Capital, r, 0f, 1.2f);
+                    L4Build.BakeLooseMeshes(over.gameObject, "L5_OverPillar_" + Mathf.RoundToInt(x) + "_" + Mathf.RoundToInt(y), MeshesPath + "/Kit");
+                    L4Build.AddFade(over.gameObject);
                 }
             }
 
@@ -1489,11 +1580,30 @@ namespace Kneel.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
+            // The fixtures' own lights (chandeliers, candelabras, floor candles) never light the Fixtures layer, so they
+            // don't burn their own iron and wax white (FixtureLayer); the torches and braziers, metres away, light it
+            // softly, so the fixtures don't stand black either.
+            uint fixtures = FixturesMask();
             foreach (var l in root.GetComponentsInChildren<Light>(true))
             {
                 if (l.type != LightType.Directional)
                 {
                     l.shadows = LightShadows.None;
+                    bool own = false;
+                    for (var t = l.transform; t != null; t = t.parent)
+                    {
+                        own |= t.name == FixturesGroup;
+                    }
+
+                    uint mask = own ? 1u : 1u | fixtures;
+                    l.renderingLayerMask = (int)mask;
+                    var data = l.GetComponent<UniversalAdditionalLightData>();
+                    if (data == null)
+                    {
+                        data = l.gameObject.AddComponent<UniversalAdditionalLightData>();
+                    }
+
+                    data.renderingLayers = mask;
                 }
             }
 
@@ -1502,6 +1612,122 @@ namespace Kneel.EditorTools
         }
 
         private const float Exposure = 1.45f;
+
+        // ---------------------------------------------------------------- Fixtures
+
+        // Candelabras, chandeliers and floor candles (owner, 2026-10-23: "the lights still flicker whenever the player is
+        // moving... specifically the candlelights, the chandeliers, and the candelabras"). Their lights hang a hand's
+        // width from thin iron and wax, which burned near-white, and those 1-2 px bright lines shimmered with every step
+        // of the camera. Each area's fixtures bake into one mesh of their own on the Fixtures rendering layer, which no
+        // fire light reaches (Lighting sets every light to Default); their iron and wax glow faintly instead, steadily.
+        private const string FixturesGroup = "Fixtures";
+        private const string FixturesRenderingLayer = "Fixtures";
+        private static readonly string[] FixtureNames = { "Chandelier", "Candelabra", "Candles" };
+
+        private static void GatherFixtures(Transform area)
+        {
+            var found = new List<Transform>();
+            foreach (var t in area.GetComponentsInChildren<Transform>(true))
+            {
+                if (System.Array.IndexOf(FixtureNames, t.name) >= 0 && found.TrueForAll(f => !t.IsChildOf(f)))
+                {
+                    found.Add(t);
+                }
+            }
+
+            if (found.Count == 0)
+            {
+                return;
+            }
+
+            var group = Group(area, FixturesGroup);
+            foreach (var f in found)
+            {
+                f.SetParent(group, true);
+            }
+        }
+
+        private static string FixtureLayer(Transform art)
+        {
+            uint mask = FixturesMask();
+            var iron = Iron;
+            var fixtureIron = FixtureIron;
+            int count = 0;
+            foreach (Transform area in art)
+            {
+                var group = area.Find(FixturesGroup);
+                if (group == null)
+                {
+                    continue;
+                }
+
+                foreach (var r in group.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    r.renderingLayerMask = mask;
+                    r.shadowCastingMode = ShadowCastingMode.Off;
+                    var mats = r.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (mats[i] == iron)
+                        {
+                            mats[i] = fixtureIron;
+                        }
+                    }
+
+                    r.sharedMaterials = mats;
+                    count++;
+                }
+
+                // Steady candle flames: L2's candle lives half a second, six at most, so each 2-4 px flame shrank and
+                // regrew every few frames. More, overlapping, calmer particles that rise half as fast hold one steady
+                // flame at the wick (longer-lived ones drifted up into a stack of blobs).
+                foreach (var ps in group.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    if (ps.name != "Flame")
+                    {
+                        continue;
+                    }
+
+                    var main = ps.main;
+                    main.startLifetime = 0.7f;
+                    main.maxParticles = 12;
+                    var emission = ps.emission;
+                    emission.rateOverTime = 14f;
+                    var noise = ps.noise;
+                    noise.strengthMultiplier *= 0.25f;
+                    var velocity = ps.velocityOverLifetime;
+                    velocity.speedModifierMultiplier *= 0.5f;
+                    var size = ps.sizeOverLifetime;
+                    size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.75f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0.7f)));
+                }
+            }
+
+            return count + " fixture meshes on the Fixtures layer";
+        }
+
+        // The Fixtures rendering layer: slot 2 (unused, "Light Layer 2") is named on first use.
+        private static uint FixturesMask()
+        {
+            var tags = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var layers = tags.FindProperty("m_RenderingLayers");
+            for (int i = 0; i < layers.arraySize; i++)
+            {
+                if (layers.GetArrayElementAtIndex(i).stringValue == FixturesRenderingLayer)
+                {
+                    return 1u << i;
+                }
+            }
+
+            var slot = layers.GetArrayElementAtIndex(2);
+            if (!string.IsNullOrEmpty(slot.stringValue) && !slot.stringValue.StartsWith("Light Layer"))
+            {
+                throw new System.InvalidOperationException("Rendering layer 2 is taken by '" + slot.stringValue + "'.");
+            }
+
+            slot.stringValue = FixturesRenderingLayer;
+            tags.ApplyModifiedPropertiesWithoutUndo();
+            return 1u << 2;
+        }
 
         // ---------------------------------------------------------------- Torches and chandeliers
 
@@ -1682,6 +1908,8 @@ namespace Kneel.EditorTools
             Vector3 At(Vector2 p, float y) => new Vector3(p.x, spring + p.y, y);
             var m = new ShellMesh();
             var r = new System.Random(seed);
+            Cornice(m, new Vector3(x0, 0f, y0), new Vector3(x0, 0f, y1), Vector3.right, spring);
+            Cornice(m, new Vector3(x1, 0f, y0), new Vector3(x1, 0f, y1), Vector3.left, spring);
             int[] cells = { L2PolyKit.Side, L2PolyKit.TopDark, L2PolyKit.Top, L2PolyKit.Side, L2PolyKit.End };
             const float stationLength = 0.8f;
             int stations = Mathf.Max(1, Mathf.RoundToInt((y1 - y0) / stationLength));
@@ -1736,10 +1964,37 @@ namespace Kneel.EditorTools
             go.layer = L3Build.Layer(CeilingLayer);
         }
 
-        // A flat ceiling at height h over a rectangle, faces down, in palette blocks.
+        // A moulded cornice along the line where a vault or ceiling meets its wall (plan points a to b at height h,
+        // projecting 'inward'): an underside, a face, and a slope that runs up behind the vault's or ceiling's edge.
+        // The cladding stands proud of the wall line, so without it a slit of open air showed along every springing.
+        private static void Cornice(ShellMesh m, Vector3 a, Vector3 b, Vector3 inward, float h)
+        {
+            var along = (b - a).normalized;
+            Vector3 At(Vector3 p, float o, float dy) => new Vector3(p.x, h + dy, p.z) + inward * o;
+            var profile = new[] { (-0.15f, -0.45f), (0.45f, -0.45f), (0.45f, 0.15f), (-0.15f, 0.75f) };
+            var faces = new[] { (Vector3.down, L2PolyKit.TopDark), (inward, L2PolyKit.Side), ((inward + Vector3.up).normalized, L2PolyKit.Top) };
+            for (int k = 0; k < 3; k++)
+            {
+                var (o0, d0) = profile[k];
+                var (o1, d1) = profile[k + 1];
+                m.Quad(0, At(a, o0, d0), At(b, o0, d0), At(b, o1, d1), At(a, o1, d1), L4Kit.Cell(faces[k].Item2), faces[k].Item1);
+            }
+
+            foreach (var (p, facing) in new[] { (a, -along), (b, along) })
+            {
+                m.Tri(0, At(p, profile[0].Item1, profile[0].Item2), At(p, profile[1].Item1, profile[1].Item2), At(p, profile[2].Item1, profile[2].Item2), L4Kit.Cell(L2PolyKit.Side), facing);
+                m.Tri(0, At(p, profile[0].Item1, profile[0].Item2), At(p, profile[2].Item1, profile[2].Item2), At(p, profile[3].Item1, profile[3].Item2), L4Kit.Cell(L2PolyKit.Side), facing);
+            }
+        }
+
+        // A flat ceiling at height h over a rectangle, faces down, in palette blocks, a cornice round its edge.
         private static void Ceiling(Transform g, string name, float x0, float x1, float y0, float y1, float h, int seed)
         {
             var m = new ShellMesh();
+            Cornice(m, new Vector3(x0, 0f, y0), new Vector3(x0, 0f, y1), Vector3.right, h);
+            Cornice(m, new Vector3(x1, 0f, y0), new Vector3(x1, 0f, y1), Vector3.left, h);
+            Cornice(m, new Vector3(x0, 0f, y0), new Vector3(x1, 0f, y0), Vector3.forward, h);
+            Cornice(m, new Vector3(x0, 0f, y1), new Vector3(x1, 0f, y1), Vector3.back, h);
             int[] cells = { L2PolyKit.Side, L2PolyKit.TopDark, L2PolyKit.End };
             int i = 0;
             for (float x = x0; x < x1 - 0.01f; x += 1.2f)
@@ -1806,6 +2061,17 @@ namespace Kneel.EditorTools
                 Sub(sub).AddRange(flip ? new[] { k, k + 2, k + 1, k, k + 3, k + 2 } : new[] { k, k + 1, k + 2, k, k + 2, k + 3 });
             }
 
+            // A quad with its own UV at each corner (the carpet's weave runs along the runner).
+            public void Quad(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector2 ua, Vector2 ub, Vector2 uc, Vector2 ud, Vector3 facing)
+            {
+                int k = uvs.Count;
+                Quad(sub, a, b, c, d, Vector2.zero, facing);
+                uvs[k] = ua;
+                uvs[k + 1] = ub;
+                uvs[k + 2] = uc;
+                uvs[k + 3] = ud;
+            }
+
             public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c, Vector2 uv, Vector3 facing)
             {
                 var n = Vector3.Cross(b - a, c - a);
@@ -1863,8 +2129,9 @@ namespace Kneel.EditorTools
         }
 
         // A cluster of guttered candle stubs; 'lit' of them burn and carry a small light.
-        private static void Candles(Transform g, Vector3 at, int count, int lit)
+        private static void Candles(Transform parent, Vector3 at, int count, int lit)
         {
+            var g = Group(parent, "Candles");
             for (int i = 0; i < count; i++)
             {
                 var p = at + new Vector3(((float)rng.NextDouble() - 0.5f) * 0.9f, 0f, ((float)rng.NextDouble() - 0.5f) * 0.9f);
@@ -1948,6 +2215,93 @@ namespace Kneel.EditorTools
 
             mat.SetColor("_BaseColor", L1Build.Hex(hex));
             mat.SetFloat("_Smoothness", smoothness);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        // A faint, steady self-glow: the fixtures' iron and wax read as firelit without any light touching them.
+        private static Material Glow(Material mat, string hex)
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", L1Build.Hex(hex));
+            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        // The runners' weave (owner, 2026-10-23: "add some nice texture to the red carpet"): a crimson field with a
+        // chain of dark lozenges down the middle, each with a gold heart, a dark border band inside the bronze trims
+        // carrying small gold diamonds, thin gold rules, and a fine weave grain. u runs across the runner, v along it,
+        // one repeat per runner width, so a 1.6 m stair runner and the 5 m nave runner carry the same proportions.
+        private static Material CarpetMaterial()
+        {
+            const int w = 256, h = 256;
+            var px = new Color[w * h];
+            var field = L1Build.Hex("#5A1820");
+            var deep = L1Build.Hex("#2C0A0E");
+            var band = L1Build.Hex("#3C1015");
+            var gold = L1Build.Hex("#8C6A34");
+            var rose = L1Build.Hex("#73242B");
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, v = (y + 0.5f) / h;
+                    float edge = Mathf.Min(u, 1f - u);
+                    Color c = field;
+                    if (edge < 0.1f)
+                    {
+                        // The border band, with a gold diamond every eighth of a repeat.
+                        c = band;
+                        float bv = Mathf.Repeat(v * 8f, 1f) - 0.5f, bu = (edge - 0.05f) / 0.035f;
+                        if (Mathf.Abs(bu) + Mathf.Abs(bv) * 1.6f < 0.55f)
+                        {
+                            c = gold;
+                        }
+                    }
+                    else if (Mathf.Abs(edge - 0.115f) < 0.007f)
+                    {
+                        c = gold;
+                    }
+                    else
+                    {
+                        // The lozenge chain: dark outline, rose fill, gold heart; small dark crosses where two meet.
+                        float lz = Mathf.Abs(u - 0.5f) / 0.3f + Mathf.Abs(v - 0.5f) / 0.46f;
+                        if (lz < 1f)
+                        {
+                            c = lz > 0.86f ? deep : lz < 0.3f ? (lz < 0.1f ? deep : gold) : rose;
+                        }
+                        else
+                        {
+                            float cv = Mathf.Min(v, 1f - v), cu = Mathf.Abs(u - 0.5f);
+                            if ((cu < 0.012f && cv < 0.07f) || (cv < 0.01f && cu < 0.05f))
+                            {
+                                c = deep;
+                            }
+                        }
+                    }
+
+                    // The weave: fine rows across, a little noise in every thread.
+                    float grain = 0.93f + 0.07f * Mathf.PerlinNoise(x * 0.9f, y * 0.13f) + ((y & 1) == 0 ? 0.025f : -0.025f);
+                    px[y * w + x] = c * grain;
+                }
+            }
+
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, true);
+            tex.SetPixels(px);
+            tex.Apply();
+            string texPath = TexturesPath + "/L5_Carpet_Weave.png";
+            File.WriteAllBytes(texPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.filterMode = FilterMode.Trilinear;
+            importer.anisoLevel = 4;
+            importer.SaveAndReimport();
+
+            var mat = Flat("L5_Carpet", "#FFFFFF", 0.04f);
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
             EditorUtility.SetDirty(mat);
             return mat;
         }

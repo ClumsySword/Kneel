@@ -58,8 +58,9 @@ namespace Kneel.EditorTools
         public static readonly float[] PillarLines = { 39f, 69f };
         public static readonly Vector2[] Braziers = { new Vector2(39f, 444f), new Vector2(69f, 444f), new Vector2(39f, 456f), new Vector2(69f, 456f) };
 
-        // Gameplay points, at floor height.
-        public static readonly Vector3 PlayerStart = P(54f, 273f, 0f);
+        // Gameplay points, at floor height. The player starts 10 m inside the shut outer doors, so the follow camera
+        // (6.4 m behind) starts inside the nave too (owner, 2026-10-23: "player should spawn within the hall not outside").
+        public static readonly Vector3 PlayerStart = P(54f, 279f, 0f);
         public static readonly Vector3 StairFoot = P(54f, 360f, 0f);
         public static readonly Vector3 ShrineC = P(54f, 400.5f, Hall);
         public static readonly Vector3 AggroLine = P(54f, 432.5f, Hall);
