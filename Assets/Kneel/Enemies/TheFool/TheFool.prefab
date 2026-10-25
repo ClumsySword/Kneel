@@ -850,7 +850,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4576025931032766908}
   - component: {fileID: 4373213086389819274}
-  - component: {fileID: 618335137643986671}
   - component: {fileID: -1900217235506392386}
   - component: {fileID: 3301758570996914010}
   - component: {fileID: 1995036952550390812}
@@ -902,46 +901,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &618335137643986671
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7563310063189061072}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 78a6162fcf9c19e479d0799a6906fbd8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AshenFootman
-  aggressionRange: 7.02
-  attackRange: 1.57
-  attackMoveSpeed: 2
-  attackDamage: 15
-  attackReach: 1.1
-  attackRadius: 0.8
-  attackPoiseDamage: 30
-  playerMask:
-    serializedVersion: 2
-    m_Bits: 512
-  poise:
-    maxPoise: 30
-    regenDelay: 2
-    regenRate: 20
-  windupPoiseMultiplier: 2
-  idleTime: 2
-  moveSpeed: 1.5
-  chaseSpeed: 2.2
-  turnSpeed: 3
-  patrolPoints:
-  - {fileID: 1543745549942720767}
-  - {fileID: 4298623124185975695}
-  - {fileID: 7270683620398365147}
-  - {fileID: 5530941260404139815}
-  popupHeight: 2
-  hitStunTime: 0.6
-  staggerTime: 1.4
-  knockback: 0.35
 --- !u!114 &-1900217235506392386
 MonoBehaviour:
   m_ObjectHideFlags: 0
