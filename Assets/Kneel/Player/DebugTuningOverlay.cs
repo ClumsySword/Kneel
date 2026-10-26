@@ -17,6 +17,9 @@ public class DebugTuningOverlay : MonoBehaviour
     private PlayerCombat playerCombat;
 
     [SerializeField]
+    private PlayerLantern playerLantern;
+
+    [SerializeField]
     private TargetDummy targetDummy;
 
     [SerializeField]
@@ -28,6 +31,7 @@ public class DebugTuningOverlay : MonoBehaviour
     private bool showCamera = false;
     private bool showMovement = false;
     private bool showCombat = true;
+    private bool showLantern = false;
     private bool showDummy = true;
 
     private const float PanelWidth = 340f;
@@ -56,6 +60,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerCombat == null)
         {
             playerCombat = FindAnyObjectByType<PlayerCombat>();
+        }
+
+        if (playerLantern == null)
+        {
+            playerLantern = FindAnyObjectByType<PlayerLantern>();
         }
 
         if (targetDummy == null)
@@ -109,6 +118,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerCombat != null && playerCombat.Settings != null && Foldout("Combat", ref showCombat))
         {
             DrawCombatSection(playerCombat.Settings);
+        }
+
+        if (playerLantern != null && playerLantern.Settings != null && Foldout("Lantern", ref showLantern))
+        {
+            DrawLanternSection(playerLantern.Settings);
         }
 
         if (targetDummy != null && Foldout("Target Dummy", ref showDummy))
@@ -227,6 +241,30 @@ public class DebugTuningOverlay : MonoBehaviour
         });
 
         if (GUILayout.Button("Reset combat to defaults"))
+        {
+            ResetToDefaults(s);
+        }
+
+        GUILayout.Space(10f);
+    }
+
+    private void DrawLanternSection(PlayerLanternSettings s)
+    {
+        EditorDirtyCheck(s, () =>
+        {
+            s.lightIntensity = Slider("Light intensity", s.lightIntensity, 0f, 15f);
+            s.lightRange = Slider("Light range", s.lightRange, 1f, 20f);
+            s.castShadows = GUILayout.Toggle(s.castShadows, " Light casts shadows");
+            s.flickerAmount = Slider("Flicker amount", s.flickerAmount, 0f, 1f);
+            s.flickerSpeed = Slider("Flicker speed", s.flickerSpeed, 0f, 20f);
+            s.glassGlow = Slider("Glass glow", s.glassGlow, 0f, 10f);
+
+            s.pendulumLength = Slider("Pendulum length", s.pendulumLength, 0.05f, 0.6f);
+            s.swayDamping = Slider("Sway damping", s.swayDamping, 0f, 15f);
+            s.maxSwingAngle = Slider("Max swing angle", s.maxSwingAngle, 0f, 90f);
+        });
+
+        if (GUILayout.Button("Reset lantern to defaults"))
         {
             ResetToDefaults(s);
         }
