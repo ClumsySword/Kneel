@@ -23,6 +23,11 @@ public class AttackDefinition
 
     // Swing is over and control returns.
     public float recoveryEnd;
+
+    // Forward step into the swing, in metres, taken lunge time into the clip.
+    public float lunge;
+
+    public float lungeTime;
 }
 
 // Tuning values for PlayerCombat. Kept in an asset so edits made during Play mode are saved.
@@ -32,8 +37,22 @@ public class PlayerCombatSettings : ScriptableObject
     [Header("Attack Info")]
     public AttackDefinition[] attacks =
     {
-        new AttackDefinition { stateName = "Slash1", damage = 12f, poiseDamage = 20f, hitStart = 0.5f, hitEnd = 0.66f, comboWindow = 0.66f, recoveryEnd = 0.95f },
-        new AttackDefinition { stateName = "Slash2", damage = 20f, poiseDamage = 35f, hitStart = 0.66f, hitEnd = 0.92f, comboWindow = 0.95f, recoveryEnd = 1.25f },
+        new AttackDefinition { stateName = "Slash1", damage = 12f, poiseDamage = 20f, hitStart = 0.5f, hitEnd = 0.66f, comboWindow = 0.66f, recoveryEnd = 0.95f, lunge = 0.5f },
+        new AttackDefinition { stateName = "Slash2", damage = 20f, poiseDamage = 35f, hitStart = 0.66f, hitEnd = 0.92f, comboWindow = 0.95f, recoveryEnd = 1.25f, lunge = 0.5f },
+    };
+
+    // Q. Slow, committed roundhouse outside the combo: long wind-up, heavy damage, breaks poise.
+    // Its comboWindow is unused (it never chains).
+    public AttackDefinition heavyAttack = new AttackDefinition
+    {
+        stateName = "HeavyAttack", damage = 35f, poiseDamage = 70f, hitStart = 1.28f, hitEnd = 1.45f, comboWindow = 99f, recoveryEnd = 1.9f, lunge = 1f, lungeTime = 0.7f,
+    };
+
+    // Any attack started in the air. Clip starts at the jump's apex. Moves at airAttackCarry while falling,
+    // and its lunge is the slide into the impact crouch once landed.
+    public AttackDefinition airAttack = new AttackDefinition
+    {
+        stateName = "AirAttack", damage = 25f, poiseDamage = 45f, hitStart = 0.37f, hitEnd = 0.56f, comboWindow = 99f, recoveryEnd = 1.25f, lunge = 0.4f, lungeTime = 0.5f,
     };
 
     // Damage multiplier against a staggered target (e.g. after a parry).
@@ -42,15 +61,30 @@ public class PlayerCombatSettings : ScriptableObject
     // A click this long before the combo window opens is remembered.
     public float comboBufferTime = 0.3f;
 
-    // Forward distance covered at the start of each swing.
-    public float attackLunge = 0.5f;
-
     // Seconds into a swing before turning locks, so you can still line it up.
     public float attackTurnWindow = 0.15f;
 
     // Speed of the swing animations.
     [Range(0.5f, 2f)]
     public float attackSpeed = 1f;
+
+    // Q pressed during another action fires when that action ends, if within this long.
+    public float heavyBufferTime = 0.5f;
+
+    [Header("Air Attack Info")]
+    // Clip-seconds of hang at the top before the plunge starts.
+    public float airPlungeTime = 0.25f;
+
+    // Clip-seconds at which the clip's feet touch down. The plunge is timed to land here.
+    public float airLandTime = 0.5f;
+
+    // Slowest the plunge falls. Faster when needed to land on time.
+    public float airPlungeSpeed = 3f;
+
+    // Forward speed while in the air during the attack. The clip covers about 3.2 m/s from apex to touchdown.
+    public float airAttackCarry = 3.2f;
+
+    public float airLandShake = 0.15f;
 
     [Header("Draw Info")]
     [Range(0.5f, 2.5f)]

@@ -17,6 +17,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "HeavyAttack",
+                    "type": "Button",
+                    "id": "39c7b572-59b7-4c86-8522-4b548306b8f7",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "Movement",
                     "type": "Value",
                     "id": "0b74c152-1322-41a5-9d52-999bdc47723f",
@@ -116,6 +126,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Strike",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9a2b6fe6-90b6-4db2-8af7-7c7d82d68ee0",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HeavyAttack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

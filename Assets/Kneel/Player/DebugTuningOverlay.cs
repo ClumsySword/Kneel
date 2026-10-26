@@ -237,11 +237,25 @@ public class DebugTuningOverlay : MonoBehaviour
             {
                 s.attacks[i].damage = Slider($"Hit {i + 1} damage", s.attacks[i].damage, 0f, 100f);
                 s.attacks[i].poiseDamage = Slider($"Hit {i + 1} poise dmg", s.attacks[i].poiseDamage, 0f, 100f);
+                s.attacks[i].lunge = Slider($"Hit {i + 1} lunge", s.attacks[i].lunge, 0f, 2f);
             }
+
+            s.heavyAttack.damage = Slider("Heavy damage", s.heavyAttack.damage, 0f, 100f);
+            s.heavyAttack.poiseDamage = Slider("Heavy poise dmg", s.heavyAttack.poiseDamage, 0f, 150f);
+            s.heavyAttack.lunge = Slider("Heavy lunge", s.heavyAttack.lunge, 0f, 3f);
+            s.heavyAttack.lungeTime = Slider("Heavy lunge at", s.heavyAttack.lungeTime, 0f, 2f);
+            s.heavyBufferTime = Slider("Heavy buffer", s.heavyBufferTime, 0f, 1.5f);
+
+            s.airAttack.damage = Slider("Air damage", s.airAttack.damage, 0f, 100f);
+            s.airAttack.poiseDamage = Slider("Air poise dmg", s.airAttack.poiseDamage, 0f, 150f);
+            s.airAttackCarry = Slider("Air carry speed", s.airAttackCarry, 0f, 8f);
+            s.airAttack.lunge = Slider("Air land lunge", s.airAttack.lunge, 0f, 2f);
+            s.airPlungeTime = Slider("Air hang time", s.airPlungeTime, 0f, 0.5f);
+            s.airPlungeSpeed = Slider("Air plunge speed", s.airPlungeSpeed, 1f, 20f);
+            s.airLandShake = Slider("Air land shake", s.airLandShake, 0f, 0.5f);
 
             s.criticalMultiplier = Slider("Crit multiplier", s.criticalMultiplier, 1f, 4f);
             s.attackSpeed = Slider("Attack speed", s.attackSpeed, 0.5f, 2f);
-            s.attackLunge = Slider("Attack lunge", s.attackLunge, 0f, 2f);
             s.comboBufferTime = Slider("Combo buffer", s.comboBufferTime, 0f, 1f);
             s.attackTurnWindow = Slider("Swing turn window", s.attackTurnWindow, 0f, 0.6f);
             s.drawSpeed = Slider("Draw speed", s.drawSpeed, 0.5f, 2.5f);
