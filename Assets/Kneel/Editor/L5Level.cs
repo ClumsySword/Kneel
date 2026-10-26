@@ -2498,7 +2498,9 @@ namespace Kneel.EditorTools
         {
             mat.EnableKeyword("_EMISSION");
             mat.SetColor("_EmissionColor", L1Build.Hex(hex));
-            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            // URP's material import sets _EMISSION from these flags (AnyEmissive), not from the colour: with None, any
+            // reimport stripped the keyword and the glow went out.
+            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             EditorUtility.SetDirty(mat);
             return mat;
         }
