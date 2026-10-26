@@ -348,6 +348,9 @@ public class DebugTuningOverlay : MonoBehaviour
             s.noiseDrift = Slider("Noise drift", s.noiseDrift, 0f, 0.2f);
             s.shadowWidth = Slider("Shadow width", s.shadowWidth, 0f, 0.5f);
             s.shadowStrength = Slider("Shadow strength", s.shadowStrength, 0f, 1f);
+            s.grain = Slider("Grain", s.grain, 0f, 1f);
+            s.crustWidth = Slider("Crust width", s.crustWidth, 0.001f, 0.2f);
+            s.crustDarken = Slider("Crust darken", s.crustDarken, 0f, 1f);
 
             s.creepSpeed = Slider("Creep speed", s.creepSpeed, 0.01f, 2f);
             s.hitPulseStrength = Slider("Hit pulse", s.hitPulseStrength, 0f, 5f);

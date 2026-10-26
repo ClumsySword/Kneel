@@ -26,6 +26,9 @@ public class PlayerDamageVignette : MonoBehaviour
     private static readonly int NoiseOffsetId = Shader.PropertyToID("_NoiseOffset");
     private static readonly int ShadowWidthId = Shader.PropertyToID("_ShadowWidth");
     private static readonly int ShadowStrengthId = Shader.PropertyToID("_ShadowStrength");
+    private static readonly int GrainId = Shader.PropertyToID("_Grain");
+    private static readonly int CrustWidthId = Shader.PropertyToID("_CrustWidth");
+    private static readonly int CrustDarkenId = Shader.PropertyToID("_CrustDarken");
 
     private Health health;
     private PlayerCombat combat;
@@ -184,6 +187,9 @@ public class PlayerDamageVignette : MonoBehaviour
         material.SetVector(NoiseOffsetId, new Vector4(drift, drift * 0.6f, 0f, 0f));
         material.SetFloat(ShadowWidthId, settings.shadowWidth);
         material.SetFloat(ShadowStrengthId, settings.shadowStrength);
+        material.SetFloat(GrainId, settings.grain);
+        material.SetFloat(CrustWidthId, settings.crustWidth);
+        material.SetFloat(CrustDarkenId, settings.crustDarken);
     }
 
     private void OnDestroy()

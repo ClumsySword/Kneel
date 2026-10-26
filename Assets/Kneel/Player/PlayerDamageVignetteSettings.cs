@@ -8,13 +8,13 @@ public class PlayerDamageVignetteSettings : ScriptableObject
     public Shader shader;
 
     [Header("Look Info")]
-    public Color bloodColor = new Color(0.32f, 0.01f, 0.01f);
+    public Color bloodColor = new Color(0.13f, 0.012f, 0.008f);
 
     // Colour the blood darkens to the further it has soaked in.
-    public Color deepColor = new Color(0.07f, 0f, 0.003f);
+    public Color deepColor = new Color(0.035f, 0.005f, 0.004f);
 
     [Range(0f, 1f)]
-    public float opacity = 0.85f;
+    public float opacity = 0.78f;
 
     [Range(0.001f, 0.5f)]
     public float edgeSoftness = 0.025f;
@@ -38,6 +38,17 @@ public class PlayerDamageVignetteSettings : ScriptableObject
 
     [Range(0f, 1f)]
     public float shadowStrength = 0.4f;
+
+    // Static flecks across the blood. 0 is a smooth wash.
+    [Range(0f, 1f)]
+    public float grain = 0.35f;
+
+    // Width and darkness of the crusted line along the blood's edge.
+    [Range(0.001f, 0.2f)]
+    public float crustWidth = 0.03f;
+
+    [Range(0f, 1f)]
+    public float crustDarken = 0.45f;
 
     [Header("Health Info")]
     // Missing health (0 = full, 1 = dead) to coverage (0 = nothing, 1 = reaches the centre).

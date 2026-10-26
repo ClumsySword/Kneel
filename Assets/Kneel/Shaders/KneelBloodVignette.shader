@@ -1,14 +1,14 @@
 // Full-screen blood that creeps in from the screen edges. Drawn on a UI RawImage by PlayerDamageVignette.
-// _Coverage 0 shows nothing, 1 reaches the centre. The edge is warped by drifting value noise so it reads
-// as blood soaking in rather than a smooth vignette.
+// _Coverage 0 shows nothing, 1 reaches the centre. The edge is warped by drifting value noise, crusted darker
+// at its rim and roughened by static grain, so it reads as dried blood soaking in rather than a smooth vignette.
 Shader "Kneel/BloodVignette"
 {
     Properties
     {
         [PerRendererData] _MainTex ("Texture", 2D) = "white" {}
-        _Color ("Blood Colour", Color) = (0.32, 0.01, 0.01, 1)
-        _DarkColor ("Deep Colour", Color) = (0.07, 0, 0.003, 1)
-        _Opacity ("Opacity", Range(0, 1)) = 0.9
+        _Color ("Blood Colour", Color) = (0.13, 0.012, 0.008, 1)
+        _DarkColor ("Deep Colour", Color) = (0.035, 0.005, 0.004, 1)
+        _Opacity ("Opacity", Range(0, 1)) = 0.78
         _Coverage ("Coverage", Range(0, 1.5)) = 0
         _EdgeSoftness ("Edge Softness", Range(0.001, 0.5)) = 0.08
         _Depth ("Deep Colour Depth", Range(0.01, 1)) = 0.25
@@ -17,6 +17,9 @@ Shader "Kneel/BloodVignette"
         _NoiseOffset ("Noise Offset", Vector) = (0, 0, 0, 0)
         _ShadowWidth ("Shadow Width", Range(0, 0.5)) = 0.12
         _ShadowStrength ("Shadow Strength", Range(0, 1)) = 0.4
+        _Grain ("Grain", Range(0, 1)) = 0.35
+        _CrustWidth ("Crust Width", Range(0.001, 0.2)) = 0.03
+        _CrustDarken ("Crust Darken", Range(0, 1)) = 0.45
     }
 
     SubShader
@@ -60,6 +63,9 @@ Shader "Kneel/BloodVignette"
             float4 _NoiseOffset;
             float _ShadowWidth;
             float _ShadowStrength;
+            float _Grain;
+            float _CrustWidth;
+            float _CrustDarken;
 
             v2f vert(appdata v)
             {
@@ -107,15 +113,27 @@ Shader "Kneel/BloodVignette"
                 float threshold = _Coverage + (noise - 0.5) * _NoiseStrength * saturate(_Coverage * 10.0);
                 float mask = smoothstep(threshold + _EdgeSoftness, threshold - _EdgeSoftness, inward);
 
-                // Bright at the leading edge, darker the further it has soaked in, mottled by fine noise.
-                float depth = saturate((threshold - inward) / _Depth);
+                // Lighter just inside the edge, darker the further it has soaked in, blotched by fine noise.
+                float soaked = threshold - inward;
+                float depth = saturate(soaked / _Depth);
                 float mottle = ValueNoise(noiseUV * 9.1 + 73.3);
-                float3 color = lerp(_Color.rgb, _DarkColor.rgb, depth) * lerp(0.7, 1.15, mottle);
+                float3 color = lerp(_Color.rgb, _DarkColor.rgb, depth) * lerp(0.55, 1.2, mottle);
+
+                // Dried stains darken at their rim, so the leading edge gets a crusted line.
+                float crust = 1.0 - smoothstep(0.0, _CrustWidth, abs(soaked));
+                color *= 1.0 - crust * _CrustDarken;
+
+                // Static grain at roughly two-pixel size. Darkens flecks and lets a few through, so it reads as
+                // dried and flaking rather than a smooth wash.
+                int2 grainCell = (int2)floor(i.uv * _ScreenParams.xy * 0.5);
+                float grain = Hash(grainCell);
+                float grainAlpha = Hash(grainCell + int2(7919, 104729));
+                color *= lerp(1.0 - _Grain, 1.0 + _Grain * 0.4, grain);
 
                 // A soft shadow just ahead of the blood, so its edge sits on the image instead of cutting a hole.
                 float shadow = smoothstep(threshold + _EdgeSoftness + _ShadowWidth, threshold, inward) * _ShadowStrength * saturate(_Coverage * 10.0);
 
-                float blood = mask * _Opacity;
+                float blood = mask * _Opacity * lerp(1.0 - _Grain * 0.35, 1.0, grainAlpha);
                 float alpha = blood + shadow * (1.0 - blood);
                 return float4(color * (blood / max(alpha, 1e-4)), alpha);
             }
