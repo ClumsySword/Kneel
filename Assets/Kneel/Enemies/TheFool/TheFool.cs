@@ -68,14 +68,6 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
 
         health.ApplyDamage(info.amount);
 
-        DamageNumberStyle style = info.isCritical
-            ? DamageNumberStyle.Critical
-            : DamageNumberStyle.Normal;
-        DamageNumber.Spawn(
-            transform.position + Vector3.up * popupHeight,
-            Mathf.RoundToInt(info.amount).ToString(),
-            style
-        );
         Flash();
 
         if (health.Current <= 0f)

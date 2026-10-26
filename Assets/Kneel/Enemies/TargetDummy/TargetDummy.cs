@@ -20,9 +20,6 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     [SerializeField]
     private Animator animator;
 
-    [SerializeField]
-    private float popupHeight = 2f;
-
     [Header("Attack Info")]
     public bool attackEnabled = false;
 
@@ -128,8 +125,6 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
         TotalDamage += info.amount;
         HitCount++;
 
-        DamageNumberStyle style = info.isCritical ? DamageNumberStyle.Critical : DamageNumberStyle.Normal;
-        DamageNumber.Spawn(transform.position + Vector3.up * popupHeight, Mathf.RoundToInt(info.amount).ToString(), style);
         flash = 1f;
 
         if (state != DummyState.Staggered)

@@ -148,6 +148,108 @@ public class PlayerCombatSettings : ScriptableObject
     // Pressing block again within this time of the last press gives no parry window.
     public float parryCooldown = 0.4f;
 
+    [Header("Shield Pose Info")]
+    // The raised shield's centre in the player's space (x right, y up, z forward). The left arm is posed by IK
+    // (PlayerShieldPose) so the shield sits here facing the crosshair.
+    public Vector3 guardOffset = new Vector3(-0.1f, 1.2f, 0.55f);
+
+    // Degrees the shield face tilts up from vertical.
+    public float guardTilt = 10f;
+
+    // Furthest the shield turns toward the crosshair away from the body's facing, in degrees.
+    public float guardMaxAimYaw = 40f;
+
+    public float guardRaiseTime = 0.1f;
+
+    public float guardLowerTime = 0.15f;
+
+    // Where the left elbow points, in the player's space. Keeps it low and out instead of flaring up.
+    public Vector3 elbowHint = new Vector3(-0.45f, 1f, 0.1f);
+
+    // Blocking a hit knocks the shield back and up, then it settles.
+    public float blockHitRecoil = 0.12f;
+
+    public float blockHitTilt = 15f;
+
+    public float blockHitPoseTime = 0.15f;
+
+    // A parry punches the shield out and sweeps it outward, knocking the blade aside.
+    public float parryPush = 0.2f;
+
+    public float parrySweep = 35f;
+
+    public float parryChestTwist = 8f;
+
+    public float parryPoseTime = 0.25f;
+
+    [Header("Shield Bash Info")]
+    // Block + left click. Wind-up, thrust (hits during it) and recovery, in seconds.
+    public float bashWindup = 0.08f;
+
+    public float bashThrust = 0.12f;
+
+    public float bashRecover = 0.25f;
+
+    // Shield drawn in during the wind-up, then driven out to bashReach (z in the player's space).
+    public float bashPullBack = 0.08f;
+
+    public float bashReach = 0.85f;
+
+    // Chest coil during the wind-up and forward lean during the thrust, in degrees.
+    public float bashCoil = 10f;
+
+    public float bashLean = 15f;
+
+    // Forward step with the thrust, in metres.
+    public float bashLunge = 0.5f;
+
+    // Hit sphere around the front of the shield.
+    public float bashRadius = 0.55f;
+
+    public float bashDamage = 5f;
+
+    // Light on its own; the bash's value is interrupting wind-ups (DamageInfo.interrupts).
+    public float bashPoiseDamage = 25f;
+
+    public float bashShake = 0.12f;
+
+    public float BashDuration => bashWindup + bashThrust + bashRecover;
+
+    [Header("Potion Info")]
+    // Health restored by one potion.
+    public float potionHeal = 40f;
+
+    // Playback speed of the drinking clip.
+    [Range(0.5f, 3f)]
+    public float drinkSpeed = 1.5f;
+
+    // Clip-seconds when the bottle is at the lips (the heal lands here) and when the arm is back down.
+    public float drinkSipTime = 2f;
+
+    public float drinkDuration = 3.75f;
+
+    // Walking speed while drinking.
+    [Range(0f, 1f)]
+    public float drinkMoveMultiplier = 0.4f;
+
+    // The clip's hand stops short of the mouth, so IK carries the bottle to the lips between these clip-seconds:
+    // blending in from raise start to at-mouth, held, then out from lower start to lowered.
+    public float drinkRaiseStart = 0.9f;
+
+    public float drinkAtMouth = 1.6f;
+
+    public float drinkLowerStart = 2.5f;
+
+    public float drinkLowered = 3.2f;
+
+    // The lips relative to the head bone, and where the bottle's base sits relative to its neck at the lips
+    // (both in the player's space), so it tips up to pour.
+    public Vector3 drinkMouthOffset = new Vector3(0f, -0.1f, 0.19f);
+
+    public Vector3 drinkBottleBase = new Vector3(-0.1f, 0.07f, 0.12f);
+
+    public Vector3 drinkElbowHint = new Vector3(-0.3f, 1.15f, 0.05f);
+
     [Header("Feel Info")]
     public float hitStop = 0.06f;
 

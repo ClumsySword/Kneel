@@ -60,8 +60,6 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
 
         health.ApplyDamage(info.amount);
 
-        DamageNumberStyle style = info.isCritical ? DamageNumberStyle.Critical : DamageNumberStyle.Normal;
-        DamageNumber.Spawn(transform.position + Vector3.up * popupHeight, Mathf.RoundToInt(info.amount).ToString(), style);
         Flash();
 
         if (health.Current <= 0f)
@@ -80,6 +78,15 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
         // Catching it mid wind-up is a counter-hit and hits its poise harder.
         bool attacking = stateMachine.currentState == attackState;
         bool inWindup = attacking && attackState.swingStarted == false;
+
+        // A shield bash during the wind-up knocks the attack out of it, like a parry.
+        if (info.interrupts && inWindup)
+        {
+            poise.Reset();
+            stateMachine.ChangeState(staggerState);
+            return;
+        }
+
         float poiseDamage = info.poiseDamage * (inWindup ? windupPoiseMultiplier : 1f);
 
         if (poise.ApplyDamage(poiseDamage))

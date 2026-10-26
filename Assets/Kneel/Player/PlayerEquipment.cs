@@ -30,9 +30,16 @@ public class PlayerEquipment : MonoBehaviour
 
     public bool ShieldInHand { get; private set; }
 
+    public Transform Shield => shield;
+
+    public Transform ShieldHandSocket => shieldHandSocket;
+
+    public Renderer ShieldRenderer { get; private set; }
+
     private void Awake()
     {
         SwordHitbox = sword.GetComponent<WeaponHitbox>();
+        ShieldRenderer = shield.GetComponentInChildren<Renderer>();
     }
 
     public void SetSwordInHand(bool inHand)
