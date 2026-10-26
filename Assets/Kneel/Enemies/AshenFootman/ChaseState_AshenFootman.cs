@@ -26,9 +26,18 @@ public class ChaseState_AshenFootman : EnemyState
     {
         base.Update();
 
+        // In range: stop and turn to the player, and only start the attack once facing them.
         if (ashenFootman.PlayerInAttackRange())
-            stateMachine.ChangeState(ashenFootman.attackState);
+        {
+            ashenFootman.agent.isStopped = true;
+            ashenFootman.agent.velocity = Vector3.zero;
+            ashenFootman.transform.rotation = ashenFootman.FaceTarget(ashenFootman.player.position);
+            if (ashenFootman.IsFacing(ashenFootman.player.position))
+                stateMachine.ChangeState(ashenFootman.attackState);
+            return;
+        }
 
+        ashenFootman.agent.isStopped = false;
         ashenFootman.transform.rotation = ashenFootman.FaceTarget(GetNextPathPoint());
 
         if (CanUpdateDestination())
