@@ -190,28 +190,7 @@ namespace Kneel.UI
         {
             foreach (Row row in rows)
             {
-                row.view.Value = KeyName(row.action.bindings[row.bindingIndex].effectivePath);
-            }
-        }
-
-        // English key names from the control layouts. (GetBindingDisplayString follows the OS keyboard language:
-        // Space read "MELLEMRUM" on a Danish layout, in an otherwise English menu.)
-        private static string KeyName(string path)
-        {
-            switch (path)
-            {
-                case "<Mouse>/leftButton":
-                    return "LEFT MOUSE";
-                case "<Mouse>/rightButton":
-                    return "RIGHT MOUSE";
-                case "<Mouse>/middleButton":
-                    return "MIDDLE MOUSE";
-                case "<Mouse>/backButton":
-                    return "MOUSE 4";
-                case "<Mouse>/forwardButton":
-                    return "MOUSE 5";
-                default:
-                    return InputControlPath.ToHumanReadableString(path, InputControlPath.HumanReadableStringOptions.OmitDevice).ToUpperInvariant();
+                row.view.Value = KeybindService.KeyName(row.action.bindings[row.bindingIndex].effectivePath);
             }
         }
 

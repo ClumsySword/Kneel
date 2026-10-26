@@ -1,14 +1,16 @@
 using Kneel;
+using Kneel.Core;
 using TMPro;
 using UnityEngine;
 
 // "E to Pickup" above the potion under the crosshair, while there's room on the belt. The prompt only marks
-// what can be picked up; walking up to it and pressing E (PlayerPotions) does the picking. Builds its own
-// overlay canvas at runtime, like the damage vignette.
+// what can be picked up; walking up to it and pressing Interact (PlayerPotions) does the picking. Names the key
+// Interact is on now, so it follows a rebind. Builds its own overlay canvas at runtime, like the damage vignette.
 public class PickupPrompt : MonoBehaviour
 {
+    // {0} is the Interact key.
     [SerializeField]
-    private string label = "E to Pickup";
+    private string labelFormat = "{0} to Pickup";
 
     // How close to a potion the crosshair has to be, on the ground, to count as hovering it.
     [SerializeField]
@@ -54,7 +56,6 @@ public class PickupPrompt : MonoBehaviour
         var textObject = new GameObject("Label", typeof(RectTransform));
         textObject.transform.SetParent(canvasObject.transform, false);
         text = textObject.AddComponent<TextMeshProUGUI>();
-        text.text = label;
         text.fontSize = fontSize;
         text.alignment = TextAlignmentOptions.Center;
         text.textWrappingMode = TextWrappingModes.NoWrap;
@@ -74,6 +75,12 @@ public class PickupPrompt : MonoBehaviour
         HealthPotionPickup hovered = potions != null && potions.Count < potions.Capacity ? Hovered() : null;
         if (hovered != null)
         {
+            // Set as it appears, so a rebind made in the pause menu shows the next time.
+            if (alpha <= 0f)
+            {
+                text.text = string.Format(labelFormat, KeybindService.KeyFor("Interact"));
+            }
+
             lastPosition = hovered.transform.position + Vector3.up * height;
         }
 

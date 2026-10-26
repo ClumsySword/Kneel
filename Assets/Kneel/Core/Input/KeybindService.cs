@@ -16,6 +16,7 @@ namespace Kneel.Core
         // Which override version each live PlayerControls instance has (weak: instances die with their scripts).
         private static ConditionalWeakTable<InputActionAsset, StrongBox<int>> applied = new ConditionalWeakTable<InputActionAsset, StrongBox<int>>();
         private static int version;
+        private static PlayerControls reference;
 
         public static string OverridesJson { get; private set; } = string.Empty;
 
@@ -25,6 +26,8 @@ namespace Kneel.Core
             OverridesJson = PlayerPrefs.GetString(PrefKey, string.Empty);
             applied = new ConditionalWeakTable<InputActionAsset, StrongBox<int>>();
             version++;
+            reference?.Dispose();
+            reference = null;
 
             // The project enters Play mode without a domain reload: never subscribe twice.
             InputSystem.onActionChange -= OnActionChange;
@@ -56,6 +59,50 @@ namespace Kneel.Core
             if (!string.IsNullOrEmpty(OverridesJson))
             {
                 asset.LoadBindingOverridesFromJson(OverridesJson);
+            }
+        }
+
+        // The key an action is on now, rebinds included ("E", "LEFT MOUSE"), for on-screen prompts. Reads a
+        // private PlayerControls copy that is never enabled. Actions bound to a composite (Movement) aren't
+        // supported: they have no single key.
+        public static string KeyFor(string actionName)
+        {
+            if (reference == null)
+            {
+                reference = new PlayerControls();
+            }
+
+            ApplyTo(reference.asset);
+            InputAction action = reference.asset.FindAction(actionName, true);
+            foreach (InputBinding binding in action.bindings)
+            {
+                if (!binding.isComposite && !binding.isPartOfComposite)
+                {
+                    return KeyName(binding.effectivePath);
+                }
+            }
+
+            return string.Empty;
+        }
+
+        // English key names from the control layouts. (GetBindingDisplayString follows the OS keyboard language:
+        // Space read "MELLEMRUM" on a Danish layout, in an otherwise English game.)
+        public static string KeyName(string path)
+        {
+            switch (path)
+            {
+                case "<Mouse>/leftButton":
+                    return "LEFT MOUSE";
+                case "<Mouse>/rightButton":
+                    return "RIGHT MOUSE";
+                case "<Mouse>/middleButton":
+                    return "MIDDLE MOUSE";
+                case "<Mouse>/backButton":
+                    return "MOUSE 4";
+                case "<Mouse>/forwardButton":
+                    return "MOUSE 5";
+                default:
+                    return InputControlPath.ToHumanReadableString(path, InputControlPath.HumanReadableStringOptions.OmitDevice).ToUpperInvariant();
             }
         }
 
