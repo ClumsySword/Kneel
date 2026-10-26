@@ -566,26 +566,26 @@ namespace Kneel.EditorTools
             MakePanelTitle(a, panel, "CONTROLS", -100f - drop);
 
             TMP_Text hint = Text("Hint", panel, a.body, 21f, FooterColor, TextAlignmentOptions.Center,
-                "Select a control, then press the new key or mouse button. Esc cancels.\nAim with the mouse, zoom with the scroll wheel.");
-            hint.lineSpacing = 6f;
-            Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -180f - drop), new Vector2(1300f, 60f));
+                "Select a control, then press the new key or mouse button. Esc cancels.");
+            Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -172f - drop), new Vector2(1300f, 34f));
 
-            RectTransform rows = Rect("Rows", panel, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -232f - drop), new Vector2(1040f, 0f), new Vector2(0.5f, 1f));
+            // Two columns of 720, their centres ControlsPanel.columnOffset (400) either side of the middle.
+            RectTransform rows = Rect("Rows", panel, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f - drop), new Vector2(1520f, 0f), new Vector2(0.5f, 1f));
             MenuGlow glow = MakeGlow(a, rows, 50f);
             var selection = rows.gameObject.AddComponent<SelectionGroup>();
             Wire(selection, ("glow", glow));
 
             TMP_Text header = Text("HeaderTemplate", rows, a.title, 22f, HeaderColor, TextAlignmentOptions.Left, "HEADER");
             header.characterSpacing = 16f;
-            Place(header.rectTransform, new Vector2(0.5f, 1f), Vector2.zero, new Vector2(1040f, 40f));
+            Place(header.rectTransform, new Vector2(0.5f, 1f), Vector2.zero, new Vector2(720f, 40f));
 
-            KeybindRow row = MakeItem<KeybindRow>(a, rows, "RowTemplate", "LABEL", new Vector2(1040f, 38f), 26f);
+            KeybindRow row = MakeItem<KeybindRow>(a, rows, "RowTemplate", "LABEL", new Vector2(720f, 38f), 26f);
             row.Label.alignment = TextAlignmentOptions.Left;
             row.Label.characterSpacing = 6f;
-            Place(row.Label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-260f, 0f), new Vector2(520f, 38f));
+            Place(row.Label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-160f, 0f), new Vector2(400f, 38f));
             TMP_Text value = Text("Value", row.transform, a.body, 26f, Unselected, TextAlignmentOptions.Center, "KEY");
             value.characterSpacing = 6f;
-            Place(value.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(250f, 0f), new Vector2(400f, 38f));
+            Place(value.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(190f, 0f), new Vector2(340f, 38f));
             Wire(row, ("valueLabel", value), ("tinted", new Object[] { value }));
 
             MenuItemView reset = MakeItem<MenuItemView>(a, rows, "Reset", "RESET TO DEFAULTS", new Vector2(560f, 38f), 28f);
@@ -593,7 +593,8 @@ namespace Kneel.EditorTools
 
             var controls = panel.gameObject.AddComponent<ControlsPanel>();
             Wire(controls, ("group", group), ("selection", selection), ("rowContainer", rows), ("rowTemplate", row),
-                ("headerTemplate", header), ("resetButton", reset), ("backButton", back), ("rowHeight", 38f), ("headerHeight", 46f));
+                ("headerTemplate", header), ("resetButton", reset), ("backButton", back), ("rowHeight", 38f), ("headerHeight", 46f),
+                ("columnOffset", 400f));
             return controls;
         }
 
