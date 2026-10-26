@@ -142,7 +142,7 @@ namespace Kneel.EditorTools
         }
 
         // A tall column of dark smoke that widens and pales as it rises, leaning north on the wind.
-        private static void Column(Transform parent, Vector3 at, float scale)
+        internal static void Column(Transform parent, Vector3 at, float scale)
         {
             var head = L3Build.Child(parent, "Column", at).transform;
             var ps = L1Wayfinding.Particles("Smoke", head, L1Build.FxMat("L1_FX_Smoke"), Mathf.CeilToInt(70 * scale), 2.2f * Mathf.Sqrt(scale),
@@ -172,7 +172,7 @@ namespace Kneel.EditorTools
             renderer.sortingFudge = 10f;
         }
 
-        private static void Ash(Transform parent, Vector3 centre, Vector3 size)
+        internal static void Ash(Transform parent, Vector3 centre, Vector3 size)
         {
             var ps = L1Wayfinding.Particles("Ash", parent, L1Build.FxMat("L1_FX_Smoke"), Mathf.CeilToInt(size.x * size.z * 0.05f), size.x * size.z * 0.006f,
                 new Vector2(7f, 11f), new Vector2(0.05f, 0.2f), new Vector2(0.05f, 0.11f), new Color(0.42f, 0.4f, 0.38f, 0.85f), new Color(0.3f, 0.29f, 0.28f, 0f), 0.012f);
@@ -196,7 +196,7 @@ namespace Kneel.EditorTools
             ps.GetComponent<ParticleSystemRenderer>().maxParticleSize = 0.02f;
         }
 
-        private static void Embers(Transform parent, Vector3 centre, Vector3 size)
+        internal static void Embers(Transform parent, Vector3 centre, Vector3 size)
         {
             var ps = L1Wayfinding.Particles("Embers", parent, L1Build.FxMat("L1_FX_Ember"), Mathf.CeilToInt(size.x * size.z * 0.03f), size.x * size.z * 0.004f,
                 new Vector2(5f, 9f), new Vector2(0.2f, 0.6f), new Vector2(0.04f, 0.09f), new Color(1f, 0.7f, 0.35f, 1f), new Color(1f, 0.3f, 0.08f, 0.7f), -0.03f);
