@@ -19,6 +19,8 @@ MonoBehaviour:
   flickerAmount: 0.15
   flickerSpeed: 7
   glassGlow: 2.5
+  lightSmoothing: 1.5
+  lightClearance: 0.5
   pendulumLength: 0.26
   swayDamping: 5
   maxSwingAngle: 40

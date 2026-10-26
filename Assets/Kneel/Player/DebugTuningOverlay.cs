@@ -20,6 +20,9 @@ public class DebugTuningOverlay : MonoBehaviour
     private PlayerLantern playerLantern;
 
     [SerializeField]
+    private PlayerCape playerCape;
+
+    [SerializeField]
     private TargetDummy targetDummy;
 
     [SerializeField]
@@ -32,6 +35,7 @@ public class DebugTuningOverlay : MonoBehaviour
     private bool showMovement = false;
     private bool showCombat = true;
     private bool showLantern = false;
+    private bool showCape = false;
     private bool showDummy = true;
 
     private const float PanelWidth = 340f;
@@ -65,6 +69,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerLantern == null)
         {
             playerLantern = FindAnyObjectByType<PlayerLantern>();
+        }
+
+        if (playerCape == null)
+        {
+            playerCape = FindAnyObjectByType<PlayerCape>();
         }
 
         if (targetDummy == null)
@@ -123,6 +132,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerLantern != null && playerLantern.Settings != null && Foldout("Lantern", ref showLantern))
         {
             DrawLanternSection(playerLantern.Settings);
+        }
+
+        if (playerCape != null && playerCape.Settings != null && Foldout("Cape", ref showCape))
+        {
+            DrawCapeSection(playerCape.Settings);
         }
 
         if (targetDummy != null && Foldout("Target Dummy", ref showDummy))
@@ -258,6 +272,8 @@ public class DebugTuningOverlay : MonoBehaviour
             s.flickerAmount = Slider("Flicker amount", s.flickerAmount, 0f, 1f);
             s.flickerSpeed = Slider("Flicker speed", s.flickerSpeed, 0f, 20f);
             s.glassGlow = Slider("Glass glow", s.glassGlow, 0f, 10f);
+            s.lightSmoothing = Slider("Light smoothing", s.lightSmoothing, 0f, 3f);
+            s.lightClearance = Slider("Light clearance", s.lightClearance, 0f, 1f);
 
             s.pendulumLength = Slider("Pendulum length", s.pendulumLength, 0.05f, 0.6f);
             s.swayDamping = Slider("Sway damping", s.swayDamping, 0f, 15f);
@@ -265,6 +281,28 @@ public class DebugTuningOverlay : MonoBehaviour
         });
 
         if (GUILayout.Button("Reset lantern to defaults"))
+        {
+            ResetToDefaults(s);
+        }
+
+        GUILayout.Space(10f);
+    }
+
+    private void DrawCapeSection(PlayerCapeSettings s)
+    {
+        EditorDirtyCheck(s, () =>
+        {
+            s.gravityScale = Slider("Gravity scale", s.gravityScale, 0f, 3f);
+            s.swayDamping = Slider("Sway damping", s.swayDamping, 0f, 15f);
+            s.airDrag = Slider("Air drag", s.airDrag, 0f, 10f);
+            s.contactFriction = Slider("Contact friction", s.contactFriction, 0f, 40f);
+            s.shoulderStiffness = Slider("Shoulder stiffness", s.shoulderStiffness, 0f, 1000f);
+            s.hemStiffness = Slider("Hem stiffness", s.hemStiffness, 0f, 200f);
+            s.spreadSlack = Slider("Spread slack", s.spreadSlack, 0f, 1f);
+            s.clothRadius = Slider("Cloth radius", s.clothRadius, 0f, 0.15f);
+        });
+
+        if (GUILayout.Button("Reset cape to defaults"))
         {
             ResetToDefaults(s);
         }
