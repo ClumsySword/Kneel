@@ -5,16 +5,16 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace Kneel.UI
 {
-    // The Controls screen, in two columns: every rebindable PlayerControls key, and rebinding. Confirm a line,
-    // then press the new key or mouse button (Esc cancels). A key already used by another line swaps with it, so
-    // two actions never share a key. Changes are saved at once (KeybindService) and reach every PlayerControls in
-    // the game. Controls without a key of their own (aim, zoom, the moves made by combining keys) are listed
-    // under OTHER, for reading only.
-    public class ControlsPanel : MenuPanel
+    // The Controls screen: every rebindable PlayerControls key, and rebinding. Confirm a line, then press the new
+    // key or mouse button (Esc cancels). A key already used by another line swaps with it, so two actions never
+    // share a key. Changes are saved at once (KeybindService) and reach every PlayerControls in the game.
+    // Controls without a key of their own (aim, zoom, the moves made by combining keys) are listed under OTHER,
+    // for reading only. One list in a masked viewport: it scrolls to keep the selected line in view, and with the
+    // mouse wheel.
+    public class ControlsPanel : MenuPanel, IScrollHandler
     {
         private struct Line
         {
@@ -48,10 +48,9 @@ namespace Kneel.UI
             public int bindingIndex;
         }
 
-        // Column 0 is left, 1 right.
-        private static readonly (string header, int column, Line[] lines)[] Layout =
+        private static readonly (string header, Line[] lines)[] Layout =
         {
-            ("MOVEMENT", 0, new[]
+            ("MOVEMENT", new[]
             {
                 new Line("MOVE FORWARD", "Movement", "up"),
                 new Line("MOVE BACK", "Movement", "down"),
@@ -60,14 +59,7 @@ namespace Kneel.UI
                 new Line("SPRINT", "Sprint"),
                 new Line("JUMP", "Jump"),
             }),
-            ("OTHER", 0, new[]
-            {
-                Line.Info("AIM", "MOUSE"),
-                Line.Info("ZOOM", "SCROLL WHEEL"),
-                Line.Info("SHIELD BASH", "BLOCK + STRIKE"),
-                Line.Info("AIR ATTACK", "STRIKE IN THE AIR"),
-            }),
-            ("ACTIONS", 1, new[]
+            ("ACTIONS", new[]
             {
                 new Line("STRIKE", "Strike"),
                 new Line("HEAVY ATTACK", "HeavyAttack"),
@@ -76,6 +68,13 @@ namespace Kneel.UI
                 new Line("DRAW / SHEATHE", "Draw"),
                 new Line("HEAL", "Heal"),
                 new Line("INTERACT", "Interact"),
+            }),
+            ("OTHER", new[]
+            {
+                Line.Info("AIM", "MOUSE"),
+                Line.Info("ZOOM", "SCROLL WHEEL"),
+                Line.Info("SHIELD BASH", "BLOCK + STRIKE"),
+                Line.Info("AIR ATTACK", "STRIKE IN THE AIR"),
             }),
         };
 
@@ -87,15 +86,27 @@ namespace Kneel.UI
         [SerializeField] private float rowHeight = 40f;
         [SerializeField] private float headerHeight = 50f;
 
-        // Column centres, this far left and right of the middle.
-        [SerializeField] private float columnOffset = 400f;
+        [Header("Scrolling")]
+        // The masked window rowContainer scrolls inside.
+        [SerializeField] private RectTransform viewport;
+
+        // Space kept above the first line and below the last, so they rest clear of the viewport's faded edges.
+        [SerializeField] private float edgePadding;
+
+        // How much of the next line stays visible above or below the selected one, in rows.
+        [SerializeField] private float scrollMargin = 1.2f;
+        [SerializeField] private float scrollTime = 0.12f;
+
+        // One mouse-wheel notch, in rows.
+        [SerializeField] private float wheelStep = 2f;
 
         private readonly List<Row> rows = new List<Row>();
         private readonly List<MenuSelectable> navigable = new List<MenuSelectable>();
         private PlayerControls controls;
-        private readonly float[] cursors = new float[2];
         private InputActionRebindingExtensions.RebindingOperation rebind;
         private int rebindEndedFrame = -10;
+        private float cursor;
+        private float scroll;
 
         protected override MenuSelectable FirstSelected => navigable[0];
 
@@ -123,19 +134,19 @@ namespace Kneel.UI
 
         private void Build()
         {
-            var columns = new[] { new List<MenuSelectable>(), new List<MenuSelectable>() };
-            foreach ((string header, int column, Line[] lines) in Layout)
+            cursor = -edgePadding;
+            foreach ((string header, Line[] lines) in Layout)
             {
-                if (cursors[column] < 0f)
+                if (cursor < -edgePadding)
                 {
-                    cursors[column] -= headerHeight * 0.3f;
+                    cursor -= headerHeight * 0.3f;
                 }
 
                 TMP_Text title = Instantiate(headerTemplate, rowContainer);
                 title.name = "Header_" + header;
                 title.text = header;
                 title.gameObject.SetActive(true);
-                Place(title.rectTransform, headerHeight, column);
+                Place(title.rectTransform, headerHeight);
 
                 foreach (Line line in lines)
                 {
@@ -143,7 +154,7 @@ namespace Kneel.UI
                     view.name = "Bind_" + line.label;
                     view.Text = line.label;
                     view.gameObject.SetActive(true);
-                    Place((RectTransform)view.transform, rowHeight, column);
+                    Place((RectTransform)view.transform, rowHeight);
                     if (line.action == null)
                     {
                         // Not a key of its own: shown, never selected.
@@ -155,20 +166,77 @@ namespace Kneel.UI
                     InputAction action = controls.asset.FindAction(line.action, true);
                     view.Confirmed += StartRebind;
                     rows.Add(new Row { view = view, action = action, bindingIndex = FindBinding(action, line.part) });
-                    columns[column].Add(view);
+                    navigable.Add(view);
                 }
             }
 
-            // Reset and Back sit centred under the taller column.
-            cursors[0] = Mathf.Min(cursors[0], cursors[1]) - headerHeight * 0.4f;
-            Place((RectTransform)resetButton.transform, rowHeight, -1);
-            Place((RectTransform)backButton.transform, rowHeight, -1);
-            navigable.AddRange(columns[0]);
-            navigable.AddRange(columns[1]);
+            cursor -= headerHeight * 0.4f;
+            Place((RectTransform)resetButton.transform, rowHeight);
+            Place((RectTransform)backButton.transform, rowHeight);
             navigable.Add(resetButton);
             navigable.Add(backButton);
             selection.SetItems(navigable);
-            LinkColumns(columns[0], columns[1]);
+            foreach (MenuSelectable item in navigable)
+            {
+                item.Selected += ScrollIntoView;
+            }
+        }
+
+        // How far the list can scroll: its height (with the bottom padding) past the viewport's.
+        private float MaxScroll => Mathf.Max(0f, -cursor + edgePadding - viewport.rect.height);
+
+        private void Update()
+        {
+            Vector2 position = rowContainer.anchoredPosition;
+            float step = 1f - Mathf.Exp(-3f * Time.unscaledDeltaTime / Mathf.Max(scrollTime, 0.001f));
+            position.y = Mathf.Abs(position.y - scroll) < 0.5f ? scroll : Mathf.Lerp(position.y, scroll, step);
+            rowContainer.anchoredPosition = position;
+        }
+
+        // Keeps the selected line, and a little of its neighbours, inside the viewport. Jumps there when the page
+        // isn't showing yet (opening), glides otherwise.
+        private void ScrollIntoView(MenuSelectable item)
+        {
+            var rect = (RectTransform)item.transform;
+            float margin = rowHeight * scrollMargin;
+            float top = -rect.anchoredPosition.y - rect.rect.height * 0.5f - margin;
+            float bottom = -rect.anchoredPosition.y + rect.rect.height * 0.5f + margin;
+            float target = scroll;
+            if (item == navigable[0])
+            {
+                // All the way up, so the first section's header shows too.
+                target = 0f;
+            }
+            else if (item == navigable[navigable.Count - 1])
+            {
+                target = MaxScroll;
+            }
+            else if (top < target)
+            {
+                target = top;
+            }
+            else if (bottom > target + viewport.rect.height)
+            {
+                target = bottom - viewport.rect.height;
+            }
+
+            scroll = Mathf.Clamp(target, 0f, MaxScroll);
+            if (group.alpha <= 0.01f)
+            {
+                rowContainer.anchoredPosition = new Vector2(rowContainer.anchoredPosition.x, scroll);
+            }
+        }
+
+        // Mouse wheel. Wheel deltas differ by platform (one notch can read 1, 6 or 120), so every event moves the
+        // same fixed step.
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (!IsOpen || Mathf.Approximately(eventData.scrollDelta.y, 0f))
+            {
+                return;
+            }
+
+            scroll = Mathf.Clamp(scroll - Mathf.Sign(eventData.scrollDelta.y) * wheelStep * rowHeight, 0f, MaxScroll);
         }
 
         private static int FindBinding(InputAction action, string part)
@@ -290,32 +358,11 @@ namespace Kneel.UI
             Refresh();
         }
 
-        // Stacks lines top-down from the container's top edge, in column 0 (left), 1 (right) or -1 (centred,
-        // below both).
-        private void Place(RectTransform rect, float height, int column)
+        // Stacks lines top-down from the container's top edge.
+        private void Place(RectTransform rect, float height)
         {
-            int stack = Mathf.Max(column, 0);
-            float x = column < 0 ? 0f : column == 0 ? -columnOffset : columnOffset;
-            rect.anchoredPosition = new Vector2(x, cursors[stack] - height * 0.5f);
-            cursors[stack] -= height;
-        }
-
-        // Left/right jumps between the columns, to the line in the same position.
-        private static void LinkColumns(List<MenuSelectable> left, List<MenuSelectable> right)
-        {
-            for (int i = 0; i < left.Count; i++)
-            {
-                Navigation nav = left[i].navigation;
-                nav.selectOnRight = right[Mathf.Min(i, right.Count - 1)];
-                left[i].navigation = nav;
-            }
-
-            for (int i = 0; i < right.Count; i++)
-            {
-                Navigation nav = right[i].navigation;
-                nav.selectOnLeft = left[Mathf.Min(i, left.Count - 1)];
-                right[i].navigation = nav;
-            }
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, cursor - height * 0.5f);
+            cursor -= height;
         }
     }
 }

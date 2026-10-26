@@ -80,6 +80,7 @@ namespace Kneel.UI
         private MenuPanel openPanel;
         private Mode mode = Mode.Closed;
         private int openedFrame = -1;
+        private bool cursorWasVisible = true;
 
         public static PauseMenu Current { get; private set; }
 
@@ -244,12 +245,15 @@ namespace Kneel.UI
             }
         }
 
-        // Hit-stop ends on real time and sets timeScale back to 1, even mid-pause: hold it at 0.
+        // Hit-stop ends on real time and sets timeScale back to 1, even mid-pause: hold it at 0. The OS pointer is
+        // hidden in play (the aim ember stands in for it) and hidden again whenever the window regains focus, so
+        // it is held visible every frame too.
         private void LateUpdate()
         {
             if (mode != Mode.Closed)
             {
                 Time.timeScale = 0f;
+                Cursor.visible = true;
             }
         }
 
@@ -257,6 +261,8 @@ namespace Kneel.UI
         {
             openedFrame = Time.frameCount;
             Time.timeScale = 0f;
+            cursorWasVisible = Cursor.visible;
+            Cursor.visible = true;
             GameplayInput.Suspend();
             pauseAudio.Capture(transform, pausedCutoff);
             UseEventSystem(true);
@@ -302,6 +308,7 @@ namespace Kneel.UI
             GameplayInput.Resume();
             mode = Mode.Closed;
             Time.timeScale = 1f;
+            Cursor.visible = cursorWasVisible;
         }
 
         private void OnConfirmed(MenuEntry entry)

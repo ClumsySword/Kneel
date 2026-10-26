@@ -8,8 +8,8 @@ using UnityEngine.UI;
 namespace Kneel.UI
 {
     // A text-only menu entry: no box, the label crossfades between a muted and a bright colour when the entry is
-    // selected. Hovering with the mouse selects it, so mouse, keyboard and gamepad share one highlight.
-    public class MenuSelectable : Selectable
+    // selected. Moving the mouse over it selects it, so mouse, keyboard and gamepad share one highlight.
+    public class MenuSelectable : Selectable, IPointerMoveHandler
     {
         [SerializeField] private TMP_Text label;
 
@@ -72,9 +72,10 @@ namespace Kneel.UI
             FadeTo(normalColor);
         }
 
-        public override void OnPointerEnter(PointerEventData eventData)
+        // Selects on pointer movement, not on enter: a scrolling list slides lines under a pointer that isn't
+        // moving, and those mustn't take the keyboard's selection.
+        public void OnPointerMove(PointerEventData eventData)
         {
-            base.OnPointerEnter(eventData);
             EventSystem events = EventSystem.current;
             if (IsInteractable() && events != null && events.currentSelectedGameObject != gameObject)
             {
