@@ -63,6 +63,13 @@ public class PlayerMovement : MonoBehaviour
     [System.NonSerialized]
     public Vector3? forcedVelocity = null;
 
+    // When set, replaces the vertical velocity while airborne instead of gravity. Used for the air attack's
+    // hang and plunge.
+    [System.NonSerialized]
+    public float? forcedVerticalVelocity = null;
+
+    public bool IsGrounded => characterController.isGrounded;
+
     // Collision result of the last CharacterController.Move.
     public CollisionFlags LastCollisionFlags { get; private set; }
 
@@ -272,7 +279,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (characterController.isGrounded == false)
         {
-            verticalVelocity -= settings.gravity * Time.deltaTime;
+            verticalVelocity = forcedVerticalVelocity ?? verticalVelocity - settings.gravity * Time.deltaTime;
         }
         else if (verticalVelocity < 0f)
         {

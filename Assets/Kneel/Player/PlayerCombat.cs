@@ -1,7 +1,8 @@
 using UnityEngine;
 
-// Sword and shield combat. R draws/sheathes, left click swings a 2-hit combo, right click blocks
-// (the first moments of a fresh press parry), Ctrl rolls. Drives the animator layers directly and
+// Sword and shield combat. R draws/sheathes, left click swings a 2-hit combo, Q swings a slow heavy
+// roundhouse, either one in the air plunges into an air attack, right click blocks (the first moments
+// of a fresh press parry), Ctrl rolls. Drives the animator layers directly and
 // tells PlayerMovement what it may do each frame. Tuning lives in PlayerCombatSettings.
 // Runs before PlayerMovement so the movement rules it sets apply on the same frame.
 [DefaultExecutionOrder(-10)]
@@ -47,10 +48,21 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private float stateTime = 0f;
     private bool itemsSwapped = false;
 
-    private int comboStep = 0;
+    // The swing playing, and its place in the light combo (-1 for the heavy and air attacks, which don't chain).
+    private AttackDefinition currentAttack;
+    private int comboStep = -1;
     private bool attackQueued = false;
     private bool hitStarted = false;
     private bool hitEnded = false;
+    private bool lungeDone = false;
+
+    // Air attack still falling: hangs, then plunges so it lands on the clip's touchdown.
+    private bool airborne = false;
+
+    // Most downward speed the plunge will use to land on time.
+    private const float MaxPlungeSpeed = 25f;
+
+    private float heavyRequestTime = -999f;
 
     private float stunDuration = 0f;
 
@@ -93,6 +105,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         controls = new PlayerControls();
         controls.Character.Draw.performed += ctx => OnDrawPressed();
         controls.Character.Strike.performed += ctx => OnStrikePressed();
+        controls.Character.HeavyAttack.performed += ctx => OnHeavyPressed();
         controls.Character.Block.performed += ctx => OnBlockPressed();
         controls.Character.Block.canceled += ctx => blockHeld = false;
         controls.Character.Dodge.performed += ctx => dodgeRequestTime = Time.time;
@@ -162,7 +175,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         else if (State == CombatState.Armed && blockHeld == false)
         {
             // Checks the button, not IsBlocking, so release-block-and-swing works on the same frame.
-            StartAttack(0);
+            if (movement.IsGrounded == false)
+            {
+                StartAirAttack();
+            }
+            else
+            {
+                StartAttack(settings.attacks[0], 0);
+            }
         }
         else if (State == CombatState.Attacking)
         {
@@ -173,6 +193,57 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             // Swing as soon as the roll finishes.
             attackRequestTime = Time.time;
         }
+    }
+
+    private void OnHeavyPressed()
+    {
+        if (DebugTuningOverlay.IsPointerOverPanel == true)
+        {
+            return;
+        }
+
+        if (State == CombatState.Sheathed)
+        {
+            StartDraw();
+        }
+        else if (State == CombatState.Armed && blockHeld == false)
+        {
+            StartHeavyAttack();
+        }
+        else
+        {
+            // Busy (swinging, rolling, drawing): swing it as soon as that ends, since actions can't be cancelled.
+            heavyRequestTime = Time.time;
+        }
+    }
+
+    private void StartHeavyAttack()
+    {
+        heavyRequestTime = -999f;
+
+        if (movement.IsGrounded == false)
+        {
+            StartAirAttack();
+        }
+        else
+        {
+            StartAttack(settings.heavyAttack);
+        }
+    }
+
+    private void TryBufferedHeavy()
+    {
+        if (Time.time - heavyRequestTime > settings.heavyBufferTime)
+        {
+            return;
+        }
+
+        if (State != CombatState.Armed || blockHeld == true)
+        {
+            return;
+        }
+
+        StartHeavyAttack();
     }
 
     private void OnBlockPressed()
@@ -211,6 +282,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
 
         TryBufferedDodge();
+        TryBufferedHeavy();
         UpdateBlocking();
         ApplyMovementRules();
         UpdateLayerWeights();
@@ -278,30 +350,39 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     // --- Attacks ---
 
-    private void StartAttack(int step)
+    private void StartAttack(AttackDefinition attack, int comboIndex = -1)
     {
-        AttackDefinition attack = settings.attacks[step];
-
         SetState(CombatState.Attacking);
-        comboStep = step;
+        currentAttack = attack;
+        comboStep = comboIndex;
         attackQueued = false;
         hitStarted = false;
         hitEnded = false;
+        lungeDone = false;
+        airborne = false;
 
         fullBodyTarget = 1f;
         animator.SetFloat("AttackSpeed", settings.attackSpeed);
         animator.CrossFadeInFixedTime(attack.stateName, 0.08f, fullBodyLayer, 0f);
+    }
 
-        // Step into the swing. v = sqrt(2·a·d) covers the lunge distance while decelerating to a stop.
-        float lungeSpeed = Mathf.Sqrt(2f * movement.Settings.deceleration * settings.attackLunge);
-        movement.AddImpulse(transform.forward * lungeSpeed);
+    private void StartAirAttack()
+    {
+        StartAttack(settings.airAttack);
+        airborne = true;
+        movement.forcedVerticalVelocity = 0f;
     }
 
     private void QueueNextAttack()
     {
-        AttackDefinition attack = settings.attacks[comboStep];
+        // Only the light combo chains.
+        if (comboStep < 0)
+        {
+            return;
+        }
+
         float clipTime = stateTime * settings.attackSpeed;
-        float timeUntilWindow = (attack.comboWindow - clipTime) / settings.attackSpeed;
+        float timeUntilWindow = (currentAttack.comboWindow - clipTime) / settings.attackSpeed;
 
         if (timeUntilWindow <= settings.comboBufferTime)
         {
@@ -311,8 +392,24 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void UpdateAttacking()
     {
-        AttackDefinition attack = settings.attacks[comboStep];
+        if (airborne == true)
+        {
+            UpdateAirborne();
+        }
+
+        AttackDefinition attack = currentAttack;
         float clipTime = stateTime * settings.attackSpeed;
+
+        // Step into the swing. v = sqrt(2·a·d) covers the lunge distance while decelerating to a stop.
+        if (lungeDone == false && clipTime >= attack.lungeTime)
+        {
+            lungeDone = true;
+            if (attack.lunge > 0f)
+            {
+                float lungeSpeed = Mathf.Sqrt(2f * movement.Settings.deceleration * attack.lunge);
+                movement.AddImpulse(transform.forward * lungeSpeed);
+            }
+        }
 
         if (hitStarted == false && clipTime >= attack.hitStart)
         {
@@ -326,10 +423,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             equipment.SwordHitbox.End();
         }
 
-        if (attackQueued == true && clipTime >= attack.comboWindow)
+        if (attackQueued == true && comboStep >= 0 && clipTime >= attack.comboWindow)
         {
             equipment.SwordHitbox.End();
-            StartAttack((comboStep + 1) % settings.attacks.Length);
+            int next = (comboStep + 1) % settings.attacks.Length;
+            StartAttack(settings.attacks[next], next);
             return;
         }
 
@@ -341,6 +439,75 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
     }
 
+    // The air attack's fall: carry forward, hang briefly at the top, then plunge at whatever speed lands
+    // on the clip's touchdown. If the ground is further than that, the clip waits just before touchdown.
+    private void UpdateAirborne()
+    {
+        if (movement.IsGrounded == true)
+        {
+            LandAirAttack();
+            return;
+        }
+
+        movement.forcedVelocity = transform.forward * settings.airAttackCarry;
+
+        float clipTime = stateTime * settings.attackSpeed;
+        if (clipTime < settings.airPlungeTime)
+        {
+            movement.forcedVerticalVelocity = 0f;
+            return;
+        }
+
+        if (clipTime >= settings.airLandTime)
+        {
+            stateTime = settings.airLandTime / settings.attackSpeed;
+            animator.SetFloat("AttackSpeed", 0f);
+        }
+
+        float timeLeft = (settings.airLandTime - stateTime * settings.attackSpeed) / settings.attackSpeed;
+        float plungeSpeed = timeLeft > 0.01f ? DistanceToGround() / timeLeft : MaxPlungeSpeed;
+        movement.forcedVerticalVelocity = -Mathf.Clamp(plungeSpeed, settings.airPlungeSpeed, MaxPlungeSpeed);
+    }
+
+    private void LandAirAttack()
+    {
+        StopAirborne();
+
+        // Down early: skip ahead to the touchdown so the impact plays now.
+        if (stateTime * settings.attackSpeed < settings.airLandTime)
+        {
+            stateTime = settings.airLandTime / settings.attackSpeed;
+            animator.CrossFadeInFixedTime(currentAttack.stateName, 0.05f, fullBodyLayer, settings.airLandTime);
+        }
+
+        Shake(settings.airLandShake);
+    }
+
+    // Hands the fall back to normal movement (landed, or interrupted by a hit or death).
+    private void StopAirborne()
+    {
+        if (airborne == false)
+        {
+            return;
+        }
+
+        airborne = false;
+        movement.forcedVelocity = null;
+        movement.forcedVerticalVelocity = null;
+        animator.SetFloat("AttackSpeed", settings.attackSpeed);
+    }
+
+    private float DistanceToGround()
+    {
+        int notPlayer = ~(1 << gameObject.layer);
+        if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out RaycastHit hit, 50f, notPlayer, QueryTriggerInteraction.Ignore))
+        {
+            return Mathf.Max(0f, hit.distance - 0.1f);
+        }
+
+        return 50f;
+    }
+
     private void OnSwordHit(IDamageable target, Collider hitCollider, Vector3 point)
     {
         if ((Object)target == this)
@@ -350,7 +517,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
         bool critical = target is IStaggerable staggerable && staggerable.IsStaggered;
         float multiplier = critical ? settings.criticalMultiplier : 1f;
-        AttackDefinition attack = settings.attacks[comboStep];
+        AttackDefinition attack = currentAttack;
 
         Vector3 direction = hitCollider.transform.position - transform.position;
         direction.y = 0f;
@@ -455,7 +622,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             if (State == CombatState.Armed && Time.time - attackRequestTime <= settings.comboBufferTime + settings.dodgeDuration)
             {
                 attackRequestTime = -999f;
-                StartAttack(0);
+                StartAttack(settings.attacks[0], 0);
             }
         }
     }
@@ -610,6 +777,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             SetEnemyCollision(true);
         }
 
+        StopAirborne();
         equipment.SwordHitbox.End();
         attackQueued = false;
         IsBlocking = false;
@@ -640,6 +808,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
         }
 
+        StopAirborne();
         equipment.SwordHitbox.End();
         attackQueued = false;
         IsBlocking = false;
@@ -751,6 +920,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     {
         controls.Character.Draw.Enable();
         controls.Character.Strike.Enable();
+        controls.Character.HeavyAttack.Enable();
         controls.Character.Block.Enable();
         controls.Character.Dodge.Enable();
     }
@@ -759,10 +929,16 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     {
         controls.Character.Draw.Disable();
         controls.Character.Strike.Disable();
+        controls.Character.HeavyAttack.Disable();
         controls.Character.Block.Disable();
         controls.Character.Dodge.Disable();
 
-        // Never leave the layer collision switched off if disabled mid-roll.
+        // Never leave the layer collision switched off if disabled mid-roll, or the fall overridden mid-plunge.
         SetEnemyCollision(true);
+        if (movement != null)
+        {
+            movement.forcedVelocity = null;
+            movement.forcedVerticalVelocity = null;
+        }
     }
 }

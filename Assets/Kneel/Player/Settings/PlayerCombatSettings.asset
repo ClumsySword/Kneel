@@ -20,6 +20,8 @@ MonoBehaviour:
     hitEnd: 0.66
     comboWindow: 0.66
     recoveryEnd: 0.95
+    lunge: 0.5
+    lungeTime: 0
   - stateName: Slash2
     damage: 20
     poiseDamage: 35
@@ -27,11 +29,38 @@ MonoBehaviour:
     hitEnd: 0.92
     comboWindow: 0.95
     recoveryEnd: 1.25
+    lunge: 0.5
+    lungeTime: 0
+  heavyAttack:
+    stateName: HeavyAttack
+    damage: 35
+    poiseDamage: 70
+    hitStart: 1.28
+    hitEnd: 1.45
+    comboWindow: 99
+    recoveryEnd: 1.9
+    lunge: 1
+    lungeTime: 0.7
+  airAttack:
+    stateName: AirAttack
+    damage: 25
+    poiseDamage: 45
+    hitStart: 0.37
+    hitEnd: 0.56
+    comboWindow: 99
+    recoveryEnd: 1.25
+    lunge: 0.4
+    lungeTime: 0.5
   criticalMultiplier: 1.5
   comboBufferTime: 0.3
-  attackLunge: 0.5
   attackTurnWindow: 0.15
   attackSpeed: 1
+  heavyBufferTime: 0.5
+  airPlungeTime: 0.25
+  airLandTime: 0.5
+  airPlungeSpeed: 3
+  airAttackCarry: 3.2
+  airLandShake: 0.15
   drawSpeed: 1.3
   drawGrabTime: 0.45
   drawDuration: 1.2
