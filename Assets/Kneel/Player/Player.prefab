@@ -1354,6 +1354,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c631082276defb46aa275a3b4d22b315, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8571692998052473970}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c631082276defb46aa275a3b4d22b315, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3690072555498655766}
     - targetCorrespondingSourceObject: {fileID: 5479220136002837050, guid: c631082276defb46aa275a3b4d22b315, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1108907688939486580}
@@ -1462,6 +1465,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   settings: {fileID: 11400000, guid: 130bd1a62463e46afb8569da6d415272, type: 2}
   popupHeight: 2.1
+--- !u!114 &3690072555498655766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3344468211059206201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcd59884a5a7d4c228758fc46baeb404, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDamageVignette
+  settings: {fileID: 11400000, guid: 5db473a7a1d0bcbca8ed04b8b7c8870a, type: 2}
 --- !u!4 &6877145877161788670 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9068031327672816022, guid: c631082276defb46aa275a3b4d22b315, type: 3}

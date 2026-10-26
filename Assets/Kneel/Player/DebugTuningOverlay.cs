@@ -23,6 +23,9 @@ public class DebugTuningOverlay : MonoBehaviour
     private PlayerCape playerCape;
 
     [SerializeField]
+    private PlayerDamageVignette damageVignette;
+
+    [SerializeField]
     private TargetDummy targetDummy;
 
     [SerializeField]
@@ -36,6 +39,9 @@ public class DebugTuningOverlay : MonoBehaviour
     private bool showCombat = true;
     private bool showLantern = false;
     private bool showCape = false;
+    private bool showVignette = false;
+    private bool previewVignette = false;
+    private float previewHealth = 1f;
     private bool showDummy = true;
 
     private const float PanelWidth = 340f;
@@ -74,6 +80,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerCape == null)
         {
             playerCape = FindAnyObjectByType<PlayerCape>();
+        }
+
+        if (damageVignette == null)
+        {
+            damageVignette = FindAnyObjectByType<PlayerDamageVignette>();
         }
 
         if (targetDummy == null)
@@ -137,6 +148,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (playerCape != null && playerCape.Settings != null && Foldout("Cape", ref showCape))
         {
             DrawCapeSection(playerCape.Settings);
+        }
+
+        if (damageVignette != null && damageVignette.Settings != null && Foldout("Damage Vignette", ref showVignette))
+        {
+            DrawVignetteSection(damageVignette.Settings);
         }
 
         if (targetDummy != null && Foldout("Target Dummy", ref showDummy))
@@ -305,6 +321,49 @@ public class DebugTuningOverlay : MonoBehaviour
         if (GUILayout.Button("Reset cape to defaults"))
         {
             ResetToDefaults(s);
+        }
+
+        GUILayout.Space(10f);
+    }
+
+    private void DrawVignetteSection(PlayerDamageVignetteSettings s)
+    {
+        // Preview overrides the real health so the look can be tuned without taking hits. Not saved.
+        previewVignette = GUILayout.Toggle(previewVignette, " Preview health");
+        if (previewVignette == true)
+        {
+            previewHealth = Slider("Preview health", previewHealth, 0f, 1f);
+        }
+
+        damageVignette.previewHealth = previewVignette ? previewHealth : -1f;
+        GUILayout.Label($"Coverage {damageVignette.Coverage:0.00}");
+
+        EditorDirtyCheck(s, () =>
+        {
+            s.opacity = Slider("Opacity", s.opacity, 0f, 1f);
+            s.edgeSoftness = Slider("Edge softness", s.edgeSoftness, 0.001f, 0.5f);
+            s.deepColorDepth = Slider("Deep colour depth", s.deepColorDepth, 0.01f, 1f);
+            s.noiseScale = Slider("Noise scale", s.noiseScale, 0.5f, 10f);
+            s.noiseStrength = Slider("Noise strength", s.noiseStrength, 0f, 1f);
+            s.noiseDrift = Slider("Noise drift", s.noiseDrift, 0f, 0.2f);
+            s.shadowWidth = Slider("Shadow width", s.shadowWidth, 0f, 0.5f);
+            s.shadowStrength = Slider("Shadow strength", s.shadowStrength, 0f, 1f);
+
+            s.creepSpeed = Slider("Creep speed", s.creepSpeed, 0.01f, 2f);
+            s.hitPulseStrength = Slider("Hit pulse", s.hitPulseStrength, 0f, 5f);
+            s.hitPulseDecay = Slider("Hit pulse decay", s.hitPulseDecay, 0.01f, 4f);
+            s.heartbeatThreshold = Slider("Heartbeat below", s.heartbeatThreshold, 0f, 1f);
+            s.heartbeatRate = Slider("Heartbeat rate", s.heartbeatRate, 0f, 3f);
+            s.heartbeatStrength = Slider("Heartbeat strength", s.heartbeatStrength, 0f, 0.3f);
+            s.deathFadeTime = Slider("Death fade time", s.deathFadeTime, 0.01f, 3f);
+        });
+
+        if (GUILayout.Button("Reset vignette to defaults"))
+        {
+            // Keep the shader reference: the defaults have none.
+            Shader shader = s.shader;
+            ResetToDefaults(s);
+            s.shader = shader;
         }
 
         GUILayout.Space(10f);

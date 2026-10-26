@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 550ae2240ed96f50b9a983b809fc9349, type: 3}
+  m_Name: PlayerDamageVignetteSettings
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDamageVignetteSettings
+  shader: {fileID: 4800000, guid: a49f223a3596a821b91cd2d5120c2370, type: 3}
+  bloodColor: {r: 0.32, g: 0.01, b: 0.01, a: 1}
+  deepColor: {r: 0.07, g: 0, b: 0.003, a: 1}
+  opacity: 0.85
+  edgeSoftness: 0.025
+  deepColorDepth: 0.3
+  noiseScale: 4
+  noiseStrength: 0.35
+  noiseDrift: 0.03
+  shadowWidth: 0.12
+  shadowStrength: 0.4
+  coverageCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0.35
+      outSlope: 0.35
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.6
+      inSlope: 1
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  creepSpeed: 0.4
+  hitPulseStrength: 1
+  hitPulseDecay: 0.8
+  heartbeatThreshold: 0.3
+  heartbeatRate: 1.1
+  heartbeatStrength: 0.06
+  deathFadeTime: 1.2
