@@ -916,7 +916,7 @@ MonoBehaviour:
   aggressionRange: 10
   attackRange: 1.57
   attackMoveSpeed: 2
-  attackDamage: 15
+  attackDamage: 25
   attackReach: 1.2
   attackRadius: 0.8
   attackPoiseDamage: 30
@@ -971,7 +971,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4a4c59c1d59f0fd88556fd23cb3fa65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 40
+  maxHealth: 60
   regenerateToFull: 0
   regenDelay: 3
 --- !u!136 &7393797960183544358

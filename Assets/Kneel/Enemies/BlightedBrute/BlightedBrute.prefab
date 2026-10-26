@@ -906,7 +906,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 644839767865531801}
@@ -951,7 +951,7 @@ MonoBehaviour:
   aggressionRange: 7
   attackRange: 2.5
   attackMoveSpeed: 2
-  attackDamage: 15
+  attackDamage: 25
   attackReach: 2
   attackRadius: 0.8
   attackPoiseDamage: 30
@@ -1010,7 +1010,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4a4c59c1d59f0fd88556fd23cb3fa65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 40
+  maxHealth: 120
   regenerateToFull: 0
   regenDelay: 3
 --- !u!136 &7393797960183544358

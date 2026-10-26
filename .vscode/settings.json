@@ -54,7 +54,10 @@
         "ProjectSettings/": true,
         "UserSettings/": true,
         "temp/": true,
-        "Temp/": true
+        "Temp/": true,
+        "**/Library": true,
+        "**/Temp": true,
+        "**/obj": true
     },
     "files.associations": {
         "*.asset": "yaml",
@@ -67,5 +70,19 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Kneel.slnx"
+    "dotnet.defaultSolution": "Kneel.slnx",
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "openFiles",
+    "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "openFiles",
+    "files.watcherExclude": {
+        "**/Library/**": true,
+        "**/Temp/**": true,
+        "**/Logs/**": true,
+        "**/obj/**": true,
+        "**/UserSettings/**": true,
+        "**/Builds/**": true
+    },
+    "search.exclude": {
+        "**/Library/**": true,
+        "**/Temp/**": true
+    }
 }
