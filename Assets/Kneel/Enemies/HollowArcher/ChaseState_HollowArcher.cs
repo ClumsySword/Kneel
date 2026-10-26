@@ -26,9 +26,18 @@ public class ChaseState_HollowArcher : EnemyState
     {
         base.Update();
 
+        // In range: stop and turn to the player, and only start the attack once facing them.
         if (HollowArcher.PlayerInAttackRange())
-            stateMachine.ChangeState(HollowArcher.attackState);
+        {
+            HollowArcher.agent.isStopped = true;
+            HollowArcher.agent.velocity = Vector3.zero;
+            HollowArcher.transform.rotation = HollowArcher.FaceTarget(HollowArcher.player.position);
+            if (HollowArcher.IsFacing(HollowArcher.player.position))
+                stateMachine.ChangeState(HollowArcher.attackState);
+            return;
+        }
 
+        HollowArcher.agent.isStopped = false;
         HollowArcher.transform.rotation = HollowArcher.FaceTarget(GetNextPathPoint());
 
         if (CanUpdateDestination())

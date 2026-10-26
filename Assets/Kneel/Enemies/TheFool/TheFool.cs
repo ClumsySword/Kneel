@@ -12,6 +12,14 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
     // How far a hit shoves it back.
     public float knockback = 0.35f;
 
+    [Header("Lunge Data")]
+    // Hitbox reach during the lunge. Kept short so the hit travels with the body instead of
+    // covering the whole lunge path from the first frame.
+    public float lungeHitReach = 0.6f;
+
+    // The lunge stops this far short of where the player stood when the swing began.
+    public float lungeStopDistance = 0.9f;
+
     public IdleState_TheFool idleState { get; private set; }
     public MoveState_TheFool moveState { get; private set; }
     public RecoveryState_TheFool recoveryState { get; private set; }
@@ -107,6 +115,13 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
             return;
 
         poise.Reset();
+
+        if (stateMachine.currentState == attackState)
+        {
+            attackState.Interrupt();
+            return;
+        }
+
         stateMachine.ChangeState(staggerState);
     }
 
@@ -115,8 +130,8 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
         if (attackState.CanApplyAttackHit == false)
             return;
 
-        attackState.MarkAttackHit();
-        attackState.swingStarted = true;
-        base.AttackHit();
+        // Keep checking each frame of the lunge until the swing connects once.
+        if (TryAttackHit(lungeHitReach))
+            attackState.MarkAttackHit();
     }
 }

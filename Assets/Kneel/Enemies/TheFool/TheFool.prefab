@@ -914,10 +914,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheFool
   aggressionRange: 10
-  attackRange: 1.57
+  attackRange: 2.5
   attackMoveSpeed: 2
-  attackDamage: 25
-  attackReach: 1.2
+  attackDamage: 15
+  attackReach: 1.4
   attackRadius: 0.8
   attackPoiseDamage: 30
   playerMask:

@@ -26,9 +26,18 @@ public class ChaseState_TheFool : EnemyState
     {
         base.Update();
 
+        // In range: stop and turn to the player, and only start the attack once facing them.
         if (TheFool.PlayerInAttackRange())
-            stateMachine.ChangeState(TheFool.attackState);
+        {
+            TheFool.agent.isStopped = true;
+            TheFool.agent.velocity = Vector3.zero;
+            TheFool.transform.rotation = TheFool.FaceTarget(TheFool.player.position);
+            if (TheFool.IsFacing(TheFool.player.position))
+                stateMachine.ChangeState(TheFool.attackState);
+            return;
+        }
 
+        TheFool.agent.isStopped = false;
         TheFool.transform.rotation = TheFool.FaceTarget(GetNextPathPoint());
 
         if (CanUpdateDestination())

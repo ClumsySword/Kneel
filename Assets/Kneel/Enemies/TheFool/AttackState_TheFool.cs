@@ -10,12 +10,15 @@ public class AttackState_TheFool : EnemyState
     private const float SwingDuration = 0.25f;
     private const float BetweenSwingsRecovery = 0.5f;
     private const float FinalRecoveryTime = 1f;
+    private const float ParriedRecoveryTime = 2f;
     private const float LungeDistance = 2f;
 
     private float elapsed;
     private int swingIndex;
     private AttackPhase phase;
     private bool hitApplied;
+    private float recoveryTime;
+    private float lungeDistance;
 
     private enum AttackPhase
     {
@@ -25,14 +28,24 @@ public class AttackState_TheFool : EnemyState
         FinalRecovery,
     }
 
-    // Set by the AttackHit animation event. After this the swing is committed and can't be interrupted.
+    // Set when the wind-up ends. After this the swing is committed and can't be interrupted.
     public bool swingStarted { get; set; }
 
-    public bool CanApplyAttackHit => phase == AttackPhase.Windup && hitApplied == false;
+    // The hitbox stays live for the whole lunge, hitting at most once per swing.
+    public bool CanApplyAttackHit => phase == AttackPhase.Swing && hitApplied == false;
 
     public void MarkAttackHit()
     {
         hitApplied = true;
+    }
+
+    // Parried: drop the remaining swings and go straight to a longer final recovery.
+    public void Interrupt()
+    {
+        phase = AttackPhase.FinalRecovery;
+        recoveryTime = ParriedRecoveryTime;
+        elapsed = 0f;
+        TheFool.telegraph = 0f;
     }
 
     public AttackState_TheFool(Enemy enemyBase, EnemyStateMachine stateMachine, string animBoolName)
@@ -50,6 +63,7 @@ public class AttackState_TheFool : EnemyState
         phase = AttackPhase.Windup;
         swingStarted = false;
         hitApplied = false;
+        recoveryTime = FinalRecoveryTime;
         elapsed = 0f;
     }
 
@@ -65,17 +79,33 @@ public class AttackState_TheFool : EnemyState
                 TheFool.telegraph = Mathf.Clamp01(elapsed / CurrentWindupTime());
                 if (elapsed >= CurrentWindupTime())
                 {
-                    TheFool.AttackHit();
                     phase = AttackPhase.Swing;
+                    swingStarted = true;
                     elapsed = 0f;
                     TheFool.telegraph = 0f;
+
+                    // Lunge only as far as where the player is now, so stepping back still dodges it.
+                    Vector3 toPlayer = TheFool.player.position - TheFool.transform.position;
+                    toPlayer.y = 0f;
+                    lungeDistance = Mathf.Clamp(
+                        toPlayer.magnitude - TheFool.lungeStopDistance,
+                        0f,
+                        LungeDistance
+                    );
                 }
                 break;
 
             case AttackPhase.Swing:
-                TheFool.agent.Move(
-                    TheFool.transform.forward * (LungeDistance / SwingDuration) * Time.deltaTime
-                );
+                // Ease out: a fast burst that slows into the end of the lunge.
+                float from = LungeProgress(elapsed - Time.deltaTime);
+                float to = LungeProgress(elapsed);
+                TheFool.agent.Move(TheFool.transform.forward * (to - from) * lungeDistance);
+                TheFool.AttackHit();
+
+                // A parry during AttackHit has already moved us to FinalRecovery.
+                if (phase != AttackPhase.Swing)
+                    break;
+
                 if (elapsed >= SwingDuration)
                 {
                     swingIndex++;
@@ -99,7 +129,7 @@ public class AttackState_TheFool : EnemyState
                 break;
 
             case AttackPhase.FinalRecovery:
-                if (elapsed >= FinalRecoveryTime)
+                if (elapsed >= recoveryTime)
                     stateMachine.ChangeState(TheFool.chaseState);
                 break;
         }
@@ -109,6 +139,12 @@ public class AttackState_TheFool : EnemyState
     {
         base.Exit();
         TheFool.telegraph = 0f;
+    }
+
+    private static float LungeProgress(float time)
+    {
+        float t = Mathf.Clamp01(time / SwingDuration);
+        return 1f - (1f - t) * (1f - t);
     }
 
     private float CurrentWindupTime() => swingIndex == 0 ? FirstWindupTime : FollowupWindupTime;

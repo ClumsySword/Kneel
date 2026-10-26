@@ -26,9 +26,18 @@ public class ChaseState_BlightedBrute : EnemyState
     {
         base.Update();
 
+        // In range: stop and turn to the player, and only start the attack once facing them.
         if (blightedBrute.PlayerInAttackRange())
-            stateMachine.ChangeState(blightedBrute.attackState);
+        {
+            blightedBrute.agent.isStopped = true;
+            blightedBrute.agent.velocity = Vector3.zero;
+            blightedBrute.transform.rotation = blightedBrute.FaceTarget(blightedBrute.player.position);
+            if (blightedBrute.IsFacing(blightedBrute.player.position))
+                stateMachine.ChangeState(blightedBrute.attackState);
+            return;
+        }
 
+        blightedBrute.agent.isStopped = false;
         blightedBrute.transform.rotation = blightedBrute.FaceTarget(GetNextPathPoint());
 
         if (CanUpdateDestination())

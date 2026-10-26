@@ -23,6 +23,9 @@ public class Enemy : MonoBehaviour
     // Poise knocked off the player by the attack (see Poise).
     public float attackPoiseDamage = 30f;
 
+    // An attack only starts once the player is within this many degrees of straight ahead.
+    public float attackFacingAngle = 15f;
+
     [SerializeField]
     private LayerMask playerMask;
 
@@ -114,9 +117,14 @@ public class Enemy : MonoBehaviour
     public void AnimationTrigger() => stateMachine.currentState.AnimationTrigger();
 
     // Animation event on the attack clip at the moment the weapon connects.
-    public virtual void AttackHit()
+    public virtual void AttackHit() => TryAttackHit();
+
+    public bool TryAttackHit() => TryAttackHit(attackReach);
+
+    // One overlap check `reach` in front of the enemy. Returns true if it hit the player.
+    public bool TryAttackHit(float reach)
     {
-        Vector3 center = AttackCenter();
+        Vector3 center = AttackCenter(reach);
         int count = Physics.OverlapSphereNonAlloc(center, attackRadius, overlapBuffer, playerMask, QueryTriggerInteraction.Ignore);
 
         for (int i = 0; i < count; i++)
@@ -134,8 +142,10 @@ public class Enemy : MonoBehaviour
                 source = gameObject,
                 isCritical = false,
             });
-            return;
+            return true;
         }
+
+        return false;
     }
 
     public bool PlayerInAgressionRange() =>
@@ -186,11 +196,23 @@ public class Enemy : MonoBehaviour
         return Quaternion.Euler(currentEulerAngles.x, yRotation, currentEulerAngles.z);
     }
 
+    public bool IsFacing(Vector3 target)
+    {
+        Vector3 toTarget = target - transform.position;
+        toTarget.y = 0f;
+        if (toTarget.sqrMagnitude < 0.0001f)
+            return true;
+
+        return Vector3.Angle(transform.forward, toTarget) <= attackFacingAngle;
+    }
+
     // White flash on being hit.
     public void Flash() => flash = 1f;
 
-    private Vector3 AttackCenter() =>
-        transform.position + transform.forward * attackReach + Vector3.up * 0.9f;
+    private Vector3 AttackCenter() => AttackCenter(attackReach);
+
+    private Vector3 AttackCenter(float reach) =>
+        transform.position + transform.forward * reach + Vector3.up * 0.9f;
 
     private void UpdateTint()
     {
