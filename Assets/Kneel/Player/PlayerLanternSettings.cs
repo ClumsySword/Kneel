@@ -22,6 +22,12 @@ public class PlayerLanternSettings : ScriptableObject
     // HDR multiplier on the light colour for the glowing glass.
     public float glassGlow = 2.5f;
 
+    // Seconds the light takes to catch up with the swinging lantern. Steadies the shadows it casts.
+    public float lightSmoothing = 1.5f;
+
+    // Closest the light gets to the body's centre line, horizontally. Keeps it off the hip and thigh.
+    public float lightClearance = 0.5f;
+
     [Header("Sway Info")]
     // Hook to the lantern's centre of mass. Longer swings slower.
     public float pendulumLength = 0.26f;
@@ -36,6 +42,8 @@ public class PlayerLanternSettings : ScriptableObject
     private void OnValidate()
     {
         pendulumLength = Mathf.Max(0.01f, pendulumLength);
+        lightSmoothing = Mathf.Max(0f, lightSmoothing);
+        lightClearance = Mathf.Max(0f, lightClearance);
         swayDamping = Mathf.Max(0f, swayDamping);
     }
 }

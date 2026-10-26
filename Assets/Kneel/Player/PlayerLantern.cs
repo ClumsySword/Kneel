@@ -4,6 +4,8 @@ using UnityEngine;
 // swings below it as a damped pendulum, so it sways with the walk cycle and trails behind turns and stops.
 // The lantern is kept out of capsules that follow the body's bones, so the legs and hips knock it aside
 // instead of passing through it. Also flickers the light and the glowing glass.
+// The light follows the lantern smoothed and held a little away from the body: a light swinging right
+// against the hip blew out the thigh and swept hard self-shadows across the body with every swing.
 // Tuning values live in a PlayerLanternSettings asset.
 public class PlayerLantern : MonoBehaviour
 {
@@ -70,6 +72,12 @@ public class PlayerLantern : MonoBehaviour
 
     private float flickerSeed;
 
+    // The light's local position on the lantern, and its smoothed offset from the hook (in the body's space,
+    // so turning carries the light round instead of it cutting through the body to catch up).
+    private Vector3 lightOffsetOnLantern;
+    private Vector3 smoothedLightOffset;
+    private bool lightPlaced = false;
+
     public PlayerLanternSettings Settings => settings;
 
     private void Awake()
@@ -86,6 +94,11 @@ public class PlayerLantern : MonoBehaviour
         glassProperties = new MaterialPropertyBlock();
         flickerSeed = Random.value * 100f;
 
+        if (lanternLight != null)
+        {
+            lightOffsetOnLantern = lanternLight.transform.localPosition;
+        }
+
         capsuleStartsBefore = new Vector3[bodyCapsules.Length];
         capsuleEndsBefore = new Vector3[bodyCapsules.Length];
         capsuleStarts = new Vector3[bodyCapsules.Length];
@@ -95,11 +108,13 @@ public class PlayerLantern : MonoBehaviour
     private void OnEnable()
     {
         simulating = false;
+        lightPlaced = false;
     }
 
     private void LateUpdate()
     {
         Swing(Time.deltaTime);
+        PlaceLight(Time.deltaTime);
         UpdateLight();
     }
 
@@ -254,6 +269,40 @@ public class PlayerLantern : MonoBehaviour
         }
 
         return direction;
+    }
+
+    // Moves the light toward where the lantern's flame is, kept at least lightClearance out from the body's
+    // centre line and smoothed over lightSmoothing seconds relative to the hook, so it doesn't follow every swing.
+    // Only the swing is smoothed: the body's own turns carry the light at once.
+    private void PlaceLight(float deltaTime)
+    {
+        if (lanternLight == null)
+        {
+            return;
+        }
+
+        Vector3 hook = transform.position;
+        Vector3 flame = transform.TransformPoint(lightOffsetOnLantern);
+
+        Vector3 outward = Vector3.ProjectOnPlane(flame - body.position, Vector3.up);
+        float distance = outward.magnitude;
+        if (distance < settings.lightClearance && distance > 0.0001f)
+        {
+            flame += outward / distance * (settings.lightClearance - distance);
+        }
+
+        Vector3 offset = body.InverseTransformVector(flame - hook);
+        if (lightPlaced == false || settings.lightSmoothing <= 0f)
+        {
+            smoothedLightOffset = offset;
+            lightPlaced = true;
+        }
+        else
+        {
+            smoothedLightOffset = Vector3.Lerp(smoothedLightOffset, offset, 1f - Mathf.Exp(-deltaTime / settings.lightSmoothing));
+        }
+
+        lanternLight.transform.position = hook + body.TransformVector(smoothedLightOffset);
     }
 
     private void UpdateLight()

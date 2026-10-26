@@ -37,7 +37,7 @@ The code currently diverges from the ten-pager in a few places:
 ## Layout
 
 - **All team-made content lives under `Assets/Kneel/`, organized by feature.** Don't add new top-level `Assets/` folders.
-  - `Kneel/Player/`: the player, including `Models/Player.fbx`, `Animations/` (Mixamo clips) and `Settings/`.
+  - `Kneel/Player/`: the player, including `Models/EmberWarden/` (the current body), `Models/Player.fbx` (the old Synty Knight, kept as the scabbard mesh's source and for comparisons), `Animations/` (Mixamo clips) and `Settings/`.
   - `Kneel/Combat/`: shared combat code.
   - `Kneel/Enemies/`: `AI/` (enemy base and state machine), `AshenFootman/` (with its own `Animations/`), and `TargetDummy/`.
   - `Kneel/Levels/L1/`: Patrick's level (`Scenes/L1_BrokenLine.unity` plus its lighting and NavMesh folder, and `Materials`, `Meshes`, `Prefabs`, `Lighting`, `Animations`, `Settings`).
@@ -57,11 +57,18 @@ The code currently diverges from the ten-pager in a few places:
 
 The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `PlayerMovement`, and a child Animator driven by `AC_Player.controller`.
 
+- **Body**: the `EmberWarden` child is `Models/EmberWarden/Player_EmberWarden.fbx`, a Meshy mesh rigged in Blender with the Knight's bone names (`Hips`, `Spine_01..03`, `Hand_R`, …, right fingers with the `_1` suffix). It's Humanoid with its own avatar.
+  - The mesh is in an A-pose, so the importer's `humanDescription.skeleton` was set to a T-pose. Re-importing with "Create From This Model" defaults loses that, and arms then retarget at an angle.
+  - The instance is scaled ×1.037 so its `Animator.humanScale` matches the Knight's. The clip speeds and timings below were measured on the Knight, so they stay valid.
+  - The body and the `Scabbard` (the Knight's sheath mesh, on `Hips`) render on rendering layers Default + Characters, like the level overrides expect.
+  - The cape is skinned to 5 chains of 5 bones, `Cape_<column>_<segment>` under `Spine_03`. The top of the cape blends into the spine, so it stays attached at the shoulders. These bones aren't humanoid, so clips never move them.
+  - After re-exporting the FBX, rebuild `humanDescription.skeleton` from every transform in the model, T-posing the arms. New bones missing from it break the avatar.
+
 - **Input**: `PlayerControls.inputactions` is the source of truth. `PlayerControls.cs` is **auto-generated** from it by the Input System ("Generate C# Class"). Never edit it by hand. Change the `.inputactions` asset and regenerate instead.
   - The `Character` map defines Movement, Aim (mouse screen position), Sprint, Jump, Zoom (scroll), Strike (LMB), Draw (R), Block (RMB), and Dodge (Ctrl).
   - The `Debug` map holds ToggleOverlay (F1).
   - Each script creates its own `new PlayerControls()`.
-- **Tuning lives in ScriptableObjects** in `Assets/Kneel/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, and `PlayerCombatSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
+- **Tuning lives in ScriptableObjects** in `Assets/Kneel/Player/Settings/`: `PlayerMovementSettings.asset`, `PlayerCameraSettings.asset`, `PlayerCombatSettings.asset`, `PlayerLanternSettings.asset` and `PlayerCapeSettings.asset`. Scripts read them every frame, so edits apply live. `DebugTuningOverlay` (F1, on the `Debug` object in `Arena_S`) has sliders that write into those assets, so values tuned in Play mode persist. Add a slider there when adding a tuning field.
 - **`PlayerMovement.cs`** owns all player logic in `Update()`. Input callbacks only cache values. Each frame it:
   1. Aims: raycasts the mouse against `aimLayerMask` and moves the `aim` dot to the hit point.
   2. Resolves sprint (no stamina; sprint is unlimited).
@@ -91,13 +98,24 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
   - Each frame it restricts movement through `PlayerMovement`'s public `moveSpeedMultiplier / turnRateMultiplier / rotationLocked / sprintBlocked / jumpBlocked`, which reset every frame.
   - Incoming hits resolve in this order: parry (first `parryWindow` of a fresh RMB press, from the front), then block (from the front: reduced damage, `blockPoiseMultiplier` of the poise damage; guard break when poise breaks), then full damage plus full poise damage. A broken poise staggers (`GuardBreak`, `staggerDuration`). An intact poise means a short `HitReact`, unless mid-action (attack/draw/sheathe/roll), which carries on.
 - **`PlayerEquipment.cs`** moves the sword and shield between sockets: `Socket_Sheath` on the scabbard, `Socket_ShieldBack` on the upper spine, `Socket_SwordHand` / `Socket_ShieldHand` on the hands.
-  - Sockets carry a ×100 scale because the Knight's bones are in centimetres. They define the item pose exactly, so items sit at identity.
+  - Sockets define the item pose exactly, so items sit at identity. Their scale cancels the body's ×1.037, keeping items at world scale 1.
+  - `Socket_SwordHand` puts the grip centre (9 cm below the guard) just behind the middle knuckle, on the palm side. The blade points out of the index/thumb side and the edge faces the punch direction. It was built from the `Hand_R` / `Finger_01_1` / `IndexFinger_01_1` positions, not copied from the Knight, whose hand bone sits differently.
   - The sword has a `WeaponHitbox`: a capsule from `BladeBase` to `BladeTip`, swept between frames, hitting each target once per swing.
-- **`PlayerLantern.cs`** (on `Hips/Socket_Lantern/Lantern`, at the back of the right hip, so it hangs behind the thigh rather than being propped out by the wide idle stance) hangs the lantern from the belt.
+- **`PlayerLantern.cs`** (on `Hips/Socket_Lantern/Lantern`, on the outside of the right hip, just ahead of the cape's edge) hangs the lantern from the belt.
   - The `Lantern` transform is the hook, on the belt surface; a short `Strap` cube runs from it to the lantern's handle. In `LateUpdate` it simulates the lantern as a damped pendulum (1/120 s sub-steps, so it's frame-rate independent). It only damps motion relative to the hook, so walking doesn't make it trail; starts, stops and turns do.
-  - Body collision is code-only, with no physics colliders (extra colliders on the `Player` layer would interfere with enemy hit overlaps). `bodyCapsules` are bone-to-bone capsules (waist, right thigh, right shin, right forearm), sized from the Knight's skin. `lanternSpheres` approximate the lantern along its hanging line. Each step pushes the spheres out of the capsules and removes velocity into the body. Select the `Lantern` object to see both as gizmos.
+  - Body collision is code-only, with no physics colliders (extra colliders on the `Player` layer would interfere with enemy hit overlaps). `bodyCapsules` are bone-to-bone capsules (waist, right thigh, right shin, right forearm), sized from the Warden's skin (median vertex distance from each bone). `lanternSpheres` approximate the lantern along its hanging line. Each step pushes the spheres out of the capsules and removes velocity into the body. Select the `Lantern` object to see both as gizmos.
   - It also flickers a point light and the glass's emission (via a `MaterialPropertyBlock` on material slot 1). Tuning is in `PlayerLanternSettings.asset`, with a "Lantern" section in the F1 overlay.
+  - The light doesn't ride the swinging lantern directly. It follows the flame's position smoothed over `lightSmoothing` (1.5 s, in the body's space, so turns carry it at once), and is held at least `lightClearance` (0.5 m) out from the body's centre line.
+    - Riding the pendulum right against the hip blew out the thigh and swept hard self-shadows across the body with every swing.
+    - Excluding the player from the lantern's shadow casters via URP custom shadow layers isn't possible: the player must stay on the Default rendering layer, because most level lights only light Default.
   - The mesh `Lantern/SM_PlayerLantern.asset` is Synty's `SM_Item_Lantern_01` split into two submeshes: the frame (Synty atlas) and the glass (`M_PlayerLanternGlass`, emissive). The model doesn't cast shadows, because the light sits inside it.
+- **`PlayerCape.cs`** (on the `EmberWarden` body) simulates the cape chains in `LateUpdate` (1/120 s sub-steps).
+  - Each chain is a string of particles. The top one rides the upper back. The rest have gravity, a spring toward the modelled drape (`shoulderStiffness` → `hemStiffness`, in 1/s²), fixed segment lengths, and spacing limits to the neighbouring chains, so the sheet neither splits nor bunches.
+  - The drape follows the upper back at the shoulders, blending to the body's facing at the hem, so torso leans don't swing the whole cape. Swing is damped relative to the body's travel (the `PlayerMovement` root), not the cape's anchor on the back, which whips around during rolls. `airDrag` makes it stream back when running; lower values read as heavier cloth.
+  - Body turns faster than `SnapTurnRate` (1500 °/s) carry the cloth rigidly with them. `PlayerCombat.StartDodge` snaps the player to face the roll direction in one frame, and without this the cape was flung up to 60 cm and flailed through the roll.
+  - Body collision is code-only, with its own `bodyCapsules` (back, hips, thighs, shins, upper arms, forearms). They were sized to the skin, but kept clear of the cape's rest drape so it doesn't start out pressed into the body.
+  - Tuning is in `PlayerCapeSettings.asset`, with a "Cape" section in the F1 overlay. In idle the hem sways about ±0.15 m: it follows the idle clip's chest twist at the cape's top. That's attachment, not instability; damping doesn't change it.
+  - Known gap: when the cape lifts (sprinting), it passes over the lower edge of the shield on the back.
 - **Shared combat** (`Assets/Kneel/Combat/`):
   - `DamageInfo`, plus the interfaces `IDamageable` / `IParryable` / `IStaggerable`.
   - `Health`: optional regenerate-to-full (only the dummy uses it). The player and enemies can die. Player death (`PlayerCombat` `Dead` state, `OnDied`) reloads the scene through `LevelRestartOnDeath`, which only works for scenes in Build Settings.
