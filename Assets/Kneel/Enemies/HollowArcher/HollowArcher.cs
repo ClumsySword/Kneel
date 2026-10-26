@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
