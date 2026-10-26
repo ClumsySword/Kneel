@@ -39,6 +39,9 @@ namespace Kneel.EditorTools
         private const string Logo4Path = ArtDir + "/KneelLogo4.png";
         private const string RadialPath = ArtDir + "/RadialSoft.png";
         private const string EmberStripPath = ArtDir + "/EmberStrip.png";
+        private const string MenuMusicDir = "Assets/Kneel/Audio/Music/MainMenu";
+        private const string ThemePath = MenuMusicDir + "/kneel_main_theme.mp3";
+        private const string FirePath = MenuMusicDir + "/fire_sound_effect.mp3";
         private const string KeyCapPath = ArtDir + "/KeyCap.png";
         private const string PadButtonPath = ArtDir + "/PadButton.png";
 
@@ -86,6 +89,8 @@ namespace Kneel.EditorTools
             public Material menuLogoMaterial;
             public Material particleMaterial;
             public AudioMixer mixer;
+            public AudioClip theme;
+            public AudioClip fire;
             public VolumeProfile volume;
             public VolumeProfile menuVolume;
         }
@@ -144,6 +149,10 @@ namespace Kneel.EditorTools
             a.menuLogoMaterial.SetFloat("_BlackPoint", 0.002f);
             a.particleMaterial = EnsureMaterial(MaterialDir + "/M_EmberParticle.mat", additive, a.radial.texture);
             a.mixer = EnsureMixer();
+
+            // Long music streams from disk; the short fire loop sits in memory.
+            a.theme = ImportAudio(ThemePath, AudioClipLoadType.Streaming);
+            a.fire = ImportAudio(FirePath, AudioClipLoadType.CompressedInMemory);
             // Splash: warm-tinted bloom on the helmet's embers. Main menu: a lighter, neutral bloom, so the logo keeps
             // its own colours (the warm tint pushed it visibly more saturated than the art).
             a.volume = EnsureVolumeProfile("MenuVolumeProfile.asset", 0.75f, 0.6f, Hex(0xFFD2A8));
@@ -184,6 +193,31 @@ namespace Kneel.EditorTools
             }
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        // Vorbis at the given load type. Null (and the scene builds silent) when the file isn't there.
+        private static AudioClip ImportAudio(string path, AudioClipLoadType loadType)
+        {
+            var importer = AssetImporter.GetAtPath(path) as AudioImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning($"No audio at {path}; that part of the menu stays silent.");
+                return null;
+            }
+
+            AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+            bool stream = loadType == AudioClipLoadType.Streaming;
+            if (settings.loadType != loadType || settings.compressionFormat != AudioCompressionFormat.Vorbis || importer.loadInBackground != stream)
+            {
+                settings.loadType = loadType;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = 0.7f;
+                importer.defaultSampleSettings = settings;
+                importer.loadInBackground = stream;
+                importer.SaveAndReimport();
+            }
+
+            return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
         }
 
         // White texture whose alpha is f(x, y), x and y in -1..1.
@@ -410,6 +444,18 @@ namespace Kneel.EditorTools
             var splash = new GameObject("Splash").AddComponent<SplashSequence>();
             Wire(splash, ("logoGroup", logoGroup), ("logo", logo), ("embers", embers));
 
+            // Fire crackle under the logo, on the SFX group (Options' SFX slider); SplashSequence fades it.
+            if (a.fire != null)
+            {
+                var fire = new GameObject("FireSound").AddComponent<AudioSource>();
+                fire.clip = a.fire;
+                fire.loop = true;
+                fire.playOnAwake = false;
+                fire.spatialBlend = 0f;
+                fire.outputAudioMixerGroup = a.mixer.FindMatchingGroups("SFX").FirstOrDefault(g => g.name == "SFX");
+                Wire(splash, ("sound", fire));
+            }
+
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), SplashPath);
         }
 
@@ -463,6 +509,7 @@ namespace Kneel.EditorTools
 
             var menu = new GameObject("MainMenu");
             MenuAudio audio = MakeAudio(menu, a.mixer);
+            Wire(audio, ("music", a.theme));
             var controller = menu.AddComponent<MainMenuController>();
             Wire(controller,
                 ("logoGroup", logoGroup), ("listGroup", listGroup), ("footerGroup", footerGroup),

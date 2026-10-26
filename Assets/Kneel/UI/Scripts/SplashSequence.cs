@@ -24,6 +24,11 @@ namespace Kneel.UI
         [Header("Embers (optional)")]
         [SerializeField] private ParticleSystem embers;
 
+        // Fades in and out with the logo.
+        [Header("Sound (optional)")]
+        [SerializeField] private AudioSource sound;
+        [SerializeField, Range(0f, 1f)] private float soundVolume = 0.6f;
+
         private EmberFade emberFade;
 
         private IEnumerator Start()
@@ -47,6 +52,12 @@ namespace Kneel.UI
             if (embers != null)
             {
                 embers.Play();
+            }
+
+            if (sound != null)
+            {
+                sound.volume = 0f;
+                sound.Play();
             }
 
             yield return Fade(1f, fadeInTime);
@@ -78,7 +89,7 @@ namespace Kneel.UI
             next.allowSceneActivation = true;
         }
 
-        // Fades the logo and the embers together.
+        // Fades the logo, the embers and the sound together.
         private IEnumerator Fade(float to, float duration)
         {
             float from = logoGroup.alpha;
@@ -97,6 +108,11 @@ namespace Kneel.UI
             if (emberFade != null)
             {
                 emberFade.Alpha = alpha;
+            }
+
+            if (sound != null)
+            {
+                sound.volume = alpha * soundVolume;
             }
         }
     }
