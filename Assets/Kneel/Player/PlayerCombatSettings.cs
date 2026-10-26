@@ -215,6 +215,41 @@ public class PlayerCombatSettings : ScriptableObject
 
     public float BashDuration => bashWindup + bashThrust + bashRecover;
 
+    [Header("Potion Info")]
+    // Health restored by one potion.
+    public float potionHeal = 40f;
+
+    // Playback speed of the drinking clip.
+    [Range(0.5f, 3f)]
+    public float drinkSpeed = 1.5f;
+
+    // Clip-seconds when the bottle is at the lips (the heal lands here) and when the arm is back down.
+    public float drinkSipTime = 2f;
+
+    public float drinkDuration = 3.75f;
+
+    // Walking speed while drinking.
+    [Range(0f, 1f)]
+    public float drinkMoveMultiplier = 0.4f;
+
+    // The clip's hand stops short of the mouth, so IK carries the bottle to the lips between these clip-seconds:
+    // blending in from raise start to at-mouth, held, then out from lower start to lowered.
+    public float drinkRaiseStart = 0.9f;
+
+    public float drinkAtMouth = 1.6f;
+
+    public float drinkLowerStart = 2.5f;
+
+    public float drinkLowered = 3.2f;
+
+    // The lips relative to the head bone, and where the bottle's base sits relative to its neck at the lips
+    // (both in the player's space), so it tips up to pour.
+    public Vector3 drinkMouthOffset = new Vector3(0f, -0.1f, 0.19f);
+
+    public Vector3 drinkBottleBase = new Vector3(-0.1f, 0.07f, 0.12f);
+
+    public Vector3 drinkElbowHint = new Vector3(-0.3f, 1.15f, 0.05f);
+
     [Header("Feel Info")]
     public float hitStop = 0.06f;
 

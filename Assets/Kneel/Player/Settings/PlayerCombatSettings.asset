@@ -244,6 +244,18 @@ MonoBehaviour:
   bashDamage: 5
   bashPoiseDamage: 25
   bashShake: 0.12
+  potionHeal: 40
+  drinkSpeed: 1.5
+  drinkSipTime: 2
+  drinkDuration: 3.75
+  drinkMoveMultiplier: 0.4
+  drinkRaiseStart: 0.9
+  drinkAtMouth: 1.6
+  drinkLowerStart: 2.5
+  drinkLowered: 3.2
+  drinkMouthOffset: {x: 0, y: -0.1, z: 0.19}
+  drinkBottleBase: {x: -0.1, y: 0.07, z: 0.12}
+  drinkElbowHint: {x: -0.3, y: 1.15, z: 0.05}
   hitStop: 0.06
   parryHitStop: 0.12
   hitShake: 0.08

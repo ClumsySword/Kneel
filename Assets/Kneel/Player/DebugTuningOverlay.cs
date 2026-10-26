@@ -292,6 +292,10 @@ public class DebugTuningOverlay : MonoBehaviour
             s.bashDamage = Slider("Bash damage", s.bashDamage, 0f, 30f);
             s.bashPoiseDamage = Slider("Bash poise dmg", s.bashPoiseDamage, 0f, 100f);
 
+            s.potionHeal = Slider("Potion heal", s.potionHeal, 0f, 100f);
+            s.drinkSpeed = Slider("Drink speed", s.drinkSpeed, 0.5f, 3f);
+            s.drinkMoveMultiplier = Slider("Drink move speed", s.drinkMoveMultiplier, 0f, 1f);
+
             s.hitStop = Slider("Hit-stop", s.hitStop, 0f, 0.3f);
             s.parryHitStop = Slider("Parry hit-stop", s.parryHitStop, 0f, 0.5f);
             s.hitShake = Slider("Hit shake", s.hitShake, 0f, 0.5f);

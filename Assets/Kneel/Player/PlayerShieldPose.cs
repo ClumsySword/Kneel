@@ -1,10 +1,11 @@
 using UnityEngine;
 
-// Poses the shield arm with humanoid IK. The Mixamo block clip holds the shield out to the left and edge-on,
-// so while guarding this places the shield squarely in front of the chest, facing the crosshair. On top of
-// that guard it plays the block-hit recoil, the parry deflection and the shield bash as procedural motions
-// (there is no bash clip). Lives on the Animator object; PlayerCombat decides when, and the pose numbers
-// are in PlayerCombatSettings ("Shield Pose Info" and "Shield Bash Info").
+// Poses the left (shield) arm with humanoid IK. The Mixamo block clip holds the shield out to the left and
+// edge-on, so while guarding this places the shield squarely in front of the chest, facing the crosshair. On
+// top of that guard it plays the block-hit recoil, the parry deflection and the shield bash as procedural
+// motions (there is no bash clip). While drinking it brings the potion's neck to the lips, which the drinking
+// clip's hand never reaches on this body. Lives on the Animator object; PlayerCombat decides when, and the
+// pose numbers are in PlayerCombatSettings ("Shield Pose Info", "Shield Bash Info" and "Potion Info").
 // Runs before the cape and lantern so their LateUpdate sims see the leaned chest.
 [DefaultExecutionOrder(-5)]
 [RequireComponent(typeof(Animator))]
@@ -14,7 +15,9 @@ public class PlayerShieldPose : MonoBehaviour
     private PlayerCombat combat;
     private PlayerMovement movement;
     private PlayerEquipment equipment;
+    private PlayerPotions potions;
     private Transform root;
+    private Transform head;
     private Transform hand;
     private Transform chest;
     private int upperBodyLayer;
@@ -22,9 +25,11 @@ public class PlayerShieldPose : MonoBehaviour
     // How much the procedural pose overrides the animated arm (0 = the clip's arm, 1 = fully posed).
     private float weight = 0f;
 
-    // This frame's target: the shield centre and facing in world space, and the chest offsets in degrees.
+    // This frame's target: where the held item's reference point goes (the shield's centre, or the bottle's
+    // neck) and the item's facing, in world space, and the chest offsets in degrees.
     private Vector3 shieldPosition;
     private Quaternion shieldRotation;
+    private bool drinking = false;
     private float chestLean;
     private float chestTwist;
 
@@ -41,18 +46,25 @@ public class PlayerShieldPose : MonoBehaviour
     private const float LearnRate = 15f;
     private const float MaxGoalOffset = 0.15f;
 
+    // The goal rotation offset learned on the Ember Warden, so the first pose is right before any learning.
+    [SerializeField]
+    private Vector3 initialGoalRotation = new Vector3(270f, 268.64f, 0f);
+
     private void Awake()
     {
         animator = GetComponent<Animator>();
         combat = GetComponentInParent<PlayerCombat>();
         movement = GetComponentInParent<PlayerMovement>();
         equipment = GetComponentInParent<PlayerEquipment>();
+        potions = GetComponentInParent<PlayerPotions>();
         root = combat.transform;
+        goalFromHandRotation = Quaternion.Euler(initialGoalRotation);
     }
 
     private void Start()
     {
         hand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+        head = animator.GetBoneTransform(HumanBodyBones.Head);
         chest = animator.GetBoneTransform(HumanBodyBones.UpperChest);
         if (chest == null)
         {
@@ -67,6 +79,13 @@ public class PlayerShieldPose : MonoBehaviour
         PlayerCombatSettings s = combat.Settings;
         PlayerCombat.CombatState state = combat.State;
         bool bashing = state == PlayerCombat.CombatState.Bashing;
+
+        drinking = state == PlayerCombat.CombatState.Drinking && potions != null && potions.HandSocket != null;
+        if (drinking)
+        {
+            UpdateDrink(s);
+            return;
+        }
 
         // Reactions and rolls own the whole body; let the clips have the arm straight away.
         if (equipment.ShieldInHand == false || state == PlayerCombat.CombatState.HitStun
@@ -124,6 +143,30 @@ public class PlayerShieldPose : MonoBehaviour
         shieldRotation = root.rotation * yawRotation * Quaternion.Euler(-tilt, 0f, 0f);
     }
 
+    // The bottle's neck at the lips, tipped up so it pours, blended in as the clip's arm rises and out as it
+    // lowers. Fingers wrap round toward the face.
+    private void UpdateDrink(PlayerCombatSettings s)
+    {
+        float t = combat.StateTime * s.drinkSpeed;
+        float rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(s.drinkRaiseStart, s.drinkAtMouth, t));
+        float fall = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(s.drinkLowerStart, s.drinkLowered, t));
+        weight = rise * (1f - fall);
+        chestLean = 0f;
+        chestTwist = 0f;
+
+        if (weight <= 0f || head == null)
+        {
+            return;
+        }
+
+        // Bottle direction (base to neck) in the player's space: the base sits out to the left, forward and
+        // above the lips.
+        Vector3 neckDirection = root.TransformDirection(-s.drinkBottleBase.normalized);
+        Vector3 fingers = Vector3.ProjectOnPlane(root.right, neckDirection);
+        shieldPosition = head.position + root.TransformVector(s.drinkMouthOffset);
+        shieldRotation = Quaternion.LookRotation(-fingers, neckDirection);
+    }
+
     // Coil the shield in, drive it out to bashReach with a forward lean, then ease back to the guard.
     private void ApplyBash(PlayerCombatSettings s, ref Vector3 offset)
     {
@@ -175,7 +218,7 @@ public class PlayerShieldPose : MonoBehaviour
 
         ikApplied = false;
 
-        if (weight <= 0f || equipment.ShieldRenderer == null)
+        if (weight <= 0f || (drinking == false && equipment.ShieldRenderer == null))
         {
             animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0f);
             animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 0f);
@@ -195,9 +238,10 @@ public class PlayerShieldPose : MonoBehaviour
             targetRotation = undo * shieldRotation;
         }
 
-        // Shield centre → socket → hand bone → IK goal. Each link is rigid, so last frame's transforms give them.
-        Transform socket = equipment.ShieldHandSocket;
-        Vector3 centerInSocket = Vector3.Scale(socket.InverseTransformPoint(equipment.ShieldRenderer.bounds.center), socket.lossyScale);
+        // Item point → socket → hand bone → IK goal. Each link is rigid, so last frame's transforms give them.
+        Transform socket = drinking ? potions.HandSocket : equipment.ShieldHandSocket;
+        Vector3 itemPoint = drinking ? potions.HandBottleNeck : equipment.ShieldRenderer.bounds.center;
+        Vector3 centerInSocket = Vector3.Scale(socket.InverseTransformPoint(itemPoint), socket.lossyScale);
         Vector3 socketPosition = targetPosition - targetRotation * centerInSocket;
 
         Quaternion socketInHand = Quaternion.Inverse(hand.rotation) * socket.rotation;
@@ -214,7 +258,8 @@ public class PlayerShieldPose : MonoBehaviour
         animator.SetIKRotation(AvatarIKGoal.LeftHand, goalRotation);
         animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, weight);
         animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, weight);
-        animator.SetIKHintPosition(AvatarIKHint.LeftElbow, root.TransformPoint(combat.Settings.elbowHint));
+        Vector3 elbowHint = drinking ? combat.Settings.drinkElbowHint : combat.Settings.elbowHint;
+        animator.SetIKHintPosition(AvatarIKHint.LeftElbow, root.TransformPoint(elbowHint));
         animator.SetIKHintPositionWeight(AvatarIKHint.LeftElbow, weight);
         ikApplied = true;
     }

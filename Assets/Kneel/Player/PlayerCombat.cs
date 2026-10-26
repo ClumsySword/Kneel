@@ -2,7 +2,8 @@ using UnityEngine;
 
 // Sword and shield combat. R draws/sheathes, left click swings a 2-hit combo, Q swings a slow heavy
 // roundhouse, either one in the air plunges into an air attack, right click blocks (the first moments
-// of a fresh press parry), left click while blocking shield-bashes, Ctrl rolls. The shield arm itself is
+// of a fresh press parry), left click while blocking shield-bashes, Ctrl rolls, F drinks a potion from the
+// belt (sheathed only, see PlayerPotions). The shield arm itself is
 // posed by PlayerShieldPose from the state exposed here. Drives the animator layers directly and
 // tells PlayerMovement what it may do each frame. Tuning lives in PlayerCombatSettings.
 // Runs before PlayerMovement so the movement rules it sets apply on the same frame.
@@ -22,6 +23,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         HitStun,
         Dodging,
         Bashing,
+        Drinking,
         Dead,
     }
 
@@ -29,6 +31,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private PlayerMovement movement;
     private PlayerEquipment equipment;
+    private PlayerPotions potions;
     private Health health;
     private Animator animator;
     private PlayerCamera playerCamera;
@@ -61,6 +64,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private const float MaxPlungeSpeed = 25f;
 
     private float heavyRequestTime = -999f;
+
+    private bool sipped = false;
 
     private bool bashLunged = false;
     private readonly System.Collections.Generic.HashSet<IDamageable> bashed = new System.Collections.Generic.HashSet<IDamageable>();
@@ -116,6 +121,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         controls.Character.Draw.performed += ctx => OnDrawPressed();
         controls.Character.Strike.performed += ctx => OnStrikePressed();
         controls.Character.HeavyAttack.performed += ctx => OnHeavyPressed();
+        controls.Character.Heal.performed += ctx => OnHealPressed();
         controls.Character.Block.performed += ctx => OnBlockPressed();
         controls.Character.Block.canceled += ctx => blockHeld = false;
         controls.Character.Dodge.performed += ctx => dodgeRequestTime = Time.time;
@@ -129,6 +135,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         enemyMask = LayerMask.GetMask("Enemy");
         movement = GetComponent<PlayerMovement>();
         equipment = GetComponent<PlayerEquipment>();
+        potions = GetComponent<PlayerPotions>();
         health = GetComponent<Health>();
 
         SyncPoiseSettings();
@@ -296,6 +303,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 break;
             case CombatState.Bashing:
                 UpdateBashing();
+                break;
+            case CombatState.Drinking:
+                UpdateDrinking();
                 break;
         }
 
@@ -553,6 +563,43 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), critical ? 24 : 14);
         HitStop.Freeze(settings.hitStop);
         Shake(settings.hitShake * (critical ? 1.5f : 1f));
+    }
+
+    // --- Potion ---
+
+    // Only with the weapons away. The bottle leaves the belt at once, so being knocked out of the drink
+    // before the sip wastes it.
+    private void OnHealPressed()
+    {
+        if (State != CombatState.Sheathed || potions == null || potions.TryTake() == false)
+        {
+            return;
+        }
+
+        SetState(CombatState.Drinking);
+        sipped = false;
+        potions.ShowInHand(true);
+        upperBodyTarget = 1f;
+        animator.SetFloat("DrinkSpeed", settings.drinkSpeed);
+        animator.CrossFadeInFixedTime("Drink", 0.15f, upperBodyLayer, 0f);
+    }
+
+    private void UpdateDrinking()
+    {
+        float clipTime = stateTime * settings.drinkSpeed;
+
+        if (sipped == false && clipTime >= settings.drinkSipTime)
+        {
+            sipped = true;
+            health.Heal(settings.potionHeal);
+        }
+
+        if (clipTime >= settings.drinkDuration)
+        {
+            potions.ShowInHand(false);
+            SetState(CombatState.Sheathed);
+            upperBodyTarget = 0f;
+        }
     }
 
     // --- Shield bash ---
@@ -832,6 +879,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private bool IsInCommittedAction => State == CombatState.Attacking
         || State == CombatState.Bashing
+        || State == CombatState.Drinking
         || State == CombatState.Drawing
         || State == CombatState.Sheathing
         || State == CombatState.Dodging;
@@ -858,6 +906,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
 
         StopAirborne();
+        potions?.ShowInHand(false);
         equipment.SwordHitbox.End();
         attackQueued = false;
         IsBlocking = false;
@@ -889,6 +938,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
 
         StopAirborne();
+        potions?.ShowInHand(false);
         equipment.SwordHitbox.End();
         attackQueued = false;
         IsBlocking = false;
@@ -943,6 +993,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             case CombatState.Bashing:
                 moveMultiplier = 0f;
                 rotationLocked = stateTime > settings.attackTurnWindow;
+                sprintBlocked = true;
+                jumpBlocked = true;
+                break;
+            case CombatState.Drinking:
+                moveMultiplier = settings.drinkMoveMultiplier;
                 sprintBlocked = true;
                 jumpBlocked = true;
                 break;
@@ -1012,6 +1067,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         controls.Character.Draw.Enable();
         controls.Character.Strike.Enable();
         controls.Character.HeavyAttack.Enable();
+        controls.Character.Heal.Enable();
         controls.Character.Block.Enable();
         controls.Character.Dodge.Enable();
     }
@@ -1021,6 +1077,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         controls.Character.Draw.Disable();
         controls.Character.Strike.Disable();
         controls.Character.HeavyAttack.Disable();
+        controls.Character.Heal.Disable();
         controls.Character.Block.Disable();
         controls.Character.Dodge.Disable();
 

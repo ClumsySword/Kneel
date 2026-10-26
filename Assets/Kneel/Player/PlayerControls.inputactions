@@ -27,6 +27,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "Heal",
+                    "type": "Button",
+                    "id": "465c6169-f429-4691-82c9-54dab6bdfa23",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "Movement",
                     "type": "Value",
                     "id": "0b74c152-1322-41a5-9d52-999bdc47723f",
@@ -137,6 +147,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3004b732-8b05-494d-829b-9bf91e5c7482",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Heal",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

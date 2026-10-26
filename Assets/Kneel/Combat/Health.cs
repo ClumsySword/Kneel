@@ -57,6 +57,16 @@ public class Health : MonoBehaviour
         }
     }
 
+    public void Heal(float amount)
+    {
+        if (amount <= 0f || Current <= 0f)
+        {
+            return;
+        }
+
+        Current = Mathf.Min(maxHealth, Current + amount);
+    }
+
     private void Update()
     {
         if (regenerateToFull == true && Current < maxHealth && Time.time - lastDamageTime > regenDelay)
