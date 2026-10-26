@@ -273,6 +273,25 @@ public class DebugTuningOverlay : MonoBehaviour
             s.parryWindow = Slider("Parry window", s.parryWindow, 0f, 0.6f);
             s.parryCooldown = Slider("Parry cooldown", s.parryCooldown, 0f, 1.5f);
 
+            s.guardOffset.x = Slider("Guard side", s.guardOffset.x, -0.5f, 0.3f);
+            s.guardOffset.y = Slider("Guard height", s.guardOffset.y, 0.8f, 1.6f);
+            s.guardOffset.z = Slider("Guard reach", s.guardOffset.z, 0.3f, 0.8f);
+            s.guardTilt = Slider("Guard tilt", s.guardTilt, -20f, 40f);
+            s.guardMaxAimYaw = Slider("Guard aim limit", s.guardMaxAimYaw, 0f, 70f);
+            s.blockHitRecoil = Slider("Block-hit recoil", s.blockHitRecoil, 0f, 0.3f);
+            s.parryPush = Slider("Parry push", s.parryPush, 0f, 0.4f);
+            s.parrySweep = Slider("Parry sweep", s.parrySweep, 0f, 70f);
+
+            s.bashWindup = Slider("Bash wind-up", s.bashWindup, 0.02f, 0.3f);
+            s.bashThrust = Slider("Bash thrust", s.bashThrust, 0.04f, 0.3f);
+            s.bashRecover = Slider("Bash recover", s.bashRecover, 0.05f, 0.6f);
+            s.bashReach = Slider("Bash reach", s.bashReach, 0.5f, 1.1f);
+            s.bashLean = Slider("Bash lean", s.bashLean, 0f, 30f);
+            s.bashLunge = Slider("Bash lunge", s.bashLunge, 0f, 1.5f);
+            s.bashRadius = Slider("Bash radius", s.bashRadius, 0.2f, 1f);
+            s.bashDamage = Slider("Bash damage", s.bashDamage, 0f, 30f);
+            s.bashPoiseDamage = Slider("Bash poise dmg", s.bashPoiseDamage, 0f, 100f);
+
             s.hitStop = Slider("Hit-stop", s.hitStop, 0f, 0.3f);
             s.parryHitStop = Slider("Parry hit-stop", s.parryHitStop, 0f, 0.5f);
             s.hitShake = Slider("Hit shake", s.hitShake, 0f, 0.5f);

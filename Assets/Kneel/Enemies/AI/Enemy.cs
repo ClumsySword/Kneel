@@ -47,10 +47,6 @@ public class Enemy : MonoBehaviour
     private Transform[] patrolPoints;
     private int currentPatrolIndex;
 
-    [Header("Feedback Data")]
-    // Height above the feet where damage numbers appear.
-    public float popupHeight = 2f;
-
     public Transform player { get; private set; }
     public Animator anim { get; private set; }
     public NavMeshAgent agent { get; private set; }

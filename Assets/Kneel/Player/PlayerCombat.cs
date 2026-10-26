@@ -2,7 +2,8 @@ using UnityEngine;
 
 // Sword and shield combat. R draws/sheathes, left click swings a 2-hit combo, Q swings a slow heavy
 // roundhouse, either one in the air plunges into an air attack, right click blocks (the first moments
-// of a fresh press parry), Ctrl rolls. Drives the animator layers directly and
+// of a fresh press parry), left click while blocking shield-bashes, Ctrl rolls. The shield arm itself is
+// posed by PlayerShieldPose from the state exposed here. Drives the animator layers directly and
 // tells PlayerMovement what it may do each frame. Tuning lives in PlayerCombatSettings.
 // Runs before PlayerMovement so the movement rules it sets apply on the same frame.
 [DefaultExecutionOrder(-10)]
@@ -20,6 +21,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Attacking,
         HitStun,
         Dodging,
+        Bashing,
         Dead,
     }
 
@@ -33,10 +35,6 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     [SerializeField]
     private PlayerCombatSettings settings;
-
-    // Height above the feet where damage numbers and popups appear.
-    [SerializeField]
-    private float popupHeight = 2.1f;
 
     private int upperBodyLayer;
     private int fullBodyLayer;
@@ -63,6 +61,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private const float MaxPlungeSpeed = 25f;
 
     private float heavyRequestTime = -999f;
+
+    private bool bashLunged = false;
+    private readonly System.Collections.Generic.HashSet<IDamageable> bashed = new System.Collections.Generic.HashSet<IDamageable>();
+    private readonly Collider[] bashBuffer = new Collider[16];
+    private int enemyMask;
 
     private float stunDuration = 0f;
 
@@ -100,6 +103,13 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public PlayerCombatSettings Settings => settings;
 
+    public float StateTime => stateTime;
+
+    // When the shield last took a blocked hit or made a parry (Time.time), for PlayerShieldPose's reactions.
+    public float LastBlockHitTime { get; private set; } = -999f;
+
+    public float LastParryTime { get; private set; } = -999f;
+
     private void Awake()
     {
         controls = new PlayerControls();
@@ -116,6 +126,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             settings = ScriptableObject.CreateInstance<PlayerCombatSettings>();
         }
 
+        enemyMask = LayerMask.GetMask("Enemy");
         movement = GetComponent<PlayerMovement>();
         equipment = GetComponent<PlayerEquipment>();
         health = GetComponent<Health>();
@@ -183,6 +194,10 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             {
                 StartAttack(settings.attacks[0], 0);
             }
+        }
+        else if (State == CombatState.Armed && blockHeld == true)
+        {
+            StartBash();
         }
         else if (State == CombatState.Attacking)
         {
@@ -278,6 +293,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 break;
             case CombatState.Dodging:
                 UpdateDodging();
+                break;
+            case CombatState.Bashing:
+                UpdateBashing();
                 break;
         }
 
@@ -537,6 +555,72 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Shake(settings.hitShake * (critical ? 1.5f : 1f));
     }
 
+    // --- Shield bash ---
+
+    // Block + left click: a quick shove with the shield. Short wind-up, a thrust that hits whatever is in
+    // front of the shield and cancels attacks still winding up, then a short recovery back to guard.
+    private void StartBash()
+    {
+        SetState(CombatState.Bashing);
+        bashLunged = false;
+        bashed.Clear();
+    }
+
+    private void UpdateBashing()
+    {
+        float thrustEnd = settings.bashWindup + settings.bashThrust;
+
+        if (bashLunged == false && stateTime >= settings.bashWindup)
+        {
+            bashLunged = true;
+            float lungeSpeed = Mathf.Sqrt(2f * movement.Settings.deceleration * settings.bashLunge);
+            movement.AddImpulse(transform.forward * lungeSpeed);
+        }
+
+        if (stateTime >= settings.bashWindup && stateTime <= thrustEnd)
+        {
+            BashOverlap();
+        }
+
+        if (stateTime >= settings.BashDuration)
+        {
+            SetState(CombatState.Armed);
+        }
+    }
+
+    private void BashOverlap()
+    {
+        Vector3 center = ShieldPoint() + transform.forward * 0.15f;
+        int count = Physics.OverlapSphereNonAlloc(center, settings.bashRadius, bashBuffer, enemyMask, QueryTriggerInteraction.Collide);
+
+        for (int i = 0; i < count; i++)
+        {
+            IDamageable target = bashBuffer[i].GetComponentInParent<IDamageable>();
+            if (target == null || (Object)target == this || bashed.Add(target) == false)
+            {
+                continue;
+            }
+
+            Vector3 direction = bashBuffer[i].transform.position - transform.position;
+            direction.y = 0f;
+            Vector3 point = bashBuffer[i].ClosestPoint(center);
+
+            target.TakeHit(new DamageInfo
+            {
+                amount = settings.bashDamage,
+                poiseDamage = settings.bashPoiseDamage,
+                point = point,
+                direction = direction.normalized,
+                source = gameObject,
+                interrupts = true,
+            });
+
+            HitSpark.Spawn(point, direction, new Color(0.85f, 0.85f, 0.9f), 18);
+            HitStop.Freeze(settings.hitStop);
+            Shake(settings.bashShake);
+        }
+    }
+
     // --- Dodge roll ---
 
     // Rolls are only started from a free state. Pressed during another action, the roll waits
@@ -679,14 +763,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Vector3 toAttacker = -info.direction;
         toAttacker.y = 0f;
         bool fromFront = Vector3.Angle(transform.forward, toAttacker) <= settings.blockAngle;
-        Vector3 popup = transform.position + Vector3.up * popupHeight;
 
         // Fire and other world damage burns through the guard but never stuns or freezes time, so a damage
         // tick can't lock the player in place inside the thing that is hurting them.
         if (info.isEnvironmental == true)
         {
             health.ApplyDamage(info.amount);
-            DamageNumber.Spawn(popup, Mathf.RoundToInt(info.amount).ToString(), DamageNumberStyle.PlayerDamage);
             Shake(settings.hitShake * 0.4f);
             return;
         }
@@ -698,7 +780,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 parried.OnParried(gameObject);
             }
 
-            DamageNumber.Spawn(popup, "PARRY", DamageNumberStyle.Parry);
+            LastParryTime = Time.time;
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
             animator.CrossFadeInFixedTime("Parry", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.parryHitStop);
@@ -712,16 +794,15 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             if (Poise.ApplyDamage(info.poiseDamage * settings.blockPoiseMultiplier) == true)
             {
                 health.ApplyDamage(info.amount);
-                DamageNumber.Spawn(popup, "GUARD BREAK " + Mathf.RoundToInt(info.amount), DamageNumberStyle.PlayerDamage);
                 StartHitStun(settings.staggerDuration, "GuardBreak");
                 HitStop.Freeze(settings.hitStop);
                 Shake(settings.hitShake * 2f);
                 return;
             }
 
+            LastBlockHitTime = Time.time;
             float taken = info.amount * (1f - settings.blockDamageReduction);
             health.ApplyDamage(taken);
-            DamageNumber.Spawn(popup, "BLOCK " + Mathf.RoundToInt(taken), DamageNumberStyle.Block);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(0.8f, 0.85f, 1f), 10);
             animator.CrossFadeInFixedTime("BlockHit", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.hitStop);
@@ -735,13 +816,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
         if (poiseBroken == true)
         {
-            DamageNumber.Spawn(popup, "STAGGER " + Mathf.RoundToInt(info.amount), DamageNumberStyle.PlayerDamage);
             StartHitStun(settings.staggerDuration, "GuardBreak");
             Shake(settings.hitShake * 2f);
             return;
         }
 
-        DamageNumber.Spawn(popup, Mathf.RoundToInt(info.amount).ToString(), DamageNumberStyle.PlayerDamage);
         Shake(settings.hitShake * 1.5f);
 
         // Poise held: a committed action (swing, draw, sheathe, roll) carries on through the hit.
@@ -752,6 +831,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     }
 
     private bool IsInCommittedAction => State == CombatState.Attacking
+        || State == CombatState.Bashing
         || State == CombatState.Drawing
         || State == CombatState.Sheathing
         || State == CombatState.Dodging;
@@ -860,6 +940,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 sprintBlocked = true;
                 jumpBlocked = true;
                 break;
+            case CombatState.Bashing:
+                moveMultiplier = 0f;
+                rotationLocked = stateTime > settings.attackTurnWindow;
+                sprintBlocked = true;
+                jumpBlocked = true;
+                break;
             case CombatState.HitStun:
             case CombatState.Dead:
                 moveMultiplier = 0f;
@@ -902,9 +988,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         animator.SetLayerWeight(upperBodyLayer, upperBodyWeight);
     }
 
-    // Roughly where the raised shield is, for block and parry sparks.
+    // Centre of the shield in hand, for the bash and for block and parry sparks.
     private Vector3 ShieldPoint()
     {
+        if (equipment.ShieldInHand == true && equipment.ShieldRenderer != null)
+        {
+            return equipment.ShieldRenderer.bounds.center;
+        }
+
         return transform.position + transform.forward * 0.5f + Vector3.up * 1.2f;
     }
 

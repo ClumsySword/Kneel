@@ -70,6 +70,9 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsGrounded => characterController.isGrounded;
 
+    // Where the mouse points on the ground (the aim dot).
+    public Vector3 AimPoint => aim != null ? aim.position : transform.position + transform.forward;
+
     // Collision result of the last CharacterController.Move.
     public CollisionFlags LastCollisionFlags { get; private set; }
 

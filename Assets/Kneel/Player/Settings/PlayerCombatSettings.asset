@@ -219,6 +219,31 @@ MonoBehaviour:
   blockAngle: 70
   parryWindow: 0.2
   parryCooldown: 0.4
+  guardOffset: {x: -0.1, y: 1.2, z: 0.55}
+  guardTilt: 10
+  guardMaxAimYaw: 40
+  guardRaiseTime: 0.1
+  guardLowerTime: 0.15
+  elbowHint: {x: -0.45, y: 1, z: 0.1}
+  blockHitRecoil: 0.12
+  blockHitTilt: 15
+  blockHitPoseTime: 0.15
+  parryPush: 0.2
+  parrySweep: 35
+  parryChestTwist: 8
+  parryPoseTime: 0.25
+  bashWindup: 0.08
+  bashThrust: 0.12
+  bashRecover: 0.25
+  bashPullBack: 0.08
+  bashReach: 0.85
+  bashCoil: 10
+  bashLean: 15
+  bashLunge: 0.5
+  bashRadius: 0.55
+  bashDamage: 5
+  bashPoiseDamage: 25
+  bashShake: 0.12
   hitStop: 0.06
   parryHitStop: 0.12
   hitShake: 0.08
