@@ -1397,7 +1397,7 @@ namespace Kneel.EditorTools
         private static void PlayerAndCamera()
         {
             Physics.SyncTransforms();
-            var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/Player.prefab"));
+            var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kneel/Player/Player.prefab"));
             player.name = "Player";
             player.transform.SetPositionAndRotation(new Vector3(64f, GroundY(64f, 2f) + 0.05f, 2f), Quaternion.identity);
 
@@ -1408,7 +1408,7 @@ namespace Kneel.EditorTools
             cam.farClipPlane = 400f;
             camera.AddComponent<AudioListener>();
             var playerCamera = camera.AddComponent<PlayerCamera>();
-            L3Build.Set(playerCamera, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Player/Settings/PlayerCameraSettings.asset"));
+            L3Build.Set(playerCamera, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Kneel/Player/Settings/PlayerCameraSettings.asset"));
             camera.transform.SetPositionAndRotation(player.transform.position + new Vector3(0f, 8.7f, -3.6f), Quaternion.Euler(65f, 0f, 0f));
             camera.AddComponent<Kneel.OcclusionFader>();
         }

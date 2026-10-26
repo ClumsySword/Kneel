@@ -16,12 +16,12 @@ namespace Kneel.EditorTools
     public static class L3Fields
     {
         private const float BandDepth = 40f;
-        private const int Wind = 0, Still = 1, Stubble = 2;
+        internal const int Wind = 0, Still = 1, Stubble = 2;
         // Palette columns of L3_Wheat_Palette (see L3Crops).
         private const int Leaves = 3, EarA = 3, EarB = 4, Columns = 8;
         private const float Bucket = 4f;
 
-        private static Vector2 Cell(int column, float height)
+        internal static Vector2 Cell(int column, float height)
         {
             return new Vector2((column + 0.5f) / Columns, Mathf.Clamp(height, 0.03f, 0.97f));
         }
@@ -317,7 +317,7 @@ namespace Kneel.EditorTools
 
         // One dead wheat plant: a few blades from one root, some carrying an ear. Lit as if every blade faced
         // the sky, like the wheat of the crop rows: a field has no dark side from above.
-        private static void Plant(L3Mesh mesh, int sub, Vector3 root, float height, ref int seed)
+        internal static void Plant(L3Mesh mesh, int sub, Vector3 root, float height, ref int seed)
         {
             int blades = 4 + (int)(L3Level.Hash("plant", seed++) * 3f);
             for (int i = 0; i < blades; i++)
@@ -345,7 +345,7 @@ namespace Kneel.EditorTools
         }
 
         // What the fire left of one plant: three or four charred stumps.
-        private static void Stub(L3Mesh mesh, Vector3 root, ref int seed)
+        internal static void Stub(L3Mesh mesh, Vector3 root, ref int seed)
         {
             int stumps = 3 + (int)(L3Level.Hash("stub", seed++) * 2f);
             for (int i = 0; i < stumps; i++)

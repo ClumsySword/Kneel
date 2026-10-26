@@ -174,7 +174,7 @@ namespace Kneel.EditorTools
             FloorPiece(floor, "Floor_North", 0f, Width, ditchNorth, depth);
 
             // ---- The player, the player's own camera, and the level's light.
-            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/Player.prefab");
+            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kneel/Player/Player.prefab");
             var player = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab);
             player.transform.position = new Vector3(19f, 0.05f, z0 + 1.5f);
 
@@ -185,7 +185,7 @@ namespace Kneel.EditorTools
             cam.farClipPlane = 300f;
             camera.AddComponent<AudioListener>();
             var playerCamera = camera.AddComponent<PlayerCamera>();
-            L3Build.Set(playerCamera, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Player/Settings/PlayerCameraSettings.asset"));
+            L3Build.Set(playerCamera, "settings", AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>("Assets/Kneel/Player/Settings/PlayerCameraSettings.asset"));
             camera.transform.SetPositionAndRotation(player.transform.position + new Vector3(0f, 8.7f, -3.6f), Quaternion.Euler(65f, 0f, 0f));
             // As on the L2 camera: fades scenery that hides the player (the farmhouse roof and south wall).
             camera.AddComponent<Kneel.OcclusionFader>();

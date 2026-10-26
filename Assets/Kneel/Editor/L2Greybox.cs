@@ -841,7 +841,7 @@ namespace Kneel.EditorTools
 
             if (player == null)
             {
-                player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/Player.prefab"));
+                player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kneel/Player/Player.prefab"));
                 player.name = "Player";
             }
 
@@ -889,7 +889,7 @@ namespace Kneel.EditorTools
             var settings = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
             if (settings == null)
             {
-                AssetDatabase.CopyAsset("Assets/Kneel/Settings/L1/L1_PlayerCameraSettings.asset", path);
+                AssetDatabase.CopyAsset("Assets/Kneel/Levels/L1/Settings/L1_PlayerCameraSettings.asset", path);
                 settings = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
             }
 
