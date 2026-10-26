@@ -136,12 +136,30 @@ public class HollowArcher : Enemy, IDamageable, IParryable, IStaggerable
         newArrow.transform.position = shootPoint.position;
         newArrow.transform.rotation = Quaternion.LookRotation(shootPoint.forward);
 
-        newArrow.GetComponent<Arrow>().ArrowSetup(owner: gameObject);
+        newArrow.GetComponent<Arrow>().ArrowSetup(this);
 
         Rigidbody rbNewArrow = newArrow.GetComponent<Rigidbody>();
 
         rbNewArrow.mass = 20 / arrowSpeed;
         rbNewArrow.linearVelocity = arrowDirection * arrowSpeed;
+    }
+
+    // Called by an arrow this archer fired when it hits something damageable. The archer's
+    // attackDamage / attackPoiseDamage set the hit, so all its tuning lives on the enemy.
+    public void OnArrowHit(IDamageable target, Vector3 point, Vector3 direction, GameObject arrow)
+    {
+        target.TakeHit(
+            new DamageInfo
+            {
+                amount = attackDamage,
+                poiseDamage = attackPoiseDamage,
+                point = point,
+                direction = direction,
+                // The arrow, not the archer, so parrying an arrow doesn't stagger the archer from range.
+                source = arrow,
+                isCritical = target is IStaggerable staggerable && staggerable.IsStaggered,
+            }
+        );
     }
 
     public override void AttackHit()

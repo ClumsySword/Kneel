@@ -2,11 +2,8 @@ using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
-    [SerializeField]
-    private float damage = 15f;
-
-    [SerializeField]
-    private float poiseDamage = 15f;
+    // The archer that fired this arrow. It owns the damage numbers; the arrow only reports what it hit.
+    private HollowArcher shooter;
 
     private Collider cd;
     private Rigidbody rb;
@@ -28,8 +25,9 @@ public class Arrow : MonoBehaviour
         trailRenderer = GetComponent<TrailRenderer>();
     }
 
-    public void ArrowSetup(float flyDistance = 100, float impactForce = 100, GameObject owner = null)
+    public void ArrowSetup(HollowArcher owner, float flyDistance = 100, float impactForce = 100)
     {
+        shooter = owner;
         arrowDisabled = false;
         cd.enabled = true;
         if (meshRenderer != null)
@@ -85,38 +83,31 @@ public class Arrow : MonoBehaviour
             trailRenderer.time -= 2 * Time.deltaTime; // magic number 2 is choosen trhou testing
     }
 
-    protected virtual void OnCollisionEnter(Collision collision)
+    // The collider is a trigger: as a solid collider the player's CharacterController would climb
+    // over the arrow when it arrived, lifting the player slightly on every hit.
+    protected virtual void OnTriggerEnter(Collider other)
     {
-        IDamageable target = collision.collider.GetComponentInParent<IDamageable>();
+        // Fly through other triggers (encounter and arena volumes); only solid colliders stop the arrow.
+        if (other.isTrigger)
+            return;
+
+        IDamageable target = other.GetComponentInParent<IDamageable>();
         if (target != null && target is not PlayerCombat)
         {
             if (cd != null)
-                Physics.IgnoreCollision(cd, collision.collider, true);
+                Physics.IgnoreCollision(cd, other, true);
             return;
         }
 
         CreateImpactFx();
         ReturnArrowToPool();
 
-        if (target is PlayerCombat)
+        if (target is PlayerCombat && shooter != null)
         {
             Vector3 direction = rb.linearVelocity.normalized;
-            Vector3 point =
-                collision.contactCount > 0
-                    ? collision.GetContact(0).point
-                    : collision.collider.ClosestPoint(transform.position);
+            Vector3 point = other.ClosestPoint(transform.position);
 
-            target.TakeHit(
-                new DamageInfo
-                {
-                    amount = damage,
-                    poiseDamage = poiseDamage,
-                    point = point,
-                    direction = direction,
-                    source = gameObject,
-                    isCritical = target is IStaggerable staggerable && staggerable.IsStaggered,
-                }
-            );
+            shooter.OnArrowHit(target, point, direction, gameObject);
         }
     }
 
