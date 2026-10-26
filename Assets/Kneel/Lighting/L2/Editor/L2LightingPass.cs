@@ -354,7 +354,7 @@ namespace Kneel.Lighting.EditorTools
             so.FindProperty("speed").floatValue = 1.1f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            var glow = L2Build.CopyMaterial("Assets/Kneel/Lighting/L1/Materials/L1_Glow_Shrine.mat", "L2_Glow_Shrine");
+            var glow = L2Build.CopyMaterial("Assets/Kneel/Levels/L1/Lighting/Materials/L1_Glow_Shrine.mat", "L2_Glow_Shrine");
             Glow(group, "GroundGlow", new Vector3(lightPos.x, shrine.position.y + 0.08f, lightPos.z), 15f, glow);
             return "Shrine lit.";
         }
@@ -365,7 +365,7 @@ namespace Kneel.Lighting.EditorTools
         private static string MoonBreaks(Transform lighting)
         {
             var group = L2Build.Group(lighting, "MoonBreaks", true);
-            var cookie = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Kneel/Lighting/L1/Textures/L1_BreakCookie.png");
+            var cookie = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Kneel/Levels/L1/Lighting/Textures/L1_BreakCookie.png");
             var rng = new System.Random(12);
             var route = L2Layout.Route;
             int placed = 0;
@@ -543,7 +543,7 @@ namespace Kneel.Lighting.EditorTools
 
         private static Material GlowMaterial(string name, Color color, float alpha)
         {
-            var mat = L2Build.CopyMaterial("Assets/Kneel/Lighting/L1/Materials/L1_Glow_Shrine.mat", name);
+            var mat = L2Build.CopyMaterial("Assets/Kneel/Levels/L1/Lighting/Materials/L1_Glow_Shrine.mat", name);
             mat.SetColor("_BaseColor", new Color(color.r, color.g, color.b, alpha));
             EditorUtility.SetDirty(mat);
             return mat;

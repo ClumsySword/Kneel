@@ -151,6 +151,24 @@ namespace Kneel.EditorTools
                 ("HipL", -0.1f, 0.1f, 0.02f), ("KneeL", -0.16f, 0.32f, 0.4f), ("AnkleL", -0.2f, 0.06f, 0.75f), ("ToeL", -0.23f, 0.16f, 0.87f),
                 ("HipR", 0.1f, 0.1f, 0.02f), ("KneeR", 0.2f, 0.08f, 0.46f), ("AnkleR", 0.28f, 0.06f, 0.9f), ("ToeR", 0.35f, 0.16f, 0.99f));
 
+            // L4 (refinement, 2026-10-19): the dead who knelt to the master, still on their knees, bowed forward,
+            // hands on their thighs.
+            yield return Make("Kneeling", new Vector3(0f, -0.35f, 1f), new Vector3(0.05f, -0.85f, 0.5f),
+                ("Pelvis", 0f, 0.5f, 0f), ("Chest", 0f, 0.86f, 0.2f), ("Neck", 0f, 0.96f, 0.3f), ("Head", 0.02f, 0.96f, 0.42f),
+                ("ShoulderL", -0.18f, 0.9f, 0.22f), ("ElbowL", -0.23f, 0.64f, 0.3f), ("WristL", -0.2f, 0.45f, 0.38f), ("HandL", -0.18f, 0.38f, 0.48f),
+                ("ShoulderR", 0.18f, 0.9f, 0.22f), ("ElbowR", 0.24f, 0.64f, 0.28f), ("WristR", 0.21f, 0.46f, 0.37f), ("HandR", 0.19f, 0.4f, 0.47f),
+                ("HipL", -0.1f, 0.48f, 0f), ("KneeL", -0.13f, 0.07f, 0.3f), ("AnkleL", -0.14f, 0.07f, -0.14f), ("ToeL", -0.15f, 0.03f, -0.27f),
+                ("HipR", 0.1f, 0.48f, 0f), ("KneeR", 0.14f, 0.07f, 0.28f), ("AnkleR", 0.15f, 0.07f, -0.16f), ("ToeR", 0.16f, 0.03f, -0.29f));
+
+            // Hanging from the neck (the gallows): limp, arms down, head lolled to one side, toes pointing down. The
+            // neck is at y 1.5 above the toes.
+            yield return Make("Hanging", new Vector3(0f, 0f, 1f), new Vector3(0.35f, -0.4f, 1f),
+                ("Pelvis", 0f, 0.95f, 0.01f), ("Chest", 0.01f, 1.33f, 0.03f), ("Neck", 0f, 1.47f, 0f), ("Head", 0.08f, 1.56f, 0.05f),
+                ("ShoulderL", -0.18f, 1.37f, 0f), ("ElbowL", -0.21f, 1.1f, 0.02f), ("WristL", -0.2f, 0.85f, 0.05f), ("HandL", -0.19f, 0.71f, 0.06f),
+                ("ShoulderR", 0.18f, 1.37f, 0f), ("ElbowR", 0.22f, 1.1f, 0.01f), ("WristR", 0.21f, 0.85f, 0.03f), ("HandR", 0.2f, 0.71f, 0.04f),
+                ("HipL", -0.1f, 0.93f, 0f), ("KneeL", -0.11f, 0.5f, 0.04f), ("AnkleL", -0.12f, 0.1f, 0.01f), ("ToeL", -0.12f, 0f, 0.1f),
+                ("HipR", 0.1f, 0.93f, 0f), ("KneeR", 0.12f, 0.5f, 0.02f), ("AnkleR", 0.13f, 0.1f, -0.01f), ("ToeR", 0.14f, 0f, 0.08f));
+
             yield return new Pose { Name = "Remains" };
         }
 

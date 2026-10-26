@@ -81,6 +81,17 @@ namespace Kneel.Hazards
                 case HazardKind.FireEnter:
                 case HazardKind.FireTick:
                     return actsAs == ActorKind.Hound ? "dies" : "takes one hit";
+                case HazardKind.OilBurnEnter:
+                case HazardKind.OilBurnTick:
+                    return actsAs == ActorKind.Hound ? "dies" : "takes one hit";
+                case HazardKind.Pour:
+                    return actsAs == ActorKind.Hound || actsAs == ActorKind.Footman ? "dies" : actsAs == ActorKind.Brute ? "staggered" : "takes two hits";
+                case HazardKind.Crush:
+                    return "takes two hits";
+                case HazardKind.GateSlot:
+                    return "dies (the portcullis slot)";
+                case HazardKind.Fall:
+                    return "dies (fell)";
                 default:
                     return "dies (fell in the ditch)";
             }
