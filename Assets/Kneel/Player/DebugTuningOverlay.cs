@@ -49,6 +49,9 @@ public class DebugTuningOverlay : MonoBehaviour
     // True while the pointer is over the open panel, so clicks there don't also swing the sword.
     public static bool IsPointerOverPanel { get; private set; }
 
+    // True while the panel is open; the aim ember hands over to the menu cursor meanwhile (AimEmber).
+    public static bool IsOpen { get; private set; }
+
     private void Awake()
     {
         controls = new PlayerControls();
@@ -97,6 +100,8 @@ public class DebugTuningOverlay : MonoBehaviour
 
     private void Update()
     {
+        IsOpen = isOpen;
+
         var mouse = UnityEngine.InputSystem.Mouse.current;
         if (isOpen == false || mouse == null)
         {
@@ -496,5 +501,7 @@ public class DebugTuningOverlay : MonoBehaviour
     private void OnDisable()
     {
         controls.Debug.Disable();
+        IsOpen = false;
+        IsPointerOverPanel = false;
     }
 }
