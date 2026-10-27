@@ -29,10 +29,14 @@ The team's Obsidian vault is a sibling folder, `../Kneel-Obsidian`. The source o
 - `02-Design/Mechanics/*.md`: per-mechanic feel targets (Combat Roll, Parry, Poise & Stagger).
 - `04-Tech/Combat Feel Spec.md`: impact stack, and the rule that committed actions can't be cancelled but inputs are buffered.
 
-The code currently diverges from the ten-pager in a few places:
+The code diverges from the ten-pager in a few places. **These are intentional: keep the code's behaviour and don't "fix" them to match the PDF.**
 - Sprint is on Shift, which the ten-pager reserves for the Ash ability, and it specifies "no walk/run toggle".
 - Jump (Space) and Draw (R) aren't in its table.
 - Parry triggers on the block *press*, while its prose says "time the release" (its table says "tap").
+- Block and roll cost no stamina (poise replaced stamina). The camera has no mouse look-ahead.
+- Damage numbers and the "PARRY" popups stay, although the ten-pager calls for no interface.
+
+`PLAYER_TODO.md` (repo root) tracks the player features from the ten-pager that are still missing, ranked by ease.
 
 ## Layout
 
@@ -43,7 +47,8 @@ The code currently diverges from the ten-pager in a few places:
   - `Kneel/Levels/L1/`: Patrick's level (`Scenes/L1_BrokenLine.unity` plus its lighting and NavMesh folder, and `Materials`, `Meshes`, `Prefabs`, `Lighting`, `Animations`, `Settings`).
   - `Kneel/Scenes/`: team and test scenes that aren't a level.
   - `Kneel/Core/`: game flow (`LevelRestartOnDeath`).
-  - `Kneel/Editor/L1/`: the level-building tools (`Kneel/L1` menu). They hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
+  - `Kneel/Gameplay/`: level interactables and hazards (`FireHazard`, `GateLever` (uses Interact, E), `ShortcutGate`, `OcclusionFade`, `Hazards/`).
+  - `Kneel/Editor/`: level-building tools: `L1/` (the `Kneel/L1` menu), plus the `L2*` and `L3*` scripts. The L1 tools hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
   - `Kneel/Shaders/`: shared shaders.
 - Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/` including `Toon_RTS_demo`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
 - Move assets inside Unity (or with `AssetDatabase.MoveAsset`), never in the file browser, so the `.meta` GUIDs travel with them. When scripting moves, don't wrap `AssetDatabase.CreateFolder` in `StartAssetEditing`: folders created inside the batch aren't registered, and retries produce numbered duplicates (`Levels 1`, `Levels 2`, …).
