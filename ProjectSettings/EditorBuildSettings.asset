@@ -6,8 +6,26 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Kneel/UI/Scenes/Splash.unity
+    guid: 247d8dcc49dfc1f43aaab148f24d32ff
+  - enabled: 1
+    path: Assets/Kneel/UI/Scenes/MainMenu.unity
+    guid: 4692fce07bdf8cf46ad4db82ce51d267
+  - enabled: 1
     path: Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity
     guid: afa83bf8d9a4b6feeae3319434e670cb
+  - enabled: 1
+    path: Assets/Kneel/Scenes/Levels/L2_HollowVillage.unity
+    guid: 43ab16c3334bf624aa89be4acbe3d67d
+  - enabled: 1
+    path: Assets/Kneel/Scenes/Levels/L3_FallowFields.unity
+    guid: f61f632d040dbd646857cc602e414d02
+  - enabled: 1
+    path: Assets/Kneel/Scenes/Levels/L4_BurningGate.unity
+    guid: 00c8d40a51c8b0f43b89f489a6df4ece
+  - enabled: 1
+    path: Assets/Kneel/Scenes/Levels/L5_ThroneRoom.unity
+    guid: 430faf69127141644b484237bbceb1d5
   - enabled: 1
     path: Assets/Kneel/Scenes/Arena_S.unity
     guid: afd7619a65b5e1bbba63fd7ddb58722e
