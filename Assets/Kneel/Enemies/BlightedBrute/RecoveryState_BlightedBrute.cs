@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// The cooldown after a blow: he stands getting his breath back, and this is the player's window to hit him.
 public class RecoveryState_BlightedBrute : EnemyState
 {
     private BlightedBrute blightedBrute;
@@ -18,6 +19,7 @@ public class RecoveryState_BlightedBrute : EnemyState
     {
         base.Enter();
 
+        stateTimer = blightedBrute.recoveryTime;
         blightedBrute.agent.isStopped = true;
     }
 
@@ -27,7 +29,7 @@ public class RecoveryState_BlightedBrute : EnemyState
 
         blightedBrute.transform.rotation = blightedBrute.FaceTarget(blightedBrute.player.position);
 
-        if (triggerCalled)
+        if (stateTimer < 0)
             stateMachine.ChangeState(blightedBrute.chaseState);
     }
 

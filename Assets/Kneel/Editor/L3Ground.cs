@@ -319,7 +319,7 @@ namespace Kneel.EditorTools
 
             Vector2 ring = new Vector2(114.5f, 131f);
             var furrowFrom = new Vector2(77f, 112.6f);
-            var furrowTo = new Vector2(111.2f, 133.2f);
+            var furrowTo = new Vector2(112.26f, 132.5f);
 
             for (int y = 0; y < Height; y++)
             {
@@ -406,8 +406,8 @@ namespace Kneel.EditorTools
 
                     if (wx > 70f && wx < 120f && z > 106f && z < 140f)
                     {
-                        // The ring the ploughman's flail has gouged, and the one furrow that leads to it.
-                        float fromRing = Mathf.Abs((p - ring).magnitude - 4f + fine * 0.1f);
+                        // The ring the ploughman's cleavers have gouged, at his reach, and the one furrow that leads to it.
+                        float fromRing = Mathf.Abs((p - ring).magnitude - 2.7f + fine * 0.1f);
                         c = Color.Lerp(c, gouge, (1f - Step(0.25f, 0.7f, fromRing)) * 0.9f);
                         Vector2 ab = furrowTo - furrowFrom;
                         float t = Mathf.Clamp01(Vector2.Dot(p - furrowFrom, ab) / ab.sqrMagnitude);

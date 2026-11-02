@@ -26,7 +26,7 @@ public class IdleState_BlightedBrute : EnemyState
         base.Update();
         if (blightedBrute.PlayerInAgressionRange())
         {
-            stateMachine.ChangeState(blightedBrute.recoveryState);
+            blightedBrute.StartCombat();
             return;
         }
 

@@ -73,6 +73,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private int enemyMask;
 
     private float stunDuration = 0f;
+    private Vector3 shoveVelocity;
+    private float shoveLeft;
+    private bool shoving;
 
     private bool blockHeld = false;
     private float blockPressTime = -999f;
@@ -309,6 +312,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 break;
         }
 
+        UpdateShove();
         TryBufferedDodge();
         TryBufferedHeavy();
         UpdateBlocking();
@@ -810,6 +814,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Vector3 toAttacker = -info.direction;
         toAttacker.y = 0f;
         bool fromFront = Vector3.Angle(transform.forward, toAttacker) <= settings.blockAngle;
+        float weight = 1f + info.impact;
 
         // Fire and other world damage burns through the guard but never stuns or freezes time, so a damage
         // tick can't lock the player in place inside the thing that is hurting them.
@@ -831,7 +836,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
             animator.CrossFadeInFixedTime("Parry", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.parryHitStop);
-            Shake(settings.hitShake * 1.5f);
+            Shake(settings.hitShake * 1.5f * weight);
             return;
         }
 
@@ -842,39 +847,82 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             {
                 health.ApplyDamage(info.amount);
                 StartHitStun(settings.staggerDuration, "GuardBreak");
-                HitStop.Freeze(settings.hitStop);
-                Shake(settings.hitShake * 2f);
+                HitStop.Freeze(settings.hitStop * weight);
+                Shake(settings.hitShake * 2f * weight);
+                Shove(info, 1f);
                 return;
             }
 
             LastBlockHitTime = Time.time;
             float taken = info.amount * (1f - settings.blockDamageReduction);
             health.ApplyDamage(taken);
-            HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(0.8f, 0.85f, 1f), 10);
+            HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(0.8f, 0.85f, 1f), Mathf.RoundToInt(10 * weight));
             animator.CrossFadeInFixedTime("BlockHit", 0.05f, upperBodyLayer, 0f);
-            HitStop.Freeze(settings.hitStop);
-            Shake(settings.hitShake * 0.6f);
+            HitStop.Freeze(settings.hitStop * weight);
+            Shake(settings.hitShake * 0.6f * weight);
+            Shove(info, settings.blockShoveMultiplier);
             return;
         }
 
         bool poiseBroken = Poise.ApplyDamage(info.poiseDamage);
         health.ApplyDamage(info.amount);
-        HitStop.Freeze(settings.hitStop);
+        HitStop.Freeze(settings.hitStop * weight);
+        Shove(info, 1f);
 
         if (poiseBroken == true)
         {
             StartHitStun(settings.staggerDuration, "GuardBreak");
-            Shake(settings.hitShake * 2f);
+            Shake(settings.hitShake * 2f * weight);
             return;
         }
 
-        Shake(settings.hitShake * 1.5f);
+        Shake(settings.hitShake * 1.5f * weight);
 
         // Poise held: a committed action (swing, draw, sheathe, roll) carries on through the hit.
         if (IsInCommittedAction == false)
         {
             StartHitStun(settings.hitStunDuration, "HitReact");
         }
+    }
+
+    // A heavy blow physically moves the player, guard or no guard.
+    private void Shove(DamageInfo info, float multiplier)
+    {
+        if (info.impact <= 0f || IsDead == true)
+        {
+            return;
+        }
+
+        shoveLeft = info.impact * settings.impactShove * multiplier;
+        shoveVelocity = info.direction * (shoveLeft / settings.impactShoveTime);
+        shoving = true;
+    }
+
+    private void UpdateShove()
+    {
+        if (shoving == false || Time.deltaTime <= 0f)
+        {
+            return;
+        }
+
+        // A roll or a jump out of the shove takes over the movement.
+        if (State == CombatState.Dodging || airborne == true)
+        {
+            shoving = false;
+            return;
+        }
+
+        if (shoveLeft <= 0f)
+        {
+            shoving = false;
+            movement.forcedVelocity = null;
+            return;
+        }
+
+        // By distance rather than time, so a slow frame can't shorten it.
+        float step = Mathf.Min(shoveLeft, shoveVelocity.magnitude * Time.deltaTime);
+        shoveLeft -= step;
+        movement.forcedVelocity = shoveVelocity.normalized * (step / Time.deltaTime);
     }
 
     private bool IsInCommittedAction => State == CombatState.Attacking

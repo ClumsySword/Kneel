@@ -304,6 +304,9 @@ public class DebugTuningOverlay : MonoBehaviour
             s.hitStop = Slider("Hit-stop", s.hitStop, 0f, 0.3f);
             s.parryHitStop = Slider("Parry hit-stop", s.parryHitStop, 0f, 0.5f);
             s.hitShake = Slider("Hit shake", s.hitShake, 0f, 0.5f);
+            s.impactShove = Slider("Impact shove", s.impactShove, 0f, 2f);
+            s.impactShoveTime = Slider("Impact shove time", s.impactShoveTime, 0.05f, 0.5f);
+            s.blockShoveMultiplier = Slider("Block shove", s.blockShoveMultiplier, 0f, 1f);
             s.hitStunDuration = Slider("Hit stun", s.hitStunDuration, 0f, 1.5f);
             s.staggerDuration = Slider("Stagger time", s.staggerDuration, 0f, 3f);
 

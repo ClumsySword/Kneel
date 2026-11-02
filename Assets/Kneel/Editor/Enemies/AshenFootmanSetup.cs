@@ -60,6 +60,12 @@ namespace Kneel.EditorTools
 
         private const float RecoveryLength = 0.8f;
 
+        // death-1 is shared with the player and lands him 23 cm under the floor: his own copy brings him up to it as he goes
+        // down.
+        private const float DeathLift = 0.27f;
+        private const float DeathFallStart = 1f;
+        private const float DeathFallEnd = 2.2f;
+
         // A walk and run blended at 2.5 m/s cover less ground per step than their root speeds add up to, measured with the
         // playtest's stance speed. This is what brings the chase down to the slip of the clips at their own speeds.
         private const float ChaseStride = 1.16f;
@@ -84,6 +90,10 @@ namespace Kneel.EditorTools
             AnimationClip recovery = EnemyRig.CopyClip(stance, animations + "Footman_Recovery.anim", 0f, RecoveryLength,
                 EnemyRig.Event("AnimationTrigger", RecoveryLength - 0.03f));
 
+            AnimationClip sharedDeath = EnemyRig.FindClip(player + "sword and shield death.fbx", "death-1");
+            AnimationClip death = EnemyRig.CopyClip(sharedDeath, animations + "Footman_Death.anim", 0f, sharedDeath.length);
+            EnemyRig.LiftRoot(death, DeathLift, DeathFallStart, DeathFallEnd);
+
             var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(animations + "AshenFootmanController.controller");
             float humanScale = HumanScale();
 
@@ -104,12 +114,15 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "Hit", motion = EnemyRig.FindClip(player + "sword and shield impact.fbx", "impact-1"), speed = 1.2f, exitBlend = 0.1f },
                 new EnemyRig.State { name = "Stagger", motion = EnemyRig.FindClip(player + "sword and shield impact (2).fbx", "impact-2"), speed = 0.5f, exitBlend = 0.1f },
                 new EnemyRig.State { name = "Dormant", motion = stance, exitBlend = 0f },
-                new EnemyRig.State { name = "Dead", motion = EnemyRig.FindClip(player + "sword and shield death.fbx", "death-1"), final = true });
+                new EnemyRig.State { name = "Dead", motion = death, final = true });
 
             AvatarMask mask = EnemyRig.ArmMask(animations + "AM_LeftArm.mask", true);
             EnemyRig.SetOverlayLayer(controller, "Guard", mask, "Guard", guard, 0.15f);
 
-            AssetDatabase.SaveAssets();
+            foreach (Object asset in new Object[] { overhead, sweep, recovery, death, mask, controller })
+            {
+                AssetDatabase.SaveAssetIfDirty(asset);
+            }
         }
 
         private static float HumanScale()

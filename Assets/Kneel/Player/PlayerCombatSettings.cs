@@ -257,6 +257,15 @@ public class PlayerCombatSettings : ScriptableObject
 
     public float hitShake = 0.08f;
 
+    // Metres a blow of impact 1 (see DamageInfo.impact) shoves the player, and over how long.
+    public float impactShove = 0.6f;
+
+    public float impactShoveTime = 0.18f;
+
+    // Share of that shove that gets through a raised shield.
+    [Range(0f, 1f)]
+    public float blockShoveMultiplier = 0.6f;
+
     // Short reaction to a hit that doesn't break poise, taken only when not mid-action.
     public float hitStunDuration = 0.45f;
 

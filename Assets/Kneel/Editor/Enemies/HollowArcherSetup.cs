@@ -48,6 +48,11 @@ namespace Kneel.EditorTools
 
         private const float RecoveryLength = 0.9f;
 
+        // The death clip's fall lands him 10 cm under the floor: this brings him up to it as he goes down.
+        private const float DeathLift = 0.1f;
+        private const float DeathFallStart = 0.8f;
+        private const float DeathFallEnd = 1.8f;
+
         // Measured from the feet in stance on his rig, since the clips carry no root travel.
         private const float WalkClipSpeed = 1.12f;
         private const float AimWalkClipSpeed = 1.12f;
@@ -103,11 +108,17 @@ namespace Kneel.EditorTools
                 EnemyRig.Event("AnimationTrigger", recoil.length - RecoilStart - 0.03f));
             AnimationClip recovery = EnemyRig.CopyClip(idle, animations + "Archer_Recovery.anim", 0f, RecoveryLength,
                 EnemyRig.Event("AnimationTrigger", RecoveryLength - 0.03f));
+            AnimationClip deathClip = Clip("standing-death-backward-01", "archer-death");
+            AnimationClip death = EnemyRig.CopyClip(deathClip, animations + "Archer_Death.anim", 0f, deathClip.length);
 
             // The shot turns his whole body from the stance to side-on to the target and back.
             EnemyRig.BakeRootRotation(nock);
             EnemyRig.BakeRootRotation(draw);
             EnemyRig.BakeRootRotation(shoot);
+
+            // He falls to the floor: without this he lies in mid-air at standing height.
+            EnemyRig.BakeRootHeight(death);
+            EnemyRig.LiftRoot(death, DeathLift, DeathFallStart, DeathFallEnd);
 
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(animations + "HollowArcher.controller");
 
@@ -125,13 +136,13 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "Attack - Shoot", parameter = "Attack", motion = shoot, chained = true },
                 new EnemyRig.State { name = "Hit", motion = Clip("standing-react-small-from-front", "archer-hit"), speed = 1.5f, exitBlend = 0.1f },
                 new EnemyRig.State { name = "Stagger", motion = Clip("standing-react-large-from-front", "archer-stagger"), speed = 0.7f, exitBlend = 0.1f },
-                new EnemyRig.State { name = "Dead", motion = Clip("standing-death-backward-01", "archer-death"), final = true });
+                new EnemyRig.State { name = "Dead", motion = death, final = true });
 
             EnemyRig.Chain(controller, "Attack - Idle", "Attack - Draw", 0.05f);
             EnemyRig.Chain(controller, "Attack - Draw", "Attack - Shoot", 0.04f, "Shoot");
             EnemyRig.EnableIK(controller);
 
-            foreach (Object asset in new Object[] { nock, draw, shoot, recovery, controller })
+            foreach (Object asset in new Object[] { nock, draw, shoot, recovery, death, controller })
             {
                 AssetDatabase.SaveAssetIfDirty(asset);
             }

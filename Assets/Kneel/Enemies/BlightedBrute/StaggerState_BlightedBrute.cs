@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Knocked off balance by a parry or a broken poise: fully open, and hits on it are critical.
+// Knocked off balance by a broken poise: fully open, and hits on it are critical.
 public class StaggerState_BlightedBrute : EnemyState
 {
     private BlightedBrute blightedBrute;
@@ -20,7 +20,6 @@ public class StaggerState_BlightedBrute : EnemyState
         base.Enter();
 
         stateTimer = blightedBrute.staggerTime;
-        blightedBrute.telegraph = 0f;
         blightedBrute.agent.isStopped = true;
         blightedBrute.agent.velocity = Vector3.zero;
 
