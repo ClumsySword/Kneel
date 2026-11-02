@@ -5,6 +5,9 @@ public class StaggerState_AshenFootman : EnemyState
 {
     private AshenFootman ashenFootman;
 
+    // Seconds this stagger lasts. Set before entering: an ambush stagger runs longer than a parry.
+    public float duration { get; set; }
+
     public StaggerState_AshenFootman(
         Enemy enemyBase,
         EnemyStateMachine stateMachine,
@@ -19,8 +22,7 @@ public class StaggerState_AshenFootman : EnemyState
     {
         base.Enter();
 
-        stateTimer = ashenFootman.staggerTime;
-        ashenFootman.telegraph = 0f;
+        stateTimer = duration;
         ashenFootman.agent.isStopped = true;
         ashenFootman.agent.velocity = Vector3.zero;
 

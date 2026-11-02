@@ -20,7 +20,6 @@ public class HitState_AshenFootman : EnemyState
         base.Enter();
 
         stateTimer = ashenFootman.hitStunTime;
-        ashenFootman.telegraph = 0f;
         ashenFootman.agent.isStopped = true;
         ashenFootman.agent.velocity = Vector3.zero;
 

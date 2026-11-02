@@ -26,6 +26,14 @@ public class ChaseState_AshenFootman : EnemyState
     {
         base.Update();
 
+        // A leashed footman gives up at the edge of its ground.
+        if (ashenFootman.PlayerInLeash == false)
+        {
+            ashenFootman.agent.isStopped = true;
+            stateMachine.ChangeState(ashenFootman.idleState);
+            return;
+        }
+
         // In range: stop and turn to the player, and only start the attack once facing them.
         if (ashenFootman.PlayerInAttackRange())
         {
@@ -33,7 +41,7 @@ public class ChaseState_AshenFootman : EnemyState
             ashenFootman.agent.velocity = Vector3.zero;
             ashenFootman.transform.rotation = ashenFootman.FaceTarget(ashenFootman.player.position);
             if (ashenFootman.IsFacing(ashenFootman.player.position))
-                stateMachine.ChangeState(ashenFootman.attackState);
+                stateMachine.ChangeState(ashenFootman.NextAttack());
             return;
         }
 
