@@ -16,11 +16,16 @@ namespace Kneel.EditorTools
 
         // --- Clips ---
 
-        // Switches a Generic Mixamo FBX to Humanoid with the shared Mixamo avatar. Does nothing if it already is.
-        public static void ConvertToHumanoid(string fbxPath, string clipName, bool loop)
+        // Switches a Generic Mixamo FBX to Humanoid with the shared Mixamo avatar. Does nothing if it already is. Clips
+        // downloaded on Mixamo's default character have its bone names, not the Knight's, so they can't copy that avatar;
+        // `avatarModel` names another to copy. An enemy on a Mixamo rig should pass its own: a Without Skin file's skeleton
+        // sits in the clip's first frame, so an avatar built from the file itself has a guessed T-pose, and the hands come
+        // out rolled 90 degrees.
+        public static void ConvertToHumanoid(string fbxPath, string clipName, bool loop, string avatarModel = MixamoAvatar)
         {
             var importer = (ModelImporter)AssetImporter.GetAtPath(fbxPath);
-            if (importer.animationType == ModelImporterAnimationType.Human)
+            Avatar avatar = LoadAvatar(avatarModel);
+            if (importer.animationType == ModelImporterAnimationType.Human && importer.avatarSetup == ModelImporterAvatarSetup.CopyFromOther && importer.sourceAvatar == avatar)
             {
                 return;
             }
@@ -37,7 +42,7 @@ namespace Kneel.EditorTools
 
             importer.animationType = ModelImporterAnimationType.Human;
             importer.avatarSetup = ModelImporterAvatarSetup.CopyFromOther;
-            importer.sourceAvatar = LoadAvatar(MixamoAvatar);
+            importer.sourceAvatar = avatar;
             importer.clipAnimations = new[]
             {
                 new ModelImporterClipAnimation
@@ -102,6 +107,16 @@ namespace Kneel.EditorTools
 
         public static AnimationEvent Event(string function, float time) =>
             new AnimationEvent { functionName = function, time = time };
+
+        // Enemies don't use root motion, so a clip's root rotation is thrown away: a body that turns through the clip stays
+        // where it started while its arms play on, then snaps round at the next clip. This keeps the turn in the pose.
+        public static void BakeRootRotation(AnimationClip clip)
+        {
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopBlendOrientation = true;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+            EditorUtility.SetDirty(clip);
+        }
 
         // Real travel speed of a clip on a body: the RootT delta over its length, scaled by that avatar's human scale.
         // AnimationClip.averageSpeed is skewed by lean, so it isn't used.
@@ -187,6 +202,38 @@ namespace Kneel.EditorTools
 
             Vector3 position = fist - rotation * held - palm * (depth + clearance - boardZ);
             return Socket(handBone, socketName, position, rotation);
+        }
+
+        // Socket for a bow in its hand, set from the aim, as posed at `poseTime` of `aimPose`. The item's +Z (toward the
+        // target) runs along the forearm, its +Y (the upper limb) stands straight up, tilted `cant` degrees about the arm,
+        // and its origin (the grip) sits in the palm.
+        public static Transform BowSocket(Animator animator, HumanBodyBones hand, AnimationClip aimPose, float poseTime, float cant = 0f, string socketName = "Socket_BowHand")
+        {
+            Transform handBone = animator.GetBoneTransform(hand);
+            GetHandAxes(handBone, out Vector3 knuckle, out Vector3 fingers, out Vector3 indexSide, out Vector3 palm);
+
+            var posed = Object.Instantiate(animator.gameObject);
+            posed.hideFlags = HideFlags.HideAndDontSave;
+            posed.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            aimPose.SampleAnimation(posed, poseTime);
+
+            var posedAnimator = posed.GetComponent<Animator>();
+            Transform posedHand = posedAnimator.GetBoneTransform(hand);
+            Transform posedElbow = posedAnimator.GetBoneTransform(hand == HumanBodyBones.LeftHand ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+            Vector3 forearm = posedHand.InverseTransformDirection(posedHand.position - posedElbow.position).normalized;
+            Vector3 up = Quaternion.AngleAxis(cant, forearm) * posedHand.InverseTransformDirection(Vector3.up);
+            Object.DestroyImmediate(posed);
+
+            Vector3 position = knuckle - fingers * 0.035f + palm * 0.03f;
+            return Socket(handBone, socketName, position, Quaternion.LookRotation(forearm, up));
+        }
+
+        // Socket at the pinch of a drawing hand, where the string and an arrow's nock sit.
+        public static Transform PinchSocket(Animator animator, HumanBodyBones hand, string socketName = "Socket_StringHand")
+        {
+            Transform handBone = animator.GetBoneTransform(hand);
+            GetHandAxes(handBone, out Vector3 knuckle, out Vector3 fingers, out _, out Vector3 palm);
+            return Socket(handBone, socketName, knuckle + fingers * 0.03f + palm * 0.025f, Quaternion.identity);
         }
 
         // How far the arm's skin reaches past `origin` along `direction`, for the vertices that follow the elbow or hand.
@@ -363,6 +410,9 @@ namespace Kneel.EditorTools
 
             // No transition out: for final states such as death.
             public bool final;
+
+            // Reached from another state of the same action (see Chain), not from Entry.
+            public bool chained;
         }
 
         // Rebuilds the base layer in the one pattern every enemy uses: Entry -> state when its bool is true, state ->
@@ -393,7 +443,7 @@ namespace Kneel.EditorTools
                 {
                     machine.defaultState = state;
                 }
-                else
+                else if (spec.chained == false)
                 {
                     machine.AddEntryTransition(state).AddCondition(AnimatorConditionMode.If, 0f, parameter);
                 }
@@ -407,6 +457,44 @@ namespace Kneel.EditorTools
                 }
             }
 
+            EditorUtility.SetDirty(controller);
+        }
+
+        // An action made of several clips: `to` follows `from`, on `trigger` if there is one, else when `from` ends.
+        public static void Chain(AnimatorController controller, string from, string to, float blend, string trigger = null)
+        {
+            AnimatorState Find(string name)
+            {
+                foreach (ChildAnimatorState child in controller.layers[0].stateMachine.states)
+                {
+                    if (child.state.name == name)
+                    {
+                        return child.state;
+                    }
+                }
+
+                return null;
+            }
+
+            AnimatorStateTransition next = Find(from).AddTransition(Find(to));
+            next.duration = blend;
+            next.hasExitTime = trigger == null;
+            next.exitTime = 1f;
+            if (trigger != null)
+            {
+                EnsureParameter(controller, trigger, AnimatorControllerParameterType.Trigger);
+                next.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+            }
+
+            EditorUtility.SetDirty(controller);
+        }
+
+        // Turns on the base layer's IK pass, which OnAnimatorIK needs.
+        public static void EnableIK(AnimatorController controller)
+        {
+            AnimatorControllerLayer[] layers = controller.layers;
+            layers[0].iKPass = true;
+            controller.layers = layers;
             EditorUtility.SetDirty(controller);
         }
 
@@ -597,7 +685,7 @@ namespace Kneel.EditorTools
             return null;
         }
 
-        private static Transform Socket(Transform bone, string socketName, Vector3 position, Quaternion rotation)
+        public static Transform Socket(Transform bone, string socketName, Vector3 position, Quaternion rotation)
         {
             Transform socket = bone.Find(socketName);
             if (socket == null)

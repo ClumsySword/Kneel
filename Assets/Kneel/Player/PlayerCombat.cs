@@ -820,7 +820,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (fromFront == true && IsParryWindowOpen == true)
+        if (fromFront == true && IsParryWindowOpen == true && info.unparryable == false)
         {
             if (info.source != null && info.source.TryGetComponent(out IParryable parried))
             {

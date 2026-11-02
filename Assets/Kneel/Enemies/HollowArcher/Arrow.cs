@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
+    private const int IgnoreRaycastLayer = 2;
+
     // The archer that fired this arrow. It owns the damage numbers; the arrow only reports what it hit.
     private HollowArcher shooter;
 
@@ -9,9 +11,6 @@ public class Arrow : MonoBehaviour
     private Rigidbody rb;
     private MeshRenderer meshRenderer;
     private TrailRenderer trailRenderer;
-
-    [SerializeField]
-    private GameObject arrowImpactFX;
 
     private Vector3 startPosition;
     private float flyDistance;
@@ -58,7 +57,7 @@ public class Arrow : MonoBehaviour
 
     protected void ReturnToPoolIfNeeded()
     {
-        if (trailRenderer != null && trailRenderer.time < 0)
+        if (arrowDisabled && (trailRenderer == null || trailRenderer.time < 0))
             ReturnArrowToPool();
     }
 
@@ -91,6 +90,10 @@ public class Arrow : MonoBehaviour
         if (other.isTrigger)
             return;
 
+        // Nor do the levels' unseen boundary caps: an arrow can't stop in mid-air at a wall nobody can see.
+        if (other.gameObject.layer == IgnoreRaycastLayer)
+            return;
+
         IDamageable target = other.GetComponentInParent<IDamageable>();
         if (target != null && target is not PlayerCombat)
         {
@@ -98,6 +101,10 @@ public class Arrow : MonoBehaviour
                 Physics.IgnoreCollision(cd, other, true);
             return;
         }
+
+        // Rolled through: the arrow flies on past the player.
+        if (target is PlayerCombat rolling && rolling.IsInvulnerable)
+            return;
 
         CreateImpactFx();
         ReturnArrowToPool();
@@ -121,10 +128,7 @@ public class Arrow : MonoBehaviour
 
     protected void CreateImpactFx()
     {
-        if (arrowImpactFX == null || ObjectPool.instance == null)
-            return;
-
-        GameObject newImpactFx = ObjectPool.instance.GetObject(arrowImpactFX);
-        ObjectPool.instance.ReturnObject(newImpactFx, 1);
+        // The collider sits on the tip, and the arrow's origin is its nock.
+        HitSpark.Spawn(cd.bounds.center, -transform.forward, new Color(1f, 0.7f, 0.35f), 8);
     }
 }
