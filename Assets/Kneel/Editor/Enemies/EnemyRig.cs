@@ -118,6 +118,53 @@ namespace Kneel.EditorTools
             EditorUtility.SetDirty(clip);
         }
 
+        // The same for height: without this a body that falls to the floor stays up at standing height, lying in mid-air.
+        public static void BakeRootHeight(AnimationClip clip)
+        {
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopBlendPositionY = true;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+            EditorUtility.SetDirty(clip);
+        }
+
+        // Raises a baked body by `amount` over [start, end] seconds and keeps it there: for a fall that lands below the floor
+        // on a bigger body, without lifting the feet off the ground before it starts. `amount` is in the clip's own units,
+        // which are metres divided by the body's human scale and its transform's scale.
+        public static void LiftRoot(AnimationClip clip, float amount, float start, float end)
+        {
+            foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(clip))
+            {
+                if (binding.propertyName == "RootT.y")
+                {
+                    AnimationCurve curve = AnimationUtility.GetEditorCurve(clip, binding);
+                    Keyframe[] keys = curve.keys;
+                    for (int i = 0; i < keys.Length; i++)
+                    {
+                        keys[i].value += amount * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(start, end, keys[i].time));
+                    }
+
+                    AnimationUtility.SetEditorCurve(clip, binding, new AnimationCurve(keys));
+                }
+            }
+
+            EditorUtility.SetDirty(clip);
+        }
+
+        // A clip cut from the middle of a travelling combo starts with its body metres from the root, and enemies don't use
+        // root motion to bring it back. This holds the body over the root for the whole clip.
+        public static void PinRoot(AnimationClip clip)
+        {
+            foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(clip))
+            {
+                if (binding.propertyName == "RootT.x" || binding.propertyName == "RootT.z")
+                {
+                    AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, clip.length, 0f));
+                }
+            }
+
+            EditorUtility.SetDirty(clip);
+        }
+
         // Real travel speed of a clip on a body: the RootT delta over its length, scaled by that avatar's human scale.
         // AnimationClip.averageSpeed is skewed by lean, so it isn't used.
         public static float RootSpeed(AnimationClip clip, float humanScale)
@@ -150,8 +197,9 @@ namespace Kneel.EditorTools
 
         // Socket for a one-handed sword, built from the hand's own bones so it fits any rig. The item's +Y (blade)
         // leaves the index side of the fist, leaning `bladeLean` degrees toward the fingers, and its +X (edge) faces
-        // the punch direction. The origin (grip centre) sits behind the middle knuckle, on the palm side.
-        public static Transform SwordSocket(Animator animator, HumanBodyBones hand, float bladeLean = 12f, string socketName = "Socket_SwordHand")
+        // the punch direction. The origin (grip centre) sits `back` behind the middle knuckle and `depth` to the palm
+        // side, in the hand bone's units: the defaults suit a human hand, not a bigger one.
+        public static Transform SwordSocket(Animator animator, HumanBodyBones hand, float bladeLean = 12f, string socketName = "Socket_SwordHand", float back = 0.035f, float depth = 0.03f)
         {
             Transform handBone = animator.GetBoneTransform(hand);
             GetHandAxes(handBone, out Vector3 knuckle, out Vector3 fingers, out Vector3 indexSide, out Vector3 palm);
@@ -163,7 +211,7 @@ namespace Kneel.EditorTools
             }
 
             Vector3 edge = Vector3.ProjectOnPlane(fingers, blade).normalized;
-            Vector3 position = knuckle - fingers * 0.035f + palm * 0.03f;
+            Vector3 position = knuckle - fingers * back + palm * depth;
             return Socket(handBone, socketName, position, Quaternion.LookRotation(Vector3.Cross(edge, blade), blade));
         }
 
@@ -286,6 +334,79 @@ namespace Kneel.EditorTools
             }
 
             Object.DestroyImmediate(posed);
+        }
+
+        // Takes the fingers out of an avatar, so no clip moves them. For an enemy who never lets go of his weapons: a clip
+        // made for an open hand would otherwise open it round the grip. Pair with CloseFist. The T-pose skeleton is kept.
+        public static void UnmapFingers(string modelPath)
+        {
+            var importer = (ModelImporter)AssetImporter.GetAtPath(modelPath);
+            HumanDescription description = importer.humanDescription;
+
+            var kept = new List<HumanBone>();
+            foreach (HumanBone bone in description.human)
+            {
+                string name = bone.humanName;
+                bool finger = name.Contains("Thumb") || name.Contains("Index") || name.Contains("Middle") || name.Contains("Ring") || name.Contains("Little");
+                if (finger == false)
+                {
+                    kept.Add(bone);
+                }
+            }
+
+            if (kept.Count == description.human.Length)
+            {
+                return;
+            }
+
+            description.human = kept.ToArray();
+            importer.humanDescription = description;
+            importer.SaveAndReimport();
+        }
+
+        // Closes a hand into a fixed pose on the prefab's bones, for fingers no clip drives. `curl` is the bend at each
+        // of a finger's three joints, in degrees. `thumb` swings the thumb across the palm, then bends it. Each run starts
+        // from `model`'s own pose, so it's safe to rerun.
+        public static void CloseFist(Animator animator, GameObject model, HumanBodyBones hand, Vector3 curl, Vector2 thumb)
+        {
+            Transform handBone = animator.GetBoneTransform(hand);
+            GetHandAxes(handBone, out _, out Vector3 fingers, out Vector3 indexSide, out Vector3 palm);
+
+            var rest = new Dictionary<string, Quaternion>();
+            foreach (Transform bone in model.GetComponentsInChildren<Transform>(true))
+            {
+                rest[bone.name] = bone.localRotation;
+            }
+
+            foreach (string name in new[] { "index", "middle", "ring", "pinky", "thumb" })
+            {
+                Transform joint = FindFinger(handBone, name);
+                for (Transform bone = joint; bone != null; bone = bone.childCount > 0 ? bone.GetChild(0) : null)
+                {
+                    bone.localRotation = rest[bone.name];
+                }
+            }
+
+            Vector3 curlAxis = handBone.TransformDirection(Vector3.Cross(fingers, palm)).normalized;
+            Vector3 acrossAxis = handBone.TransformDirection(Vector3.Cross(indexSide, palm)).normalized;
+
+            foreach (string name in new[] { "index", "middle", "ring", "pinky" })
+            {
+                Transform joint = FindFinger(handBone, name);
+                for (int i = 0; i < 3 && joint != null; i++)
+                {
+                    joint.rotation = Quaternion.AngleAxis(curl[i], curlAxis) * joint.rotation;
+                    joint = joint.childCount > 0 ? joint.GetChild(0) : null;
+                }
+            }
+
+            Transform thumbJoint = FindFinger(handBone, "thumb");
+            thumbJoint.rotation = Quaternion.AngleAxis(thumb.x, acrossAxis) * thumbJoint.rotation;
+            for (int i = 1; i < 3 && thumbJoint.childCount > 0; i++)
+            {
+                thumbJoint = thumbJoint.GetChild(0);
+                thumbJoint.rotation = Quaternion.AngleAxis(thumb.y, curlAxis) * thumbJoint.rotation;
+            }
         }
 
         // Puts a weapon prefab on a socket at identity (the socket defines the pose). Weapons are visual only: they keep
@@ -597,6 +718,16 @@ namespace Kneel.EditorTools
             return mask;
         }
 
+        // Mask for both arms and nothing else.
+        public static AvatarMask ArmsMask(string path)
+        {
+            AvatarMask mask = ArmMask(path, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFingers, true);
+            EditorUtility.SetDirty(mask);
+            return mask;
+        }
+
         private static void EnsureParameter(AnimatorController controller, string name, AnimatorControllerParameterType type)
         {
             foreach (AnimatorControllerParameter parameter in controller.parameters)
@@ -671,12 +802,13 @@ namespace Kneel.EditorTools
         }
 
         // Auto-rigged avatars map only some fingers, so GetBoneTransform can come back empty. Mixamo and CC_Base rigs both
-        // name the first bone of each finger as a child of the hand.
+        // name the first bone of each finger as a child of the hand, though CC_Base shortens the middle one to Mid.
         private static Transform FindFinger(Transform hand, string finger)
         {
+            string shortName = finger == "middle" ? "mid" : finger;
             foreach (Transform child in hand)
             {
-                if (child.name.ToLowerInvariant().Contains(finger))
+                if (child.name.ToLowerInvariant().Contains(shortName))
                 {
                     return child;
                 }

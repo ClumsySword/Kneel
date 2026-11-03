@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Kneel.Hazards
 {
-    // A burning brand on a post at the upwind end of a crop row. Any hit (the player's sword, a flail) knocks
+    // A burning brand on a post at the upwind end of a crop row. Any hit (the player's sword) knocks
     // it over into the crop, which lights the row. It takes hits through the project's IDamageable, so its hit
     // collider sits on the Enemy layer where the sword looks.
     public class BrandStake : MonoBehaviour, IDamageable, ILevelResettable
@@ -56,7 +56,7 @@ namespace Kneel.Hazards
             }
         }
 
-        // Public so a flail, a test or the inspector button can knock it without a hit.
+        // Public so a test or the inspector button can knock it without a hit.
         public void Knock()
         {
             if (IsKnocked == true)

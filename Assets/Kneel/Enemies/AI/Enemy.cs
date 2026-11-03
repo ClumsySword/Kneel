@@ -24,6 +24,9 @@ public class Enemy : MonoBehaviour
     // Poise knocked off the player by the attack (see Poise).
     public float attackPoiseDamage = 30f;
 
+    // How much heavier than a normal blow its attacks land (see DamageInfo.impact).
+    public float attackImpact;
+
     // An attack only starts once the player is within this many degrees of straight ahead.
     public float attackFacingAngle = 15f;
 
@@ -140,6 +143,7 @@ public class Enemy : MonoBehaviour
                 direction = transform.forward,
                 source = gameObject,
                 isCritical = false,
+                impact = attackImpact,
             });
             return true;
         }

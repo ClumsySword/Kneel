@@ -26,6 +26,9 @@ public struct DamageInfo
 
     // No weapon to parry, such as an arrow: a press in the parry window only blocks it.
     public bool unparryable;
+
+    // How much heavier than a normal blow this lands: 1 doubles the hit-stop and shake, and it shoves the receiver.
+    public float impact;
 }
 
 public interface IDamageable

@@ -34,7 +34,7 @@ public class MoveState_BlightedBrute : EnemyState
 
         if (blightedBrute.PlayerInAgressionRange())
         {
-            stateMachine.ChangeState(blightedBrute.recoveryState);
+            blightedBrute.StartCombat();
             return;
         }
 

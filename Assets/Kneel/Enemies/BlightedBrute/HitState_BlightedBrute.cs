@@ -20,7 +20,6 @@ public class HitState_BlightedBrute : EnemyState
         base.Enter();
 
         stateTimer = blightedBrute.hitStunTime;
-        blightedBrute.telegraph = 0f;
         blightedBrute.agent.isStopped = true;
         blightedBrute.agent.velocity = Vector3.zero;
 

@@ -18,7 +18,6 @@ public class DeadState_BlightedBrute : EnemyState
     {
         base.Enter();
 
-        blightedBrute.telegraph = 0f;
         blightedBrute.anim.CrossFadeInFixedTime("Dead", 0.1f, 0, 0f);
 
         // The body stays where it fell: no more pathing, and nothing can hit or bump into it.
