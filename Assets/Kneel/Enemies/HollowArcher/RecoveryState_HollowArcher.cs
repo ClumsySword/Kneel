@@ -19,6 +19,7 @@ public class RecoveryState_HollowArcher : EnemyState
         base.Enter();
 
         HollowArcher.agent.isStopped = true;
+        HollowArcher.agent.velocity = Vector3.zero;
     }
 
     public override void Update()

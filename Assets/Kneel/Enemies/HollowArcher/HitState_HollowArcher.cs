@@ -20,7 +20,6 @@ public class HitState_HollowArcher : EnemyState
         base.Enter();
 
         stateTimer = HollowArcher.hitStunTime;
-        HollowArcher.telegraph = 0f;
         HollowArcher.agent.isStopped = true;
         HollowArcher.agent.velocity = Vector3.zero;
 

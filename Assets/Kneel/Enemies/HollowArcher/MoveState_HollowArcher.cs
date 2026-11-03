@@ -1,7 +1,4 @@
-using Unity.VisualScripting;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
-using UnityEngine.AI;
 
 public class MoveState_HollowArcher : EnemyState
 {
@@ -23,8 +20,9 @@ public class MoveState_HollowArcher : EnemyState
         base.Enter();
 
         HollowArcher.agent.speed = HollowArcher.moveSpeed;
+        HollowArcher.agent.isStopped = false;
 
-        destination = HollowArcher.GetPatrolDestination();
+        destination = HollowArcher.NextPatrolPoint();
         HollowArcher.agent.SetDestination(destination);
     }
 
@@ -37,6 +35,9 @@ public class MoveState_HollowArcher : EnemyState
             stateMachine.ChangeState(HollowArcher.recoveryState);
             return;
         }
+
+        if (HollowArcher.agent.pathPending)
+            return;
 
         HollowArcher.transform.rotation = HollowArcher.FaceTarget(GetNextPathPoint());
 

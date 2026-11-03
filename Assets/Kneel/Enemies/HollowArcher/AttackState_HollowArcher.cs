@@ -1,18 +1,16 @@
 using UnityEngine;
 
+// One shot, from the reach for the quiver to the end of the release. The animator takes it through Attack - Idle (reach
+// and nock), Attack - Draw (the 20-frame final tell) and Attack - Shoot (release); the clips' events drive the rest.
 public class AttackState_HollowArcher : EnemyState
 {
     private HollowArcher HollowArcher;
 
-    // Seconds from entering the attack until the weapon connects: the AttackHit event sits at 0.30 s
-    // of Attack_B, which plays at 0.6x in the animator. Used to ramp the red telegraph.
-    private const float WindupTime = 0.5f;
+    // Seconds since the shot began.
+    public float elapsed { get; private set; }
 
-    private float elapsed;
-    private bool hasFired;
-
-    // Set by the AttackHit animation event. After this the swing is committed and can't be interrupted.
-    public bool swingStarted { get; set; }
+    // Set by the ArrowRelease animation event. Until then he tracks the player and the shot can still be broken.
+    public bool released { get; set; }
 
     public AttackState_HollowArcher(
         Enemy enemyBase,
@@ -29,9 +27,13 @@ public class AttackState_HollowArcher : EnemyState
         base.Enter();
         HollowArcher.agent.isStopped = true;
         HollowArcher.agent.velocity = Vector3.zero;
-        swingStarted = false;
+        released = false;
         elapsed = 0f;
-        hasFired = false;
+        HollowArcher.StartShot();
+
+        // Straight into the clip. A transition still blending can't be interrupted, so the bool alone starts the shot late
+        // and the events no longer land where the pose says.
+        HollowArcher.anim.CrossFadeInFixedTime("Attack - Idle", 0.15f, 0, 0f);
     }
 
     public override void Update()
@@ -39,21 +41,8 @@ public class AttackState_HollowArcher : EnemyState
         base.Update();
         elapsed += Time.deltaTime;
 
-        // Track the player during the wind-up; once the swing starts it's committed.
-        if (swingStarted == false)
-        {
+        if (released == false)
             HollowArcher.transform.rotation = HollowArcher.FaceTarget(HollowArcher.player.position);
-            HollowArcher.telegraph = Mathf.Clamp01(elapsed / WindupTime);
-            if (!hasFired && elapsed >= WindupTime)
-            {
-                HollowArcher.FireArrow();
-                hasFired = true;
-            }
-        }
-        else
-        {
-            HollowArcher.telegraph = 0f;
-        }
 
         if (triggerCalled)
             stateMachine.ChangeState(HollowArcher.recoveryState);
@@ -62,6 +51,6 @@ public class AttackState_HollowArcher : EnemyState
     public override void Exit()
     {
         base.Exit();
-        HollowArcher.telegraph = 0f;
+        HollowArcher.EndShot();
     }
 }

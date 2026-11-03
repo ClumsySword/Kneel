@@ -23,6 +23,9 @@ public struct DamageInfo
 
     // Shield bash: cancels an attack that is still winding up.
     public bool interrupts;
+
+    // No weapon to parry, such as an arrow: a press in the parry window only blocks it.
+    public bool unparryable;
 }
 
 public interface IDamageable

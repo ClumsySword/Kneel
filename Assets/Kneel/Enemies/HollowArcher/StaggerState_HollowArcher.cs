@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Knocked off balance by a parry or a broken poise: fully open, and hits on it are critical.
+// Knocked off balance by a broken poise: fully open, and hits on it are critical.
 public class StaggerState_HollowArcher : EnemyState
 {
     private HollowArcher HollowArcher;
@@ -20,7 +20,6 @@ public class StaggerState_HollowArcher : EnemyState
         base.Enter();
 
         stateTimer = HollowArcher.staggerTime;
-        HollowArcher.telegraph = 0f;
         HollowArcher.agent.isStopped = true;
         HollowArcher.agent.velocity = Vector3.zero;
 
