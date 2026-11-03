@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Knocked off balance by a parry or a broken poise: fully open, and hits on it are critical.
+// Knocked off balance by a parry: his string is over, he is fully open, and hits on him are critical.
 public class StaggerState_TheFool : EnemyState
 {
     private TheFool TheFool;
@@ -25,7 +25,7 @@ public class StaggerState_TheFool : EnemyState
         TheFool.agent.velocity = Vector3.zero;
 
         // Restart the clip even when already staggered (the bool alone wouldn't replay it).
-        TheFool.anim.Play("Stagger", 0, 0f);
+        TheFool.anim.CrossFadeInFixedTime("Stagger", 0.08f, 0, 0f);
     }
 
     public override void Update()

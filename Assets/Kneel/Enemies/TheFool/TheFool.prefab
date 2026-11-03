@@ -508,6 +508,7 @@ Transform:
   - {fileID: 3728683693321457699}
   - {fileID: 8497785504417637265}
   - {fileID: 1234452955031037073}
+  - {fileID: 2425111744753200044}
   m_Father: {fileID: 100615891111273010}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1483825229451841873
@@ -1656,6 +1657,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 779650543335506432}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4516938209798951745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2425111744753200044}
+  m_Layer: 0
+  m_Name: Socket_SwordHand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2425111744753200044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516938209798951745}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.3018194, y: 0.2341146, z: 0.50549954, w: 0.77367026}
+  m_LocalPosition: {x: 0.09081401, y: 0.060976468, z: -0.03753019}
+  m_LocalScale: {x: 0.99999976, y: 0.99999976, z: 1.0000006}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3106601963711203915}
+  - {fileID: 2084425827917995788}
+  m_Father: {fileID: 7160243394876652502}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4603063665995447112
 GameObject:
   m_ObjectHideFlags: 0
@@ -2617,6 +2651,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3872419060490272065}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6752385470312399154
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2084425827917995788}
+  m_Layer: 0
+  m_Name: OffHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2084425827917995788
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6752385470312399154}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.6649987, y: 0.122896954, z: -0.21303739, w: -0.7051866}
+  m_LocalPosition: {x: 0.051917434, y: -0.11058247, z: 0.08365059}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2425111744753200044}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6989189782248261441
 GameObject:
   m_ObjectHideFlags: 0
@@ -3080,14 +3145,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7487353045ba0c428ab7de8ec8220789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheFool
-  aggressionRange: 10
-  attackRange: 2.5
+  aggressionRange: 12
+  attackRange: 4
   attackMoveSpeed: 2
-  attackDamage: 15
-  attackReach: 1.4
-  attackRadius: 0.8
-  attackPoiseDamage: 30
-  attackFacingAngle: 15
+  attackDamage: 25
+  attackReach: 1.5
+  attackRadius: 1.1
+  attackPoiseDamage: 20
+  attackImpact: 0.5
+  attackFacingAngle: 20
   playerMask:
     serializedVersion: 2
     m_Bits: 512
@@ -3097,15 +3163,56 @@ MonoBehaviour:
     regenRate: 20
   windupPoiseMultiplier: 2
   idleTime: 2
-  moveSpeed: 1.5
-  chaseSpeed: 2.5
-  turnSpeed: 3
+  moveSpeed: 1.2
+  chaseSpeed: 5
+  turnSpeed: 5
   patrolPoints: []
   hitStunTime: 0.6
-  staggerTime: 1.4
+  staggerTime: 2
   knockback: 0.35
-  lungeHitReach: 0.6
-  lungeStopDistance: 0.9
+  firstWindup: 1
+  followupWindup: 0.4
+  commitTime: 0.3
+  lungeDistance: 2.5
+  lungeLead: 0.25
+  lungeTail: 0.12
+  lungeStopDistance: 1.2
+  recoveryTime: 1.6
+  offHandGrip: {fileID: 2084425827917995788}
+  offHandReach: 0.25
+  breachReach: 1
+  swings:
+  - state: Swing_Chop
+    contact: 0.87
+    windup: 0
+  - state: Swing_Sweep
+    contact: 0.46000004
+    windup: 0
+  - state: Swing_Sweep2
+    contact: 0.5
+    windup: 0
+  - state: Swing_Downward
+    contact: 0.66
+    windup: 0
+  - state: Swing_LowSweep
+    contact: 0.43
+    windup: 0
+  - state: Swing_CrouchSweep
+    contact: 0.48
+    windup: 0
+  - state: Swing_Spin
+    contact: 0.84999996
+    windup: 0.7
+  strings:
+  - name: Three
+    swings: 000000000100000002000000i
+  - name: Two
+    swings: 0300000005000000i
+  - name: Spin
+    swings: 000000000400000006000000i
+  - name: Four
+    swings: 03000000010000000500000006000000i
+  followThroughSpeed: 1
 --- !u!195 &3301758570996914010
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -3117,7 +3224,7 @@ NavMeshAgent:
   m_AgentTypeID: 0
   m_Radius: 0.25
   m_Speed: 3.5
-  m_Acceleration: 8
+  m_Acceleration: 20
   avoidancePriority: 50
   m_AngularSpeed: 120
   m_StoppingDistance: 0.5
@@ -3140,7 +3247,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4a4c59c1d59f0fd88556fd23cb3fa65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 60
+  maxHealth: 34
   regenerateToFull: 0
   regenDelay: 3
 --- !u!136 &7393797960183544358
@@ -3741,3 +3848,65 @@ Transform:
   - {fileID: 5871366486492824499}
   m_Father: {fileID: 2302456928445570295}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &3212869165227765152
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2425111744753200044}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: faca7af773748fe468e7f5f196883342, type: 3}
+      propertyPath: m_Name
+      value: SM_FoolGreatsword
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: faca7af773748fe468e7f5f196883342, type: 3}
+--- !u!4 &3106601963711203915 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: faca7af773748fe468e7f5f196883342, type: 3}
+  m_PrefabInstance: {fileID: 3212869165227765152}
+  m_PrefabAsset: {fileID: 0}

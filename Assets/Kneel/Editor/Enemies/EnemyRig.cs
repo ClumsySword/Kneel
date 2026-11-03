@@ -215,6 +215,55 @@ namespace Kneel.EditorTools
             return Socket(handBone, socketName, position, Quaternion.LookRotation(Vector3.Cross(edge, blade), blade));
         }
 
+        // Socket for a weapon held in both hands, set from a pose that holds it in both, as posed at `poseTime` of `pose`.
+        // The grip runs from the off hand's fist through this one's, so the item's +Y (blade) points that way, its +X
+        // (edge) faces the knuckles, and its origin (the grip's centre) sits halfway between the fists. The weapon rides
+        // this hand alone, so clips that let go with the other hand still carry it.
+        public static Transform TwoHandedSocket(Animator animator, HumanBodyBones hand, HumanBodyBones offHand, AnimationClip pose, float poseTime, string socketName = "Socket_SwordHand")
+        {
+            Transform handBone = animator.GetBoneTransform(hand);
+            GetHandAxes(handBone, out Vector3 knuckle, out Vector3 fingers, out _, out Vector3 palm);
+
+            var posed = Object.Instantiate(animator.gameObject);
+            posed.hideFlags = HideFlags.HideAndDontSave;
+            posed.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            pose.SampleAnimation(posed, poseTime);
+
+            var posedAnimator = posed.GetComponent<Animator>();
+            Transform posedHand = posedAnimator.GetBoneTransform(hand);
+            Transform posedOff = posedAnimator.GetBoneTransform(offHand);
+            GetHandAxes(posedOff, out Vector3 offKnuckle, out Vector3 offFingers, out _, out Vector3 offPalm);
+            Vector3 fist = knuckle - fingers * 0.035f + palm * 0.03f;
+            Vector3 offFist = posedHand.InverseTransformPoint(posedOff.TransformPoint(offKnuckle - offFingers * 0.035f + offPalm * 0.03f));
+            Object.DestroyImmediate(posed);
+
+            Vector3 blade = (fist - offFist).normalized;
+            Vector3 edge = Vector3.ProjectOnPlane(fingers, blade).normalized;
+            Vector3 position = (fist + offFist) * 0.5f;
+            return Socket(handBone, socketName, position, Quaternion.LookRotation(Vector3.Cross(edge, blade), blade));
+        }
+
+        // Where the off hand holds a two-handed weapon, for the enemy's own IK: the hand bone's pose at `poseTime` of
+        // `pose`, kept as a child of the weapon's socket. Call after Equip, which clears the socket.
+        public static Transform OffHandGrip(Animator animator, Transform socket, HumanBodyBones offHand, AnimationClip pose, float poseTime, string gripName = "OffHandGrip")
+        {
+            var posed = Object.Instantiate(animator.gameObject);
+            posed.hideFlags = HideFlags.HideAndDontSave;
+            posed.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            pose.SampleAnimation(posed, poseTime);
+
+            Transform posedSocket = posed.transform.Find(AnimationUtility.CalculateTransformPath(socket, animator.transform));
+            Transform posedHand = posed.GetComponent<Animator>().GetBoneTransform(offHand);
+            Vector3 position = posedSocket.InverseTransformPoint(posedHand.position);
+            Quaternion rotation = Quaternion.Inverse(posedSocket.rotation) * posedHand.rotation;
+            Object.DestroyImmediate(posed);
+
+            var grip = new GameObject(gripName).transform;
+            grip.SetParent(socket, false);
+            grip.SetLocalPositionAndRotation(position, rotation);
+            return grip;
+        }
+
         // Socket for a strapped shield, set from the grip itself. In a guard the palm faces the chest, so the board lies
         // against the back of the hand and forearm: the strap runs across the fist, the forearm runs along the board
         // toward the other strap. `strap` is the fist's strap in the shield's space (the other is at -x) and `boardZ`

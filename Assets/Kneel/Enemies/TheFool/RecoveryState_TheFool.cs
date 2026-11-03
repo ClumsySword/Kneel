@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// After the third swing he stands admiring his sword: the player's window to hit him.
 public class RecoveryState_TheFool : EnemyState
 {
     private TheFool TheFool;
@@ -18,21 +19,16 @@ public class RecoveryState_TheFool : EnemyState
     {
         base.Enter();
 
+        stateTimer = TheFool.recoveryTime;
         TheFool.agent.isStopped = true;
+        TheFool.agent.velocity = Vector3.zero;
     }
 
     public override void Update()
     {
         base.Update();
 
-        TheFool.transform.rotation = TheFool.FaceTarget(TheFool.player.position);
-
-        if (triggerCalled)
+        if (stateTimer < 0)
             stateMachine.ChangeState(TheFool.chaseState);
-    }
-
-    public override void Exit()
-    {
-        base.Exit();
     }
 }

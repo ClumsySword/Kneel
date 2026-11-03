@@ -26,7 +26,7 @@ public class IdleState_TheFool : EnemyState
         base.Update();
         if (TheFool.PlayerInAgressionRange())
         {
-            stateMachine.ChangeState(TheFool.recoveryState);
+            stateMachine.ChangeState(TheFool.noticeState);
             return;
         }
 
