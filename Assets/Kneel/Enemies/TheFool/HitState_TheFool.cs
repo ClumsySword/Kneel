@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Short flinch from a hit that didn't break poise.
+// Short flinch. He has no poise, so every hit outside a committed swing causes one, and it ends his string.
 public class HitState_TheFool : EnemyState
 {
     private TheFool TheFool;
@@ -25,7 +25,7 @@ public class HitState_TheFool : EnemyState
         TheFool.agent.velocity = Vector3.zero;
 
         // Restart the reaction even when already reacting (the bool alone wouldn't replay it).
-        TheFool.anim.Play("Hit", 0, 0f);
+        TheFool.anim.CrossFadeInFixedTime("Hit", 0.05f, 0, 0f);
     }
 
     public override void Update()

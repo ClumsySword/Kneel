@@ -1,5 +1,3 @@
-using Unity.VisualScripting;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -34,7 +32,7 @@ public class MoveState_TheFool : EnemyState
 
         if (TheFool.PlayerInAgressionRange())
         {
-            stateMachine.ChangeState(TheFool.recoveryState);
+            stateMachine.ChangeState(TheFool.noticeState);
             return;
         }
 
