@@ -7,6 +7,7 @@ using UnityEngine.AI;
 public class Enemy : MonoBehaviour
 {
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int SpeedId = Animator.StringToHash("Speed");
 
     [Header("Attack Data")]
     public float aggressionRange;
@@ -117,11 +118,13 @@ public class Enemy : MonoBehaviour
 
     public bool TryAttackHit() => TryAttackHit(attackReach);
 
+    public bool TryAttackHit(float reach) => TryAttackHit(reach, attackRadius, attackDamage, attackPoiseDamage);
+
     // One overlap check `reach` in front of the enemy. Returns true if it hit the player.
-    public bool TryAttackHit(float reach)
+    public bool TryAttackHit(float reach, float radius, float damage, float poiseDamage)
     {
         Vector3 center = AttackCenter(reach);
-        int count = Physics.OverlapSphereNonAlloc(center, attackRadius, overlapBuffer, playerMask, QueryTriggerInteraction.Ignore);
+        int count = Physics.OverlapSphereNonAlloc(center, radius, overlapBuffer, playerMask, QueryTriggerInteraction.Ignore);
 
         for (int i = 0; i < count; i++)
         {
@@ -131,8 +134,8 @@ public class Enemy : MonoBehaviour
 
             target.TakeHit(new DamageInfo
             {
-                amount = attackDamage,
-                poiseDamage = attackPoiseDamage,
+                amount = damage,
+                poiseDamage = poiseDamage,
                 point = overlapBuffer[i].ClosestPoint(center),
                 direction = transform.forward,
                 source = gameObject,
@@ -144,7 +147,7 @@ public class Enemy : MonoBehaviour
         return false;
     }
 
-    public bool PlayerInAgressionRange() =>
+    public virtual bool PlayerInAgressionRange() =>
         Vector3.Distance(transform.position, player.position) < aggressionRange;
 
     public bool PlayerInAttackRange() =>
@@ -204,6 +207,24 @@ public class Enemy : MonoBehaviour
 
     // White flash on being hit.
     public void Flash() => flash = 1f;
+
+    // Feeds a controller's speed blend tree with how fast the agent really moves (m/s), so the feet match it.
+    protected void UpdateSpeedParameter()
+    {
+        anim.SetFloat(SpeedId, agent.enabled ? agent.velocity.magnitude : 0f);
+    }
+
+    // Takes the whole body out of the world, weapons included, or puts it back.
+    protected void SetPresent(bool present)
+    {
+        foreach (Renderer bodyRenderer in renderers)
+            bodyRenderer.enabled = present;
+
+        foreach (Collider bodyCollider in GetComponents<Collider>())
+            bodyCollider.enabled = present;
+
+        agent.enabled = present;
+    }
 
     private Vector3 AttackCenter() => AttackCenter(attackReach);
 

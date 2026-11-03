@@ -24,7 +24,7 @@ Other MCP gotchas:
 
 ## Design docs
 
-The team's Obsidian vault is a sibling folder, `../Kneel-Obsidian`. The source of truth for design:
+The team's Obsidian vault is a sibling folder, `../Obsidian`. The source of truth for design:
 - `10-TenPager/*.tex`: the LaTeX ten-pager. `03Character.tex` has the **controls table**. Bind new verbs to the key it specifies.
 - `02-Design/Mechanics/*.md`: per-mechanic feel targets (Combat Roll, Parry, Poise & Stagger).
 - `04-Tech/Combat Feel Spec.md`: impact stack, and the rule that committed actions can't be cancelled but inputs are buffered.
@@ -49,6 +49,7 @@ The code currently diverges from the ten-pager in a few places:
     - **Pause menu** (Esc, or Start on a gamepad): the builder also writes `UI/Resources/PauseMenu.prefab`, and `PauseMenu` spawns it into every scene except `Splash` and `MainMenu`, so level scenes need nothing added. Pausing sets `timeScale` 0 (held at 0 in `LateUpdate`, since hit-stop resets it on real time), shows the cursor (`AimEmber` hides it in play and shows it, hiding the aim ember, while paused or while the F1 overlay is open; the pause menu also holds it visible each frame), suspends gameplay input, low-passes music/ambience (sources on a `Music`/`Ambience` mixer group, or unrouted looping sources) and pauses every other sound (`PauseAudio`). It brings its own EventSystem, used only while paused. Quit to Main Menu / Desktop auto-save (scene + playtime) before their confirm dialog. It draws on an overlay canvas, so level post-processing never touches it; its highlight sparks are `UISparks` images, since particles don't render on overlay canvases.
   - `Kneel/Audio/Resources/KneelMixer.mixer`: Master with Music and SFX groups (exposed `MusicVolume` / `SFXVolume`). Master volume is `AudioListener.volume`.
   - `Kneel/Editor/L1/`: the level-building tools (`Kneel/L1` menu). They hardcode `Assets/Kneel/Levels/L1/...` paths, so update those if L1 content moves.
+  - `Kneel/Editor/Enemies/`: `EnemyRig` is the shared enemy setup: Humanoid clip conversion, `.anim` copies with events, weapon sockets built from the hand bones, atlas recolours, and the controller in the bool pattern below. Each enemy's setup is a table of calls into it (`AshenFootmanSetup`, `Kneel/Enemies` menu). `FootmanPlaytest` fights him through the real input handlers and writes `Temp/FootmanPlaytest.txt`; `Level Check` walks up to every Footman in the open level.
   - `Kneel/Shaders/`: shared shaders.
 - Everything else under `Assets/` is imported and shouldn't be modified: the asset packs (`SyntyStudios/`, `Thirdparty/` including `Toon_RTS_demo`, `URPDefaultResources/`) and the imported TMP Essentials (`TextMesh Pro/`).
 - Move assets inside Unity (or with `AssetDatabase.MoveAsset`), never in the file browser, so the `.meta` GUIDs travel with them. When scripting moves, don't wrap `AssetDatabase.CreateFolder` in `StartAssetEditing`: folders created inside the batch aren't registered, and retries produce numbered duplicates (`Levels 1`, `Levels 2`, …).
@@ -135,15 +136,19 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
 - **Ashen Footman** (Olivia's, `Kneel/Enemies/AshenFootman`, base `Kneel/Enemies/AI/Enemy.cs`):
   - It's a plain-C# state machine: one `EnemyState` subclass per behaviour, and each state sets an animator **bool** of the same name.
   - The controller follows one pattern: Entry → state when its bool is true, state → Exit when it's false. Add new states the same way.
-  - States: Idle → Move (patrol) → Recovery (the pointing clip, which is also the post-attack punish window) → Chase → Attack, plus Hit and Dead.
-  - **Animation events** drive it: `AnimationTrigger` ends the Recovery and Attack clips, and `AttackHit` (on `Attack_B.anim` at 0.30 s) deals damage with an overlap sphere on the `Player` layer.
-  - Attack plays at 0.6× so the wind-up is at least 300 ms, with a red tint telegraph.
+  - States: Idle → Move (patrol) → Recovery (a short stance, which is also the post-attack punish window) → Chase → Attack / Sweep, plus Block, Hit, Stagger, Dead, and Dormant (held out of the world by a gibbet). Attack and Sweep are one state class with their own bool, and start with a `CrossFadeInFixedTime`: a transition still blending out of Recovery can't be interrupted, and the bool alone started them 0.26 s late.
+  - Move and Chase share a 1D `Speed` tree (`combat-idle`, `walk-forwards`, `sprint-forwards` at their measured speeds on his avatar) driven by the agent's real velocity. Chase's 2.5 m/s is a walk/run blend, and the state runs at 1.16× because that blend covers less ground per step than the two root speeds predict. Both clips have the left foot forward at phase 0.25, which is what lets them blend.
+  - **Animation events** drive it: `AnimationTrigger` ends `Footman_Recovery`, `Footman_Overhead` and `Footman_Sweep`, and `AttackHit` deals damage with an overlap sphere on the `Player` layer, at the frame the blade tip passes straight ahead (clip 0.62 s and 0.60 s, measured on his rig with the animator running).
+  - Two attacks: the overhead (`slash-1` at 0.775×, lands at 0.80 s, 24 frames at 30 fps) and the sweep (`slash-5` at 0.9×, lands at 0.67 s). Two overheads, then a sweep; a player inside `sweepRange` draws the sweep early. He has no colour telegraph (`Enemy.telegraph` stays at zero; the other enemies still use it). The overhead's tell is the pose: the clip's coil plus `shoulderTell`, the sword-side shoulder hauled up in `LateUpdate`, only while visible, since `CullUpdateTransforms` leaves the bones unwritten off camera.
+  - **Weapons**: `Socket_SwordHand` / `Socket_ShieldHand` under the hands, built by `EnemyRig`. The sword runs through the hole of the fist. The shield's strap sits at the fist and the forearm along the board, seated just clear of the skin. His avatar maps index, middle and thumb only, so the ring fingers have a fixed pose copied from the middle finger. `SM_Wep_Shield_03_Footman` is a variant wearing a copy of the Synty atlas (`Weapons/T_FootmanShield.png`). Weapons keep no colliders.
+  - **Shield**: up in Idle, Move, Recovery, Chase and Block unless `guardDownTimer` is running, and blocks hits within `guardAngle` of his front. A blocked hit does no damage and half its poise damage. A bash (`DamageInfo.interrupts`), or poise running out, breaks the guard into a stagger. The guard stays down `guardDownAfterHit` after a hit lands, `guardDownAfterAttack` after a swing (the punish window), and `guardDownAfterBreak` through any stagger. Fire goes round it and causes no reaction.
   - The Hit and Dead states use `stateTimer` instead of events, because their clips (Mixamo `impact-1`, `death-1`) are shared with the player, whose animator has no receiver for them.
   - It implements `IDamageable` / `IParryable` / `IStaggerable`:
-    - Hits that break its poise (30) stagger it (`StaggerState`, `Stagger` animator state on `impact-2` at 0.7×); hits that don't make it flinch (`Hit`), except during an attack, which carries on.
-    - A parry staggers it, and hits during the stagger are crits.
-    - It has 40 HP, which is 3 hits of the 12→20 combo.
+    - Hits that break its poise (30) stagger it (`StaggerState`, `Stagger` animator state on `impact-2` at 0.5×); hits that don't make it flinch (`Hit`), except during an attack, which carries on.
+    - A parry staggers it for 2 s, long enough for a heavy pressed after it to land, and hits during the stagger are crits.
+    - It has 50 HP: 2 lights + a heavy, or one riposte (heavy × 1.5), as the design note says.
     - When it dies, its agent and collider switch off and the body stays.
+  - L3 and L4 instances override the agent type to Thrall and have their patrol points cleared. L3's gibbet Footmen set `ambush`, and the Wallow's also sets `leash` to its mud. `L3_Gibbet_Crowed.prefab` ships with `GibbetAmbush` disabled, so its L3 instances enable it as a scene override.
 - **Clips**: Mixamo FBX files in `Assets/Kneel/Player/Animations/`.
   - The Humanoid ones copy their avatar from `Mixamo_POLYGON_Guy_Naked.fbx`. The combat clips in use have been converted and renamed (`draw-sword-1`, `attack-4`, `slash-1`, `block-idle`, `impact-1`, `kick`, …). The other `sword and shield *` clips are still Generic and must be switched to Humanoid (same avatar source) before use.
   - `draw sword 1`/`2` and `sheath sword 1`/`2` are two halves of one motion (reach to the hilt, then pull out; and the reverse).

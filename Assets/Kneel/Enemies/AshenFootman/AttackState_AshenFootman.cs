@@ -1,12 +1,13 @@
 using UnityEngine;
 
+// One swing, from wind-up to the end of its clip. Both of his attacks are this state with their own animator bool.
 public class AttackState_AshenFootman : EnemyState
 {
     private AshenFootman ashenFootman;
 
-    // Seconds from entering the attack until the weapon connects: the AttackHit event sits at 0.30 s
-    // of Attack_B, which plays at 0.6x in the animator. Used to ramp the red telegraph.
-    private const float WindupTime = 0.5f;
+    // Seconds from entering the attack until the weapon connects (the AttackHit event at the state's speed in the
+    // animator). Used to ramp the shoulder tell.
+    private readonly float windupTime;
 
     private float elapsed;
 
@@ -16,11 +17,13 @@ public class AttackState_AshenFootman : EnemyState
     public AttackState_AshenFootman(
         Enemy enemyBase,
         EnemyStateMachine stateMachine,
-        string animBoolName
+        string animBoolName,
+        float windupTime
     )
         : base(enemyBase, stateMachine, animBoolName)
     {
         ashenFootman = enemyBase as AshenFootman;
+        this.windupTime = windupTime;
     }
 
     public override void Enter()
@@ -30,6 +33,10 @@ public class AttackState_AshenFootman : EnemyState
         ashenFootman.agent.velocity = Vector3.zero;
         swingStarted = false;
         elapsed = 0f;
+
+        // Straight into the clip. A transition still blending out of Recovery can't be interrupted, so the bool alone
+        // starts the swing late and the hit no longer lands where the wind-up says.
+        ashenFootman.anim.CrossFadeInFixedTime(animBoolName, 0.12f, 0, 0f);
     }
 
     public override void Update()
@@ -41,11 +48,11 @@ public class AttackState_AshenFootman : EnemyState
         if (swingStarted == false)
         {
             ashenFootman.transform.rotation = ashenFootman.FaceTarget(ashenFootman.player.position);
-            ashenFootman.telegraph = Mathf.Clamp01(elapsed / WindupTime);
+            ashenFootman.windup = Mathf.Clamp01(elapsed / windupTime);
         }
         else
         {
-            ashenFootman.telegraph = 0f;
+            ashenFootman.windup = 0f;
         }
 
         if (triggerCalled)
@@ -55,6 +62,9 @@ public class AttackState_AshenFootman : EnemyState
     public override void Exit()
     {
         base.Exit();
-        ashenFootman.telegraph = 0f;
+        ashenFootman.windup = 0f;
+
+        // The shield only comes back up after the punish window.
+        ashenFootman.LowerGuard(ashenFootman.guardDownAfterAttack);
     }
 }
