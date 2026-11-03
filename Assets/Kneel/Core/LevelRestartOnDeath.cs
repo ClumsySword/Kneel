@@ -2,7 +2,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Reloads the current scene a moment after the player dies, so every enemy and pickup resets.
+// Reloads the current scene a moment after the player dies, so every enemy and pickup resets. Only a fallback:
+// the pause menu (spawned into every level) shows the death screen, and the player chooses there.
 public class LevelRestartOnDeath : MonoBehaviour
 {
     // Real seconds between the killing blow and the reload, long enough to see the death animation.
@@ -30,6 +31,11 @@ public class LevelRestartOnDeath : MonoBehaviour
 
     private void HandlePlayerDied()
     {
+        if (Kneel.UI.PauseMenu.HandlesDeath)
+        {
+            return;
+        }
+
         StartCoroutine(RestartAfterDelay());
     }
 
