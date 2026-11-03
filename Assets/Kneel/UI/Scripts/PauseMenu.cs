@@ -17,6 +17,8 @@ namespace Kneel.UI
     // Desktop in the main menu's style. Every scene except the splash and the main menu gets one from
     // Resources/PauseMenu (built by Tools/Kneel/Build Menu Scenes), so level scenes need nothing added to them.
     // It also keeps the play clock, since it is present whenever a level runs. All fades run on unscaled time.
+    // It is also the death screen: a moment after the blood vignette has closed in on a dead player, it opens with
+    // a title and Restart Level / Return to Main Menu instead, and can't be dismissed.
     public class PauseMenu : MonoBehaviour
     {
         private enum Mode
@@ -54,6 +56,16 @@ namespace Kneel.UI
         // Music and ambience low-pass cutoff while paused, in Hz.
         [SerializeField] private float pausedCutoff = 800f;
 
+        [Header("Death screen (real seconds)")]
+        // Wait after the vignette's death fade (its deathFadeTime) before the screen fades in.
+        [SerializeField] private float deathDelay = 1.5f;
+        [SerializeField] private float deathOpenTime = 1.2f;
+        // The choices fade in after the title, once it has had a moment alone.
+        [SerializeField] private float deathChoicesDelay = 0.8f;
+        [SerializeField] private float deathChoicesTime = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float deathDimAlpha = 0.6f;
+        [SerializeField] private string deathTitle = "You Have Fallen";
+
         [Header("References")]
         [SerializeField] private Canvas canvas;
         [SerializeField] private CanvasGroup rootGroup;
@@ -76,7 +88,11 @@ namespace Kneel.UI
         private InputAction pauseAction;
         private InputAction cancelAction;
         private EventSystem events;
+        private readonly List<MenuItemView> views = new List<MenuItemView>();
         private MenuItemView resumeView;
+        private PlayerCombat player;
+        private TMP_Text deathTitleLabel;
+        private bool playerDead;
         private MenuPanel openPanel;
         private Mode mode = Mode.Closed;
         private int openedFrame = -1;
@@ -85,6 +101,9 @@ namespace Kneel.UI
         public static PauseMenu Current { get; private set; }
 
         public static bool IsPaused => Current != null && Current.mode != Mode.Closed;
+
+        // Every gameplay scene gets one, so scene scripts can leave death to it (LevelRestartOnDeath does).
+        public static bool HandlesDeath => Current != null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -129,7 +148,7 @@ namespace Kneel.UI
             dim.color = new Color(0f, 0f, 0f, dimAlpha);
             ownEventSystem.gameObject.SetActive(false);
             SetListInteractable(false);
-            BuildList();
+            BuildList(Entries());
 
             pauseAction = new InputAction("Pause", InputActionType.Button);
             pauseAction.AddBinding("<Keyboard>/escape");
@@ -146,8 +165,22 @@ namespace Kneel.UI
             pauseAction.Disable();
         }
 
+        private void Start()
+        {
+            player = FindAnyObjectByType<PlayerCombat>();
+            if (player != null)
+            {
+                player.OnDied += OnPlayerDied;
+            }
+        }
+
         private void OnDestroy()
         {
+            if (player != null)
+            {
+                player.OnDied -= OnPlayerDied;
+            }
+
             pauseAction.Dispose();
             pauseAudio.Release();
             if (Current == this)
@@ -175,11 +208,28 @@ namespace Kneel.UI
             };
         }
 
-        private void BuildList()
+        // The death screen's choices.
+        private List<MenuEntry> DeathEntries()
         {
+            return new List<MenuEntry>
+            {
+                new MenuEntry("Restart Level", RestartLevel),
+                new MenuEntry("Return to Main Menu", ReturnToMainMenuFromDeath),
+            };
+        }
+
+        private void BuildList(List<MenuEntry> entries)
+        {
+            foreach (MenuItemView old in views)
+            {
+                Destroy(old.gameObject);
+            }
+
+            views.Clear();
+            resumeView = null;
             itemTemplate.gameObject.SetActive(false);
             var navigable = new List<MenuSelectable>();
-            foreach (MenuEntry entry in Entries())
+            foreach (MenuEntry entry in entries)
             {
                 if (!entry.IsVisible())
                 {
@@ -194,6 +244,7 @@ namespace Kneel.UI
                 MenuEntry captured = entry;
                 view.Confirmed += _ => OnConfirmed(captured);
                 navigable.Add(view);
+                views.Add(view);
                 if (entry.OnConfirm == Resume)
                 {
                     resumeView = view;
@@ -211,7 +262,7 @@ namespace Kneel.UI
             if (mode == Mode.Closed)
             {
                 Playtime.Add(Time.unscaledDeltaTime);
-                if (pausePressed && !SceneLoader.IsLoading)
+                if (pausePressed && !SceneLoader.IsLoading && !playerDead)
                 {
                     Open();
                 }
@@ -226,7 +277,7 @@ namespace Kneel.UI
             }
 
             bool back = pausePressed || (cancelAction != null && cancelAction.WasPressedThisFrame());
-            if (!back)
+            if (!back || playerDead)
             {
                 return;
             }
@@ -276,6 +327,104 @@ namespace Kneel.UI
             hints.Show(SelectHint, ResumeHint);
             MenuAudio.Play(MenuCue.Confirm);
             StartCoroutine(OpenRoutine());
+        }
+
+        private void OnPlayerDied()
+        {
+            if (playerDead)
+            {
+                return;
+            }
+
+            playerDead = true;
+            StartCoroutine(DeathRoutine());
+        }
+
+        private IEnumerator DeathRoutine()
+        {
+            var vignette = player.GetComponent<PlayerDamageVignette>();
+            float vignetteTime = vignette != null && vignette.isActiveAndEnabled ? vignette.Settings.deathFadeTime : 1.2f;
+
+            // Realtime: the killing blow usually triggers hit-stop, which slows scaled time.
+            yield return new WaitForSecondsRealtime(vignetteTime + deathDelay);
+
+            // Paused in the very instant of death: wait for the player to close it.
+            while (mode != Mode.Closed)
+            {
+                yield return null;
+            }
+
+            Time.timeScale = 0f;
+            Cursor.visible = true;
+            GameplayInput.Suspend();
+            pauseAudio.Capture(transform, pausedCutoff);
+            UseEventSystem(true);
+            SetMode(Mode.Busy);
+
+            BuildList(DeathEntries());
+            // Below the centred title.
+            listContainer.anchoredPosition += new Vector2(0f, -70f);
+            locationLabel.transform.parent.gameObject.SetActive(false);
+            ShowDeathTitle();
+
+            dim.color = new Color(0f, 0f, 0f, deathDimAlpha);
+            listGroup.alpha = 0f;
+            canvas.enabled = true;
+            MenuSelectable first = views[0];
+            listSelection.Select(first);
+            hints.Show(SelectHint);
+
+            StartCoroutine(FadeAudio(0f, 1f, deathOpenTime));
+            StartCoroutine(UITween.Fade(rootGroup, 1f, deathOpenTime));
+            yield return UITween.Wait(deathChoicesDelay);
+            yield return UITween.Fade(listGroup, 1f, deathChoicesTime);
+            EnterList(first);
+        }
+
+        // A large title in the header's font, above the list. Made from the location label on first use.
+        private void ShowDeathTitle()
+        {
+            if (deathTitleLabel == null)
+            {
+                deathTitleLabel = Instantiate(locationLabel, listGroup.transform.parent);
+                deathTitleLabel.name = "DeathTitle";
+                deathTitleLabel.transform.SetSiblingIndex(listGroup.transform.GetSiblingIndex());
+                RectTransform rect = deathTitleLabel.rectTransform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(1600f, 140f);
+                rect.anchoredPosition = new Vector2(0f, 150f);
+                deathTitleLabel.alignment = TextAlignmentOptions.Center;
+                deathTitleLabel.fontSize = 96f;
+                deathTitleLabel.characterSpacing = 24f;
+                deathTitleLabel.color = new Color(0xE6 / 255f, 0xDA / 255f, 0xC4 / 255f, 1f);
+            }
+
+            deathTitleLabel.text = deathTitle.ToUpperInvariant();
+            deathTitleLabel.gameObject.SetActive(true);
+        }
+
+        // A fresh load of the level, so every enemy and pickup resets.
+        private void RestartLevel()
+        {
+            string scene = SceneManager.GetActiveScene().name;
+            if (!SceneLoader.CanLoad(scene))
+            {
+                Debug.LogError($"Can't restart '{scene}': add it to the Build Profiles scene list.", this);
+                return;
+            }
+
+            MenuAudio.Play(MenuCue.Confirm);
+            SetMode(Mode.Leaving);
+            SetListInteractable(false);
+            SceneLoader.Instance.LoadScene(scene, leaveFadeTime, arriveFadeTime);
+        }
+
+        // Keeps the playtime, as Quit to Main Menu does, but without asking: there is nothing to lose.
+        private void ReturnToMainMenuFromDeath()
+        {
+            MenuAudio.Play(MenuCue.Confirm);
+            AutoSave();
+            LeaveToMainMenu();
         }
 
         private IEnumerator OpenRoutine()

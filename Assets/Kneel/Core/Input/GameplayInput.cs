@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace Kneel.Core
 {
@@ -13,6 +14,16 @@ namespace Kneel.Core
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
+        {
+            suspended.Clear();
+
+            // A menu that leaves the scene (Quit to Main Menu, the death screen's choices) never resumes: forget
+            // the old scene's actions, or the next Resume would switch them back on beside the new scene's.
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        private static void OnSceneUnloaded(Scene scene)
         {
             suspended.Clear();
         }
