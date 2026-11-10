@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Kneel.EditorTools
 {
@@ -83,6 +84,9 @@ namespace Kneel.EditorTools
         private static int halfBeats;
         private static int defeats;
 
+        // Where the player aims, when set (the hall's levers); otherwise at his feet.
+        private static Vector3? aimAt;
+
         private static float Now => Time.unscaledTime;
 
         private static EnemyState State => master.stateMachine.currentState;
@@ -133,6 +137,18 @@ namespace Kneel.EditorTools
 
             worstFrame = Mathf.Max(worstFrame, Time.unscaledDeltaTime);
             DriveInput();
+            if (framedName != null && Now >= framedUntil)
+            {
+                Shot(framedName);
+                framedName = null;
+                releaseFrameAt = Now + 0.15f;
+            }
+
+            if (releaseFrameAt > 0f && Now >= releaseFrameAt)
+            {
+                releaseFrameAt = 0f;
+                UnityEngine.Object.FindAnyObjectByType<PlayerCamera>()?.ClearOverride(0.01f);
+            }
 
             if (Now < waitUntil)
                 return;
@@ -266,8 +282,21 @@ namespace Kneel.EditorTools
                 ("guard", GuardThrustParried),
                 ("armour", Armour),
                 ("hazard", Hazard),
+                ("hall", HallLook),
+                ("chandelier", ChandelierLever),
+                ("chandelier", ChandelierOnPlayer),
+                ("chandelier", ThreadsCutChain),
+                ("brazier", BrazierLever),
+                ("fire", FireRules),
+                ("statues", Statues),
+                ("darkness", Darkness),
+                ("ash", Ash),
+                ("pacing", Pacing),
+                ("floor", FloorPanels),
+                ("perf", Performance),
                 ("half", HalfBeat),
                 ("down", Down),
+                ("lava", LavaDrop),
             };
 
             foreach (var scenario in scenarios)
@@ -823,9 +852,16 @@ namespace Kneel.EditorTools
             float start = Time.time;
             yield return Filmstrip("Threads", S.threadsTell);
             yield return (Func<bool>)(() => blows.Count > before);
+
+            // Off the line before its fire catches (it trails the head by 3 m).
+            Vector3 hitAt = playerRoot.position;
+            Vector3 casterAt = master.transform.position;
+            // Into the gap between the centre line and a side one (they fan 12 degrees apart).
+            PlaceAbsolute(playerRoot.position + master.transform.right * 1.4f, master.transform.position - playerRoot.position);
             yield return 1f;
             var hits = blows.Skip(before).ToList();
-            Check("one thread hits, once", hits.Count == 1 && Mathf.Approximately(hits[0].amount, S.threadDamage), hits.Count + " hits");
+            Check("one thread hits, once", hits.Count == 1 && Mathf.Approximately(hits[0].amount, S.threadDamage), hits.Count + " hits: " + string.Join(", ", hits.Select(h => h.amount.ToString("F1"))));
+            Check("it leaves fire on the floor where it ran", FloorFire.IsBurning(hitAt) && FloorFire.IsBurning(casterAt + (hitAt - casterAt) * 0.5f), FloorFire.Instance != null ? FloorFire.Instance.Live.Count + " patches" : "no FloorFire");
             if (hits.Count > 0)
             {
                 float expected = S.threadsTell + (startedAt - 1.2f) / S.threadSpeed;
@@ -841,7 +877,7 @@ namespace Kneel.EditorTools
             Note("--- Threads, rolled over");
             yield return ResetFight(Centre);
             yield return FarCamera(true);
-            yield return Start(MasterP1.MoveKind.Threads, 13f);
+            yield return Start(MasterP1.MoveKind.Threads, 9.5f);
             int before = blows.Count;
             // The head hits within width / 2 + 0.3 m of the player, so it touches them that much early.
             float arrive = Time.time + S.threadsTell + (Distance() - 1.2f - S.threadWidth * 0.5f - 0.3f) / S.threadSpeed;
@@ -849,10 +885,10 @@ namespace Kneel.EditorTools
             yield return (Func<bool>)(() => Time.time >= arrive - 0.25f);
             // Into the line's head: the i-frames carry the player through it.
             float rolled = Time.time;
-            yield return Roll(master.transform.position - playerRoot.position);
+            yield return Roll(master.transform.right);
             yield return 1.2f;
             playerMove = Vector3.zero;
-            Check("a roll over the line clears it", blows.Count == before, (blows.Count - before) + " hits" + (blows.Count > before ? ", " + (blows[blows.Count - 1].time - rolled).ToString("F2") + " s after the roll was pressed, the player " + blows[blows.Count - 1].player + ", " + blows[blows.Count - 1].distance.ToString("F1") + " m from him; head due " + (arrive - rolled).ToString("F2") + " s after" : ""));
+            Check("a roll across the line clears it, and its fire", blows.Count == before, (blows.Count - before) + " hits" + (blows.Count > before ? ", " + (blows[blows.Count - 1].time - rolled).ToString("F2") + " s after the roll was pressed, the player " + blows[blows.Count - 1].player + ", " + blows[blows.Count - 1].distance.ToString("F1") + " m from him; head due " + (arrive - rolled).ToString("F2") + " s after" : ""));
             yield return WaitMoveEnds();
             yield return FarCamera(false);
         }
@@ -1022,6 +1058,381 @@ namespace Kneel.EditorTools
             Check("a brazier (40, 1.5 s) breaks the Seize", Mathf.Abs(Time.time - hit - 1.5f) < 0.2f, (Time.time - hit).ToString("F2") + " s");
         }
 
+        // --- The hall (Stage 5) ---
+
+        private static BossArenaDirector Director => UnityEngine.Object.FindAnyObjectByType<BossArenaDirector>();
+
+        private static HallFloor Floor => UnityEngine.Object.FindAnyObjectByType<HallFloor>();
+
+        // Wide shots of the hall's levers and the statues, for the checkpoint.
+        private static IEnumerator HallLook()
+        {
+            Note("--- the hall's levers (shots only)");
+            yield return ResetFight(Centre);
+            yield return FarCamera(true);
+            PlaceAbsolute(new Vector3(54f, 9f, 446f), Vector3.forward);
+            master.agent.Warp(new Vector3(54f, 9f, 462f));
+            yield return 1.5f;
+            Framed("Hall_Overview", new Vector3(54f, 9f, 450f), 24f, 22f);
+            PlaceAbsolute(new Vector3(37f, 9f, 446f), Vector3.forward);
+            yield return 1.5f;
+            Framed("Hall_West", new Vector3(39f, 10f, 447f), 9f, 6f, -60f);
+            yield return FarCamera(false);
+        }
+
+        // The player strikes a winch: the chain snaps and the chandelier lands on him 1.0 s later.
+        private static IEnumerator ChandelierLever()
+        {
+            Note("--- a chandelier, from its winch");
+            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 450f)).First();
+            Vector3 under = new Vector3(chandelier.transform.position.x, 9f, chandelier.transform.position.z);
+            yield return ResetFight(under);
+            master.circleState.Hold(9999f);
+            Vector3 winch = chandelier.winch.transform.position;
+            Vector3 side = winch.x < 54f ? Vector3.left : Vector3.right;
+            PlaceAbsolute(winch - side * 1.7f, side);
+            aimAt = winch;
+            yield return 0.4f;
+            float health = master.health.Current;
+            Press("OnStrikePressed");
+            yield return (Func<bool>)(() => chandelier.Current != ChandelierDrop.State.Hanging);
+            float struck = Time.time;
+            Check("a blow on the winch snaps the chain", chandelier.Current == ChandelierDrop.State.Falling, chandelier.Current.ToString());
+            yield return 0.5f;
+            Framed("Chandelier_Falling", under + Vector3.up * 5f, 14f, 6f);
+            yield return (Func<bool>)(() => chandelier.Current == ChandelierDrop.State.Fallen);
+            Check("it lands 1.0 s after the blow", Mathf.Abs(Time.time - struck - 1f) < 0.08f, (Time.time - struck).ToString("F2") + " s");
+            yield return 0.05f;
+            Check("under it, he takes 60 (+ 25 if he stands in the burning wreck) and a 2.5 s stagger", (Mathf.Abs(health - master.health.Current - 60f) < 1f || Mathf.Abs(health - master.health.Current - 85f) < 1f) && State == master.staggerState, (health - master.health.Current).ToString("F0") + " damage, " + State.GetType().Name + ", " + HallActors.FlatDistance(master.transform.position, under).ToString("F1") + " m from its centre");
+            float staggered = Time.time;
+            yield return 0.4f;
+            Framed("Chandelier_Fallen", under, 10f, 7f);
+            Check("the wreck burns and is cover", FloorFire.IsBurning(under) && chandelier.wreck.enabled && BossTell.LineOfSight(under + new Vector3(0f, 0.6f, -6f), under + new Vector3(0f, 0.6f, 6f), null, null) == false, "");
+            yield return (Func<bool>)(() => State != master.staggerState);
+            Check("the stagger lasts 2.5 s", Mathf.Abs(Time.time - staggered - 2.45f) < 0.25f, (Time.time - staggered + 0.05f).ToString("F2") + " s");
+            yield return 6.2f;
+            Check("the fire goes out after 6 s, the wreck stays", FloorFire.IsBurning(under) == false && chandelier.wreck.enabled, "");
+        }
+
+        private static IEnumerator ChandelierOnPlayer()
+        {
+            Note("--- a chandelier on the player");
+            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 436f)).First();
+            Vector3 under = new Vector3(chandelier.transform.position.x, 9f, chandelier.transform.position.z);
+            yield return ResetFight(Centre + Vector3.forward * 8f);
+            PlaceAbsolute(under + Vector3.right * 1f, Vector3.forward);
+            yield return 0.3f;
+            int before = blows.Count;
+            chandelier.Trigger();
+            yield return (Func<bool>)(() => chandelier.Current == ChandelierDrop.State.Fallen);
+            yield return 0.05f;
+            var hits = blows.Skip(before).ToList();
+            Check("it does 40 to the player under it", hits.Count >= 1 && Mathf.Abs(hits[0].amount - 40f) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))));
+        }
+
+        // A Threads line crossing a winch snaps its chain by accident.
+        private static IEnumerator ThreadsCutChain()
+        {
+            Note("--- his Threads across a winch");
+            yield return ResetFight(Centre);
+            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => c.winch.transform.position.x).First();
+            Vector3 winch = chandelier.winch.transform.position;
+            Vector3 from = winch + new Vector3(6f, 0f, -6f);
+            ThreadLine.Launch(master, from, winch - from, S.threadSpeed, 12f, S.threadWidth, 0f);
+            yield return (Func<bool>)(() => chandelier.Current != ChandelierDrop.State.Hanging);
+            Check("the thread snaps the chain", chandelier.Current != ChandelierDrop.State.Hanging, chandelier.Current.ToString());
+            yield return 1.2f;
+        }
+
+        // The player strikes a brazier from the aisle: it rocks 1 s, goes over into the arena and spills on him.
+        private static IEnumerator BrazierLever()
+        {
+            Note("--- a brazier");
+            BrazierTopple brazier = BrazierTopple.All.OrderBy(b => b.transform.position.x).ThenBy(b => b.transform.position.z).First();
+            Vector3 at = brazier.transform.position;
+            Vector3 spill = at + Vector3.right * brazier.spillDistance;
+            yield return ResetFight(spill);
+            master.circleState.Hold(9999f);
+            PlaceAbsolute(at + Vector3.left * 1.6f, Vector3.right);
+            aimAt = at + Vector3.up;
+            yield return 0.4f;
+            float health = master.health.Current;
+            Press("OnStrikePressed");
+            yield return (Func<bool>)(() => brazier.Current != BrazierTopple.State.Standing);
+            float struck = Time.time;
+            master.agent.Warp(spill);
+            yield return 0.5f;
+            Framed("Brazier_Rocking", at + Vector3.up, 6f, 3.5f, 60f);
+            yield return (Func<bool>)(() => brazier.Current == BrazierTopple.State.Fallen);
+            Check("it rocks 1.0 s, then goes over away from the blow", Mathf.Abs(Time.time - struck - brazier.rockTime - brazier.fallTime) < 0.08f && brazier.SpillCentre.x > at.x, (Time.time - struck).ToString("F2") + " s, spill at " + brazier.SpillCentre.ToString("F1"));
+            yield return 0.05f;
+            Check("in the spill, he takes 40 (+ the fire's 25) and a 1.5 s stagger", health - master.health.Current >= 40f && State == master.staggerState, (health - master.health.Current).ToString("F0") + " damage, " + State.GetType().Name);
+            yield return 0.4f;
+            Framed("Brazier_Spill", at + Vector3.right * 1.5f, 7f, 5f, 60f);
+            var filter = new NavMeshQueryFilter { agentTypeID = master.agent.agentTypeID, areaMask = NavMesh.AllAreas };
+            Check("the spill is carved out of his NavMesh", NavMesh.SamplePosition(brazier.SpillCentre, out NavMeshHit hit, 0.4f, filter) == false, "");
+        }
+
+        // Fire: 25 on contact and 25/s; at most 12 patches and ~20% of the arena; it hurts him too.
+        private static IEnumerator FireRules()
+        {
+            Note("--- floor fire");
+            yield return ResetFight(Centre);
+            Vector3 spot = Centre + new Vector3(-8f, 0f, -6f);
+            PlaceAbsolute(spot + Vector3.left * 3f, Vector3.right);
+            yield return 0.2f;
+            int before = blows.Count;
+            FloorFire.Circle(spot, 1.5f, 8f);
+            PlaceAbsolute(spot, Vector3.right);
+            yield return 2.05f;
+            var burns = blows.Skip(before).ToList();
+            float total = burns.Sum(b => b.amount);
+            Check("standing in it 2 s: 25 on contact, then 25/s", Mathf.Abs(total - 75f) < 13f, burns.Count + " ticks, " + total.ToString("F1") + " damage");
+            PlaceAbsolute(spot + Vector3.left * 4f, Vector3.right);
+
+            float health = master.health.Current;
+            FloorFire.Circle(master.transform.position, 1.5f, 3f);
+            yield return 1.05f;
+            Check("it burns him too, without a stagger", health - master.health.Current >= 25f && State != master.staggerState, (health - master.health.Current).ToString("F1") + " damage, " + State.GetType().Name);
+
+            for (int i = 0; i < 16; i++)
+                FloorFire.Circle(new Vector3(42f + (i % 4) * 7f, 9f, 434f + (i / 4) * 8f), 1.8f, 8f);
+            yield return 0.8f;
+            int burning = FloorFire.Instance.Live.Count(p => p.Dying == false);
+            Check("at most 12 patches and about 20% of the arena", burning <= 12 && FloorFire.Instance.Live.Where(p => p.Dying == false).Sum(p => p.Area) <= FloorFire.Instance.maxArea + 0.5f, burning + " burning, " + FloorFire.Instance.Live.Where(p => p.Dying == false).Sum(p => p.Area).ToString("F0") + " m2");
+            Framed("Fire_Cap", new Vector3(54f, 9f, 448f), 24f, 22f);
+        }
+
+        private static IEnumerator Statues()
+        {
+            Note("--- the statues");
+            yield return ResetFight(Centre);
+            HallStatue statue = HallStatue.All.OrderBy(s => s.transform.position.x).ThenBy(s => s.transform.position.z).First();
+            Quaternion rest = statue.upper.localRotation;
+            yield return Start(MasterP1.MoveKind.Command, 6f);
+            yield return 1f;
+            float bow = Quaternion.Angle(rest, statue.upper.localRotation);
+            Check("they bow at a Command", bow > 6f, bow.ToString("F1") + " deg");
+            yield return WaitMoveEnds();
+            yield return (Func<bool>)(() => combat.IsKneeling == false);
+
+            yield return ResetFight(Centre);
+            Vector3 knee = statue.upper.position;
+            Vector3 fall = statue.transform.forward;
+            master.agent.Warp(new Vector3(knee.x, 9f, knee.z) + fall * 3.2f);
+            master.circleState.Hold(9999f);
+            PlaceAbsolute(new Vector3(knee.x, 9f, knee.z) + fall * 1.6f, -fall);
+            yield return 0.2f;
+            float health = master.health.Current;
+            int before = blows.Count;
+            statue.Topple();
+            float start = Time.time;
+            yield return 0.8f;
+            Framed("Statue_Crack", statue.transform.position + Vector3.up * 2.5f, 9f, 3f, statue.transform.position.x < 54f ? -70f : 70f);
+            yield return (Func<bool>)(() => statue.Current == HallStatue.State.Fallen);
+            Check("it cracks for 1.5 s, then falls", Mathf.Abs(Time.time - start - statue.tell - statue.fallTime) < 0.1f, (Time.time - start).ToString("F2") + " s");
+            yield return 0.05f;
+            var hits = blows.Skip(before).ToList();
+            Check("50 to the player under it", hits.Count >= 1 && Mathf.Abs(hits[0].amount - 50f) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))));
+            Check("50 to him under it", Mathf.Abs(health - master.health.Current - 50f) < 1f, (health - master.health.Current).ToString("F0"));
+            yield return 0.4f;
+            Framed("Statue_Fallen", statue.transform.position + statue.transform.forward * 2f, 9f, 6f, statue.transform.position.x < 54f ? -50f : 50f);
+            yield return 1.6f;
+        }
+
+        private static IEnumerator Darkness()
+        {
+            Note("--- the darkness wave");
+            yield return ResetFight(Centre);
+            DarknessWave wave = UnityEngine.Object.FindAnyObjectByType<DarknessWave>();
+            PlaceAbsolute(new Vector3(54f, 9f, 440f), Vector3.forward);
+            yield return 1f;
+            Framed("Dark_Before", new Vector3(54f, 9f, 450f), 24f, 18f);
+            Light torch = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.type == LightType.Point && l.GetComponentInParent<FloorFire>() == null && l.GetComponentInParent<MasterP1>() == null && l.GetComponentInParent<PlayerCombat>() == null && l.name.Contains("Glow") == false && l.transform.position.z > 430f && l.transform.position.z < 470f && l.intensity > 0.5f).OrderBy(l => l.transform.position.z).FirstOrDefault();
+            float lit = torch != null ? torch.intensity : 0f;
+            float ambient = RenderSettings.ambientIntensity;
+            wave.Begin();
+            float start = Time.time;
+            yield return 2.4f;
+            Check("the hall's lights gutter out in 1.5 s (the torches' flicker too)", torch != null && torch.intensity < lit * 0.05f && RenderSettings.ambientIntensity < ambient * 0.3f, (torch != null ? torch.name + " " + lit.ToString("F1") + " to " + torch.intensity.ToString("F2") : "no light") + ", ambient " + ambient.ToString("F2") + " to " + RenderSettings.ambientIntensity.ToString("F2"));
+            Check("his tells burn brighter in the dark", Mathf.Abs(BossTell.DarkBoost - 1.5f) < 0.01f, BossTell.DarkBoost.ToString("F2"));
+            Framed("Dark_Wave", new Vector3(54f, 9f, 450f), 24f, 18f);
+            yield return (Func<bool>)(() => wave.Active == false);
+            Check("it lasts about 8 s, then the hall comes back", Time.time - start > 9f && Time.time - start < 13f && torch != null && torch.intensity > lit * 0.6f, (Time.time - start).ToString("F1") + " s");
+        }
+
+        private static IEnumerator Ash()
+        {
+            Note("--- the ash storm");
+            yield return ResetFight(Centre);
+            AshStorm storm = UnityEngine.Object.FindAnyObjectByType<AshStorm>();
+            storm.Begin();
+            yield return 2.5f;
+            PlaceAbsolute(new Vector3(36f, 9f, 446f), Vector3.forward);
+            aimAt = playerRoot.position + Vector3.forward * 8f;
+            yield return 0.3f;
+            int before = blows.Count;
+            Vector3 from = playerRoot.position;
+            playerMove = Vector3.forward;
+            yield return 2f;
+            float inBand = Vector3.Distance(Flat(from), Flat(playerRoot.position)) / 2f;
+            float burned = blows.Skip(before).Sum(b => b.amount);
+            Framed("Ash_Band", new Vector3(44f, 9f, 448f), 16f, 12f);
+            PlaceAbsolute(new Vector3(54f, 9f, 440f), Vector3.forward);
+            aimAt = playerRoot.position + Vector3.forward * 8f;
+            yield return 0.4f;
+            from = playerRoot.position;
+            yield return 2f;
+            float open = Vector3.Distance(Flat(from), Flat(playerRoot.position)) / 2f;
+            playerMove = Vector3.zero;
+            Check("in the band: 30% slower", Mathf.Abs(inBand / open - 0.7f) < 0.06f, inBand.ToString("F2") + " vs " + open.ToString("F2") + " m/s");
+            Check("and 10/s", Mathf.Abs(burned - 20f) < 5.5f, burned.ToString("F1") + " in 2 s");
+            storm.Thicken(1.5f);
+            yield return 1f;
+            Check("a Gather widens it to 3 R at 15/s", storm.Width > 8.5f && Mathf.Approximately(storm.Rate, 15f), storm.Width.ToString("F1") + " m, " + storm.Rate + "/s");
+            storm.Stop();
+        }
+
+        // The pacing rule: no blow of his lands within 0.5 s of a hazard, and a scripted hazard waits for his blow.
+        private static IEnumerator Pacing()
+        {
+            Note("--- pacing (0.5 s between a hazard and his blow)");
+            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 463f)).First();
+            yield return ResetFight(Centre);
+            PlaceFront(3.5f);
+            yield return 0.1f;
+            int held = master.HeldForHazards;
+            chandelier.Trigger();
+            float impact = chandelier.ImpactAt;
+            MasterP1.ForceNext = MasterP1.MoveKind.Decree;
+            master.circleState.Hold(0f);
+            int before = blows.Count;
+            yield return (Func<bool>)(() => blows.Count > before);
+            float landed = blows[blows.Count - 1].time;
+            Check("he holds a Decree that would land on a falling chandelier", master.HeldForHazards > held && Mathf.Abs(landed - impact) >= 0.5f, (landed - impact).ToString("F2") + " s from its impact, held " + (master.HeldForHazards - held) + "x");
+            yield return WaitMoveEnds();
+
+            yield return ResetFight(Centre);
+            BossArenaDirector director = Director;
+            int directorHeld = director.Held;
+            bool begun = false;
+            float began = -1f;
+            yield return Start(MasterP1.MoveKind.Decree, 3.5f);
+            director.Schedule("test", S.decreeTell, () => { begun = true; began = Time.time; });
+            float blow = Move != null ? Move.LandsAt : -1f;
+            yield return (Func<bool>)(() => begun);
+            Check("a scripted hazard waits until it's clear of his blow", director.Held > directorHeld && began + S.decreeTell - blow >= 0.49f, "its impact " + (began + S.decreeTell - blow).ToString("F2") + " s after the blow");
+            yield return WaitMoveEnds();
+        }
+
+        // Panel F1 at his 50% beat, with the player standing on it: 50, a kneel, thrown to the edge; then the lip holds.
+        private static IEnumerator FloorPanels()
+        {
+            Note("--- the floor (F1 at the 50% beat)");
+            HallFloor floor = Floor;
+            HallFloor.Panel f1 = floor.panels[floor.f1];
+            yield return ResetFight(Centre);
+            typeof(MasterP1).GetField("halfReached", Any).SetValue(master, false);
+            master.health.ApplyDamage(master.health.Max * 0.5f - 5f);
+            PlaceFront(2.3f);
+            Press("OnStrikePressed");
+            yield return (Func<bool>)(() => State == master.pommelState);
+            yield return (Func<bool>)(() => floor.StateOf(floor.f1) != HallFloor.PanelState.Whole);
+            float cracked = Time.time;
+            Check("the pommel cracks F1", floor.StateOf(floor.f1) == HallFloor.PanelState.Cracking, floor.StateOf(floor.f1).ToString());
+            Vector3 onIt = new Vector3(f1.rect.center.x, 9f, f1.rect.center.y);
+            PlaceAbsolute(new Vector3(onIt.x, 9f, f1.rect.yMin - 1.5f), Vector3.forward);
+            yield return 0.8f;
+            Framed("Floor_Crack", onIt, 10f, 9f);
+            yield return (Func<bool>)(() => floor.StateOf(floor.f1) == HallFloor.PanelState.Fallen);
+            Check("it goes 2.0 s after the crack", Mathf.Abs(Time.time - cracked - floor.tell) < 0.08f, (Time.time - cracked).ToString("F2") + " s");
+            yield return 0.6f;
+            Framed("Floor_Hole", onIt, 10f, 9f);
+            yield return 1.2f;
+            Framed("Floor_Hole2", onIt, 10f, 9f);
+            yield return 1.5f;
+            Framed("Floor_Hole3", onIt, 10f, 9f);
+            yield return (Func<bool>)(() => State != master.pommelState);
+
+            // The lip: walk at the hole, then roll at it.
+            Vector3 toHole = Flat(onIt - playerRoot.position).normalized;
+            playerMove = toHole;
+            yield return 1.5f;
+            Check("walking into the hole: the lip stops it", f1.rect.Contains(new Vector2(playerRoot.position.x, playerRoot.position.z)) == false && playerRoot.position.y > 8.5f, playerRoot.position.ToString("F1"));
+            yield return Roll(toHole);
+            yield return 1f;
+            playerMove = Vector3.zero;
+            Check("and rolling", f1.rect.Contains(new Vector2(playerRoot.position.x, playerRoot.position.z)) == false && playerRoot.position.y > 8.5f, playerRoot.position.ToString("F1"));
+            var filter = new NavMeshQueryFilter { agentTypeID = master.agent.agentTypeID, areaMask = NavMesh.AllAreas };
+            Check("the hole is carved from his NavMesh", NavMesh.SamplePosition(onIt, out NavMeshHit hit, 0.5f, filter) == false, "");
+            int centre = floor.IndexAt(new Vector3(54f, 9f, 450f));
+            Check("the centre column never falls", floor.CanFall(centre) == false && floor.Crack(centre) == false, floor.panels[centre].name);
+        }
+
+        // Last (the player doesn't get up from it): standing on a panel as it goes, Kael drops with it into the lava.
+        private static IEnumerator LavaDrop()
+        {
+            Note("--- standing on a panel as it goes");
+            HallFloor floor = Floor;
+            int index = floor.IndexAt(new Vector3(59f, 9f, 446.4f));
+            HallFloor.Panel panel = floor.panels[index];
+            Vector3 onIt = new Vector3(panel.rect.center.x, 9f, panel.rect.center.y);
+            yield return ResetFight(Centre);
+            master.agent.Warp(Centre + Vector3.forward * 10f);
+            master.circleState.Hold(9999f);
+            PlaceAbsolute(onIt, Vector3.forward);
+            yield return 0.3f;
+            floor.Crack(index);
+            yield return (Func<bool>)(() => floor.StateOf(index) == HallFloor.PanelState.Fallen);
+            float dropped = Time.time;
+            yield return 0.3f;
+            Shot("LavaDrop_In");
+            yield return (Func<bool>)(() => combat.IsDead);
+            Check("the player on it drops into the lava and dies", combat.IsDead && floor.PlayerInLava, (Time.time - dropped).ToString("F2") + " s after it fell, " + combat.State);
+            yield return 1.2f;
+            Shot("LavaDrop_Under");
+            Check("and sinks, rather than falling on", playerRoot.position.y > floor.lavaY - 3f && playerRoot.position.y < floor.lavaY - 0.5f, playerRoot.position.y.ToString("F2"));
+        }
+
+        // Everything at once for 15 s while he fights: frame times, lights and particles.
+        private static IEnumerator Performance()
+        {
+            Note("--- performance: the hall's systems all at once, 15 s of fighting");
+            yield return ResetFight(Centre);
+            FloorFire.Instance.ResetState();
+            for (int i = 0; i < 12; i++)
+                FloorFire.Circle(new Vector3(42f + (i % 4) * 8f, 9f, 436f + (i / 4) * 10f), 1.6f, 20f);
+            UnityEngine.Object.FindAnyObjectByType<DarknessWave>().Begin(4f);
+            UnityEngine.Object.FindAnyObjectByType<AshStorm>().Begin();
+            foreach (ChandelierDrop c in ChandelierDrop.All)
+                c.Trigger();
+            PlaceFront(6f);
+            master.circleState.Hold(0f);
+            var frames = new List<float>();
+            int peakParticles = 0, peakLights = 0;
+            float start = Now;
+            while (Now - start < 15f)
+            {
+                frames.Add(Time.unscaledDeltaTime * 1000f);
+                if (frames.Count % 15 == 0)
+                {
+                    int particles = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Sum(p => p.particleCount);
+                    int lights = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l => l.isActiveAndEnabled && l.intensity > 0.01f && l.type != LightType.Directional && Vector3.Distance(l.transform.position, playerRoot.position) < 40f);
+                    peakParticles = Mathf.Max(peakParticles, particles);
+                    peakLights = Mathf.Max(peakLights, lights);
+                }
+
+                yield return null;
+            }
+
+            frames.Sort();
+            float p50 = frames[frames.Count / 2], p95 = frames[(int)(frames.Count * 0.95f)], worst = frames[frames.Count - 1];
+            Note("  frame time (Editor, Play mode): p50 " + p50.ToString("F1") + " ms, p95 " + p95.ToString("F1") + " ms, worst " + worst.ToString("F1") + " ms over " + frames.Count + " frames");
+            Note("  peak particles alive " + peakParticles + "; lights lit within 40 m " + peakLights + " (the hall's own fixtures included)");
+            UnityEngine.Object.FindAnyObjectByType<AshStorm>().Stop();
+            UnityEngine.Object.FindAnyObjectByType<Kneel.Hazards.LevelReset>()?.ResetAll();
+        }
+
         // --- The 50% beat and the fall ---
 
         private static IEnumerator HalfBeat()
@@ -1068,7 +1479,11 @@ namespace Kneel.EditorTools
         {
             MasterP1.ForceNext = null;
             playerMove = Vector3.zero;
+            aimAt = null;
             SetBlock(false);
+
+            // The hall back to its start (fires out, chandeliers up, the floor whole).
+            UnityEngine.Object.FindAnyObjectByType<Kneel.Hazards.LevelReset>()?.ResetAll();
             yield return (Func<bool>)(() => combat.IsKneeling == false && combat.State != PlayerCombat.CombatState.Dodging);
 
             if (master.agent.enabled == false)
@@ -1183,7 +1598,7 @@ namespace Kneel.EditorTools
             if (master == null || Camera.main == null)
                 return;
 
-            typeof(PlayerMovement).GetField("aimInput", Any).SetValue(movement, (Vector2)Camera.main.WorldToScreenPoint(master.transform.position));
+            typeof(PlayerMovement).GetField("aimInput", Any).SetValue(movement, (Vector2)Camera.main.WorldToScreenPoint(aimAt ?? master.transform.position));
             Quaternion yaw = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
             Vector3 local = Quaternion.Inverse(yaw) * playerMove;
             typeof(PlayerMovement).GetField("moveInput", Any).SetValue(movement, new Vector2(local.x, local.z));
@@ -1229,6 +1644,41 @@ namespace Kneel.EditorTools
         }
 
         // --- Reporting ---
+
+        // A held shot of a hall event: from `distance` back and `height` up, south of it (the follow camera's side).
+        private static void Framed(string name, Vector3 target, float distance = 11f, float height = 8f, float yaw = 0f)
+        {
+            // Never lower than 55 degrees: the walls' sconces hang their glow sprites in a lower camera's sight line.
+            height = Mathf.Max(height, distance * 1.45f);
+            var cam = UnityEngine.Object.FindAnyObjectByType<PlayerCamera>();
+            Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
+            Vector3 at = target + back * distance + Vector3.up * height;
+            cam.SetOverride(at, Quaternion.LookRotation(target - at), 0.01f);
+            framedName = name;
+            framedUntil = Now + 0.12f;
+        }
+
+        // What's lit and drawing within `radius` of a point (to track down a glare in a shot).
+        private static void NoteNear(Vector3 point, float radius)
+        {
+            foreach (Light l in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                if (l.isActiveAndEnabled && Vector3.Distance(l.transform.position, point) < radius)
+                    Note("    light " + PathOf(l.transform) + " " + l.intensity.ToString("F1") + " range " + l.range.ToString("F1") + " @" + l.transform.position.ToString("F1"));
+            }
+
+            foreach (ParticleSystem ps in UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None))
+            {
+                if (ps.particleCount > 0 && Vector3.Distance(ps.transform.position, point) < radius)
+                    Note("    particles " + PathOf(ps.transform) + " x" + ps.particleCount + " " + ps.GetComponent<ParticleSystemRenderer>().sharedMaterial?.name);
+            }
+        }
+
+        private static string PathOf(Transform t) => t.parent != null ? PathOf(t.parent) + "/" + t.name : t.name;
+
+        private static string framedName;
+        private static float releaseFrameAt;
+        private static float framedUntil;
 
         private static void Shot(string name)
         {

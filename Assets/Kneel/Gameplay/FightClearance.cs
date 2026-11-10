@@ -97,6 +97,20 @@ namespace Kneel
             }
         }
 
+        // Switched off (a chandelier coming down): everything shows again.
+        private void OnDisable()
+        {
+            blockedSince = -1f;
+            if (hidden == false || renderers == null)
+                return;
+            hidden = false;
+            foreach (Renderer r in renderers)
+            {
+                if (r != null)
+                    r.enabled = true;
+            }
+        }
+
         // True when the sight line from the eye to the target passes within reach of the centre, short of the target.
         private static bool Blocks(Vector3 eye, Vector3 target, Vector3 centre, float reach)
         {

@@ -9,7 +9,7 @@ using UnityEngine;
 // Rules carried here (§1): hits during an armoured wind-up do windupDamageMultiplier of their damage and never flinch
 // him; a poise break waits for the blow to end; only hazards (HazardHit) break a wind-up; the bash only breaks the
 // Regal Guard. A parry drives him to one knee (critical window), except on Sentence's first two sweeps (deflected).
-public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable
+public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
 {
     public enum MoveKind { Decree, Sentence, Seize, Command, Threads, Guard }
 
@@ -119,9 +119,19 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable
     }
 
     // The hall's chandeliers fade while they hang between the camera and him (Kneel.FightClearance).
-    private void OnEnable() => Kneel.FightClearance.Subjects.Add(transform);
+    // The hall's chandeliers fade while they hang between the camera and him (Kneel.FightClearance), and its hazards
+    // look for him (HallActors).
+    private void OnEnable()
+    {
+        Kneel.FightClearance.Subjects.Add(transform);
+        HallActors.Bosses.Add(this);
+    }
 
-    private void OnDisable() => Kneel.FightClearance.Subjects.Remove(transform);
+    private void OnDisable()
+    {
+        Kneel.FightClearance.Subjects.Remove(transform);
+        HallActors.Bosses.Remove(this);
+    }
 
     protected override void Update()
     {
@@ -264,7 +274,17 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable
         if (TryHalfBeat())
             return;
 
-        Pending = NextMove();
+        // A move held back for a hazard's impact (StartMove) comes back first.
+        if (deferred.HasValue)
+        {
+            Pending = deferred.Value;
+            deferred = null;
+        }
+        else
+        {
+            Pending = NextMove();
+        }
+
         approachState.NotBefore = 0f;
         approachState.Hurry = false;
         if (PlayerDistance() <= StartRange(Pending) && OnScreen())
@@ -283,8 +303,39 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable
         stateMachine.ChangeState(approachState);
     }
 
+    // When a move's first blow would land, from its start (-1 when it can't be known: the Guard walks in for as long as
+    // it takes).
+    public float FirstContact(MoveKind kind)
+    {
+        switch (kind)
+        {
+            case MoveKind.Decree: return settings.decreeTell;
+            case MoveKind.Sentence: return settings.sentenceTell1;
+            case MoveKind.Seize: return settings.seizeTell;
+            case MoveKind.Command: return firstCommandDone ? settings.commandTell : settings.commandTellFirst;
+            case MoveKind.Threads: return settings.threadsTell;
+            default: return -1f;
+        }
+    }
+
+    private MoveKind? deferred;
+
+    // How many times he held a blow back for a hazard (the playtest reads it).
+    public int HeldForHazards { get; private set; }
+
     public void StartMove(MoveKind kind)
     {
+        // The pacing rule (§8): never a blow landing within 0.5 s of a hazard's impact. He waits a beat instead.
+        float contact = FirstContact(kind);
+        if (contact >= 0f && HazardImpactNear != null && HazardImpactNear(Time.time + contact))
+        {
+            HeldForHazards++;
+            deferred = kind;
+            circleState.Hold(0.25f);
+            stateMachine.ChangeState(circleState);
+            return;
+        }
+
         history.Add(kind);
         if (history.Count > 4) history.RemoveAt(0);
         switch (kind)

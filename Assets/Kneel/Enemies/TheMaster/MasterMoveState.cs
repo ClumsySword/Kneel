@@ -54,6 +54,10 @@ public class MasterMoveState : EnemyState
     public float SinceStart => kind == MasterP1.MoveKind.Sentence ? elapsed - swingStart
         : kind == MasterP1.MoveKind.Guard && thrusting ? elapsed - (contactAt - tell) : elapsed;
     public bool Thrusting => thrusting;
+
+    // When the current blow lands (game time), or -1 (it has landed, or the Guard is still walking in).
+    public float LandsAt => landed || finished || followupAt >= 0f || (kind == MasterP1.MoveKind.Guard && thrusting == false)
+        ? -1f : Time.time + (contactAt - elapsed);
     public int Swing => swing;
     public bool Landed => landed;
 

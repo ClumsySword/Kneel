@@ -120,6 +120,17 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public bool IsRestricted => Time.time < RestrictedUntil;
 
+    // A slow from the ground (the L5 ash storm): movement x speed until `seconds` from now; renewed each frame by
+    // whatever applies it.
+    public void Slow(float speed, float seconds)
+    {
+        slowSpeed = Mathf.Clamp01(speed);
+        slowUntil = Time.time + seconds;
+    }
+
+    private float slowSpeed = 1f;
+    private float slowUntil = -1f;
+
     private float kneelDuration;
     private int kneelPhase;
     private bool restrictAllowsHeal;
@@ -1204,6 +1215,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             moveMultiplier = settings.blockMoveMultiplier;
             sprintBlocked = true;
             jumpBlocked = true;
+        }
+
+        if (Time.time < slowUntil)
+        {
+            moveMultiplier *= slowSpeed;
         }
 
         if (IsRestricted == true)

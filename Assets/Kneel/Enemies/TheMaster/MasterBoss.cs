@@ -69,6 +69,7 @@ public class MasterBoss : MonoBehaviour
         ForceShortIntro = false;
         MasterP1.HazardImpactNear = null;
         MasterP1.ForceNext = null;
+        BossTell.DarkBoost = 1f;
     }
 
     private void Awake()

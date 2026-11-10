@@ -24,6 +24,9 @@ namespace Kneel.Lighting
         [Range(0f, 0.3f)]
         private float rangeBreath = 0.05f;
 
+        // Scales the whole flicker (L5's darkness wave guttering the hall's torches); 1 = as set.
+        public float Dim { get; set; } = 1f;
+
         private Light flickerLight;
         private float baseRange;
         private float seed;
@@ -43,7 +46,7 @@ namespace Kneel.Lighting
             float noise = (Mathf.PerlinNoise(t * 0.6f, seed) - 0.5f) * 1.4f + (Mathf.PerlinNoise(t * 3.1f, seed + 17f) - 0.5f) * 0.6f;
             float k = 1f + noise * amplitude * 2f;
 
-            flickerLight.intensity = baseIntensity * k;
+            flickerLight.intensity = baseIntensity * k * Dim;
             flickerLight.range = baseRange * (1f + (k - 1f) * rangeBreath / Mathf.Max(amplitude, 0.001f));
         }
     }

@@ -40,6 +40,9 @@ public class BossTell : MonoBehaviour
     // Multiplies the crack glow and every tell (1 normal; the darkness wave raises it so darkness never hides a tell).
     public float EmberScale { get; set; } = 1f;
 
+    // The darkness wave makes his glints and embers brighter (§8: the dark never hides a tell).
+    public static float DarkBoost = 1f;
+
     private AudioSource source;
     private AudioSource loop;
     private Light emberLight;
@@ -220,7 +223,7 @@ public class BossTell : MonoBehaviour
 
     private void Update()
     {
-        float scale = EmberScale;
+        float scale = EmberScale * DarkBoost;
 
         // Glint band: from his feet to his crown across the tell, strongest as it nears the top.
         if (glintStart >= 0f)

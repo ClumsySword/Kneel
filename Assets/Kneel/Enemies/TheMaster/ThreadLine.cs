@@ -21,6 +21,15 @@ public class ThreadLine : MonoBehaviour
     // Raised when a thread reaches its end, with its start and end (the floor fire hooks in here).
     public static event System.Action<Vector3, Vector3, float> OnLineDrawn;
 
+    // Each frame's stretch of the head's path (the hall's winches listen: a thread crossing one snaps its chain).
+    public static event System.Action<Vector3, Vector3, float> OnSwept;
+
+    private const float FireLag = 3f;
+
+    // The fire it leaves on the floor (§8), growing behind the head.
+    private FirePatch fire;
+    private int fireGeneration;
+
     public static ThreadLine Launch(MasterP1 owner, Vector3 origin, Vector3 direction, float speed, float length, float width, float damage)
     {
         var go = new GameObject("ThreadLine");
@@ -52,6 +61,8 @@ public class ThreadLine : MonoBehaviour
 
         t.line.SetPosition(0, t.origin);
         t.line.SetPosition(1, t.origin);
+        t.fire = FloorFire.Line(t.origin, t.origin, width, 8f);
+        t.fireGeneration = t.fire != null ? t.fire.Generation : 0;
         return t;
     }
 
@@ -71,6 +82,10 @@ public class ThreadLine : MonoBehaviour
         travelled = Mathf.Min(length, travelled + step);
         Vector3 head = origin + direction * travelled;
         line.SetPosition(1, head);
+        OnSwept?.Invoke(from, head, width);
+        // The fire catches a few metres behind the head, so a player it hits has a moment to step off the line.
+        if (fire != null && fire.Generation == fireGeneration && travelled > FireLag)
+            fire.Stretch(head - direction * FireLag);
 
         if (hit == false && owner != null && owner.player != null)
         {
