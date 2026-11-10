@@ -43,6 +43,8 @@ public class DebugTuningOverlay : MonoBehaviour
     private bool previewVignette = false;
     private float previewHealth = 1f;
     private bool showDummy = true;
+    private bool showMaster = false;
+    private MasterP1 master;
 
     private const float PanelWidth = 340f;
 
@@ -94,6 +96,8 @@ public class DebugTuningOverlay : MonoBehaviour
         {
             targetDummy = FindAnyObjectByType<TargetDummy>();
         }
+
+        master = FindAnyObjectByType<MasterP1>();
 
         isOpen = startOpen;
     }
@@ -163,6 +167,11 @@ public class DebugTuningOverlay : MonoBehaviour
         if (targetDummy != null && Foldout("Target Dummy", ref showDummy))
         {
             DrawDummySection();
+        }
+
+        if (master != null && master.settings != null && Foldout("Master", ref showMaster))
+        {
+            DrawMasterSection(master.settings);
         }
 
         GUILayout.EndScrollView();
@@ -309,6 +318,8 @@ public class DebugTuningOverlay : MonoBehaviour
             s.blockShoveMultiplier = Slider("Block shove", s.blockShoveMultiplier, 0f, 1f);
             s.hitStunDuration = Slider("Hit stun", s.hitStunDuration, 0f, 1.5f);
             s.staggerDuration = Slider("Stagger time", s.staggerDuration, 0f, 3f);
+            s.kneelDownTime = Slider("Kneel down time", s.kneelDownTime, 0.1f, 1.5f);
+            s.kneelUpTime = Slider("Kneel up time", s.kneelUpTime, 0.1f, 1.5f);
 
             s.maxPoise = Slider("Max poise", s.maxPoise, 1f, 200f);
             s.poiseRegenDelay = Slider("Poise regen delay", s.poiseRegenDelay, 0f, 5f);
@@ -415,6 +426,38 @@ public class DebugTuningOverlay : MonoBehaviour
         }
 
         GUILayout.Space(10f);
+    }
+
+    // The L5 boss (MasterSettings). Writes into the asset, so values found while fighting him are kept.
+    private void DrawMasterSection(MasterSettings s)
+    {
+        GUILayout.Label($"HP {master.health.Current:0}/{master.health.Max:0}   Poise {master.poise.Current:0}/{master.poise.maxPoise:0}   {master.stateMachine.currentState?.GetType().Name}");
+        DrawBar(master.health.Fraction, new Color(0.9f, 0.3f, 0.12f));
+        s.maxHealth = Slider("Health", s.maxHealth, 50f, 1500f);
+        s.maxPoise = Slider("Poise", s.maxPoise, 10f, 400f);
+        s.walkSpeed = Slider("Walk speed", s.walkSpeed, 0.5f, 5f);
+        s.strideSpeed = Slider("Stride speed", s.strideSpeed, 1f, 9f);
+        s.pauseMin = Slider("Pause min", s.pauseMin, 0f, 4f);
+        s.pauseMax = Mathf.Max(Slider("Pause max", s.pauseMax, 0f, 5f), s.pauseMin);
+        s.windupDamageMultiplier = Slider("Wind-up damage x", s.windupDamageMultiplier, 0f, 1f);
+        s.parryKneelTime = Slider("Parry kneel", s.parryKneelTime, 0.5f, 4f);
+        s.poiseStaggerTime = Slider("Poise stagger", s.poiseStaggerTime, 0.3f, 4f);
+        s.decreeTell = Slider("Decree tell", s.decreeTell, 0.3f, 2f);
+        s.decreeDamage = Slider("Decree damage", s.decreeDamage, 0f, 100f);
+        s.sentenceTell1 = Slider("Sentence tell 1", s.sentenceTell1, 0.3f, 2f);
+        s.sentenceTell2 = Slider("Sentence tell 2", s.sentenceTell2, 0.3f, 2f);
+        s.sentenceTell3 = Slider("Sentence tell 3", s.sentenceTell3, 0.3f, 2.5f);
+        s.sentenceDamage = Slider("Sentence damage", s.sentenceDamage, 0f, 100f);
+        s.seizeTell = Slider("Seize tell", s.seizeTell, 0.3f, 2f);
+        s.seizeDamage = Slider("Seize damage", s.seizeDamage, 0f, 100f);
+        s.commandTell = Slider("Command tell", s.commandTell, 1f, 4f);
+        s.commandTellFirst = Slider("Command tell (first)", s.commandTellFirst, 1f, 5f);
+        s.commandCooldown = Slider("Command cooldown", s.commandCooldown, 2f, 30f);
+        s.threadsTell = Slider("Threads tell", s.threadsTell, 0.3f, 2f);
+        s.threadSpeed = Slider("Thread speed", s.threadSpeed, 3f, 20f);
+        s.guardMaxTime = Slider("Guard max time", s.guardMaxTime, 0.5f, 6f);
+        s.thrustTell = Slider("Thrust tell", s.thrustTell, 0.3f, 2f);
+        s.thrustDamage = Slider("Thrust damage", s.thrustDamage, 0f, 100f);
     }
 
     private void DrawDummySection()

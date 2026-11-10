@@ -121,7 +121,60 @@ public class PlayerCamera : MonoBehaviour
     private void ApplyTransform()
     {
         Quaternion rotation = Quaternion.Euler(settings.pitch, settings.yaw, 0f);
-        transform.SetPositionAndRotation(focusPoint - rotation * Vector3.forward * distance + GetShakeOffset(), rotation);
+        Vector3 position = focusPoint - rotation * Vector3.forward * distance;
+
+        // A scripted shot (the L5 reveal, the Master's intro and transition) eases in over the follow and back out.
+        overrideWeight = Mathf.MoveTowards(overrideWeight, overrideActive ? 1f : 0f, Time.unscaledDeltaTime / Mathf.Max(overrideBlend, 0.01f));
+        float lens = 0f;
+        if (overrideWeight > 0f)
+        {
+            float t = Mathf.SmoothStep(0f, 1f, overrideWeight);
+            position = Vector3.Lerp(position, overridePosition, t);
+            rotation = Quaternion.Slerp(rotation, overrideRotation, t);
+            lens = t;
+        }
+
+        // The shot's lens (a long one frames a far boss with the player in the foreground), back to the follow's own.
+        if (lensCamera == null)
+        {
+            lensCamera = GetComponent<Camera>();
+            baseFieldOfView = lensCamera != null ? lensCamera.fieldOfView : 60f;
+        }
+
+        if (lensCamera != null)
+            lensCamera.fieldOfView = Mathf.Lerp(baseFieldOfView, overrideFieldOfView > 0f ? overrideFieldOfView : baseFieldOfView, lens);
+
+        transform.SetPositionAndRotation(position + GetShakeOffset(), rotation);
+    }
+
+    private bool overrideActive;
+    private float overrideWeight;
+    private float overrideBlend = 1f;
+    private Vector3 overridePosition;
+    private Quaternion overrideRotation = Quaternion.identity;
+    private float overrideFieldOfView;
+    private Camera lensCamera;
+    private float baseFieldOfView;
+
+    // True while a scripted shot holds the camera (or is still easing back out of it).
+    public bool HasOverride => overrideWeight > 0f;
+
+    // Eases the camera to a fixed pose over `blendTime` seconds and holds it there until ClearOverride. Calling it again
+    // while one is held moves the held pose (the reveal's push). fieldOfView > 0 also changes the lens.
+    public void SetOverride(Vector3 position, Quaternion rotation, float blendTime, float fieldOfView = 0f)
+    {
+        overridePosition = position;
+        overrideRotation = rotation;
+        overrideFieldOfView = fieldOfView;
+        overrideBlend = blendTime;
+        overrideActive = true;
+    }
+
+    // Eases back to the follow camera over `blendTime` seconds.
+    public void ClearOverride(float blendTime)
+    {
+        overrideBlend = blendTime;
+        overrideActive = false;
     }
 
     private void OnEnable()

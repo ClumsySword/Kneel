@@ -1296,8 +1296,8 @@ namespace Kneel.EditorTools
 
             Throne(g, root, r);
 
-            // The old King in marble, kneeling at the foot of his own dais, his crown fallen before him.
-            KneelingStatue(g, root, new Vector3(54f, y + 0.2f, 466.75f), 0f, Bake("L5_Kneeling_Knight_02_Black", KneelPose).mesh, Marble, 1.15f, false);
+            // The old King in marble that knelt here was a placeholder, removed (owner, 2026-11-10): the Master sits
+            // above this spot and walks down through it. His fallen crown stays.
             var crown = Group(g, "Crown");
             crown.position = new Vector3(54.2f, y + 0.02f, 466.0f);
             crown.rotation = Quaternion.Euler(14f, 30f, 0f);

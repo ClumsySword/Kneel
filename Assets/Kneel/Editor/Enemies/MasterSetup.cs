@@ -7,7 +7,7 @@ namespace Kneel.EditorTools
 {
     // The Master's table for EnemyRig (the boss of L5: the Master in P1, the Ash Colossus in P2). Safe to rerun.
     // Stage 3 holds the body import; the clips, controller, sockets and prefab are added with the fight code.
-    public static class MasterSetup
+    public static partial class MasterSetup
     {
         private const string Folder = "Assets/Kneel/Enemies/TheMaster/";
         public const string MasterModel = Folder + "Models/Master/Master.fbx";

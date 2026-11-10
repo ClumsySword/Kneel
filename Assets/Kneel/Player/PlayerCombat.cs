@@ -24,6 +24,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Dodging,
         Bashing,
         Drinking,
+        Kneeling,
         Dead,
     }
 
@@ -98,9 +99,48 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     // Raised once when health reaches zero (LevelRestartOnDeath listens).
     public event System.Action OnDied;
 
-    public bool IsInvulnerable => State == CombatState.Dodging
+    // A roll's i-frames, and a forced kneel: nothing lands on a kneeling player (the Master's rule, The Master.md §1).
+    public bool IsInvulnerable => (State == CombatState.Dodging
         && stateTime >= settings.dodgeInvulnerableStart
-        && stateTime <= settings.dodgeInvulnerableEnd;
+        && stateTime <= settings.dodgeInvulnerableEnd) || State == CombatState.Kneeling;
+
+    public bool IsKneeling => State == CombatState.Kneeling;
+
+    // Raised when something forces the player to kneel, with how long (Kael's scar flares; the boss times its next blow).
+    public event System.Action<float> OnForcedKneel;
+
+    // Raised when the player's shield or blade parries an attacker (Ash hooks, the scar's ember thread).
+    public event System.Action<GameObject> OnParry;
+
+    // A scripted hold on the player (the Master's palm in the intro, the transition): until RestrictedUntil (Time.time),
+    // they can only walk, at RestrictedSpeed, and every action is ignored.
+    public float RestrictedUntil { get; private set; } = -1f;
+
+    public float RestrictedSpeed { get; private set; } = 1f;
+
+    public bool IsRestricted => Time.time < RestrictedUntil;
+
+    private float kneelDuration;
+    private int kneelPhase;
+    private bool restrictAllowsHeal;
+
+    // Holds the player for `seconds`: walking only, at `speed` of normal, every action ignored (healing too, unless
+    // allowHeal). Extends rather than shortens a hold already running.
+    public void Restrict(float seconds, float speed, bool allowHeal = false)
+    {
+        RestrictedUntil = Mathf.Max(RestrictedUntil, Time.time + seconds);
+        RestrictedSpeed = speed;
+        restrictAllowsHeal = allowHeal;
+        blockHeld = false;
+        dodgeRequestTime = -999f;
+        heavyRequestTime = -999f;
+        attackRequestTime = -999f;
+    }
+
+    public void ReleaseRestriction() => RestrictedUntil = -1f;
+
+    // Forces the player to their knees for `seconds` with no damage (the Master's last palm in the finisher).
+    public void ForceKneel(float seconds) => StartKneel(seconds);
 
     public bool IsParryWindowOpen => IsBlocking && pressCanParry && Time.time - blockPressTime <= settings.parryWindow;
 
@@ -171,6 +211,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnDrawPressed()
     {
+        if (IsRestricted == true)
+        {
+            return;
+        }
+
         if (State == CombatState.Sheathed)
         {
             StartDraw();
@@ -183,7 +228,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnStrikePressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -222,7 +267,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnHeavyPressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -273,6 +318,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnBlockPressed()
     {
+        if (IsRestricted == true)
+        {
+            return;
+        }
+
         blockHeld = true;
 
         // Only a fresh press gets a parry window, so mashing block doesn't parry everything.
@@ -309,6 +359,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 break;
             case CombatState.Drinking:
                 UpdateDrinking();
+                break;
+            case CombatState.Kneeling:
+                UpdateKneeling();
                 break;
         }
 
@@ -562,6 +615,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             direction = direction.normalized,
             source = gameObject,
             isCritical = critical,
+            heavy = attack == settings.heavyAttack,
         });
 
         HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), critical ? 24 : 14);
@@ -575,7 +629,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     // before the sip wastes it.
     private void OnHealPressed()
     {
-        if (State != CombatState.Sheathed || potions == null || potions.TryTake() == false)
+        if ((IsRestricted == true && restrictAllowsHeal == false) || State != CombatState.Sheathed || potions == null || potions.TryTake() == false)
         {
             return;
         }
@@ -683,7 +737,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (State != CombatState.Sheathed && State != CombatState.Armed)
+        if ((State != CombatState.Sheathed && State != CombatState.Armed) || IsRestricted == true)
         {
             return;
         }
@@ -806,7 +860,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public void TakeHit(DamageInfo info)
     {
-        if (IsInvulnerable == true || IsDead == true)
+        bool rolling = State == CombatState.Dodging;
+        if ((IsInvulnerable == true && (info.ignoresRoll == false || rolling == false)) || IsDead == true)
         {
             return;
         }
@@ -825,13 +880,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (fromFront == true && IsParryWindowOpen == true && info.unparryable == false)
+        if (fromFront == true && IsParryWindowOpen == true && info.unparryable == false && info.unblockable == false)
         {
             if (info.source != null && info.source.TryGetComponent(out IParryable parried))
             {
                 parried.OnParried(gameObject);
             }
 
+            OnParry?.Invoke(info.source);
             LastParryTime = Time.time;
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
             animator.CrossFadeInFixedTime("Parry", 0.05f, upperBodyLayer, 0f);
@@ -840,7 +896,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (fromFront == true && IsBlocking == true)
+        if (fromFront == true && IsBlocking == true && info.unblockable == false)
         {
             // The shield soaks most of the poise damage too; what gets through can still break the guard.
             if (Poise.ApplyDamage(info.poiseDamage * settings.blockPoiseMultiplier) == true)
@@ -868,6 +924,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         health.ApplyDamage(info.amount);
         HitStop.Freeze(settings.hitStop * weight);
         Shove(info, 1f);
+
+        // Forced to kneel: that replaces any stagger or flinch.
+        if (info.kneelTime > 0f)
+        {
+            Shake(settings.hitShake * 1.5f * weight);
+            StartKneel(info.kneelTime);
+            return;
+        }
 
         if (poiseBroken == true)
         {
@@ -1021,6 +1085,73 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
     }
 
+    // --- Forced kneel ---
+
+    // Down to one knee in kneelDownTime, held until `duration` has passed since the start, then up in kneelUpTime.
+    // Nothing lands meanwhile (IsInvulnerable) and the player can't act.
+    private void StartKneel(float duration)
+    {
+        if (IsDead == true)
+        {
+            return;
+        }
+
+        if (State == CombatState.Dodging)
+        {
+            movement.forcedVelocity = null;
+            SetEnemyCollision(true);
+            animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
+        }
+
+        StopAirborne();
+        potions?.ShowInHand(false);
+        equipment.SwordHitbox.End();
+        attackQueued = false;
+        IsBlocking = false;
+        blockHeld = false;
+
+        SetState(CombatState.Kneeling);
+        kneelDuration = Mathf.Max(duration, settings.kneelDownTime + settings.kneelUpTime);
+        kneelPhase = 0;
+        upperBodyTarget = 0f;
+        upperBodyWeight = 0f;
+        fullBodyTarget = 1f;
+        fullBodyWeight = 1f;
+        animator.CrossFadeInFixedTime("KneelDown", 0.08f, fullBodyLayer, 0f);
+        OnForcedKneel?.Invoke(duration);
+    }
+
+    private void UpdateKneeling()
+    {
+        if (kneelPhase == 0 && stateTime >= settings.kneelDownTime)
+        {
+            kneelPhase = 1;
+            animator.CrossFadeInFixedTime("KneelIdle", 0.12f, fullBodyLayer);
+        }
+
+        if (kneelPhase == 1 && stateTime >= kneelDuration - settings.kneelUpTime)
+        {
+            kneelPhase = 2;
+            animator.CrossFadeInFixedTime("KneelUp", 0.1f, fullBodyLayer, 0f);
+        }
+
+        if (kneelPhase == 2 && stateTime >= kneelDuration)
+        {
+            fullBodyTarget = 0f;
+            animator.CrossFadeInFixedTime("Locomotion", 0.2f, 0);
+            if (equipment.SwordInHand == true)
+            {
+                SetState(CombatState.Armed);
+                upperBodyTarget = 1f;
+                animator.CrossFadeInFixedTime("ArmedIdle", 0.15f, upperBodyLayer);
+            }
+            else
+            {
+                SetState(CombatState.Sheathed);
+            }
+        }
+    }
+
     // --- Shared ---
 
     private void ApplyMovementRules()
@@ -1050,6 +1181,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 jumpBlocked = true;
                 break;
             case CombatState.HitStun:
+            case CombatState.Kneeling:
             case CombatState.Dead:
                 moveMultiplier = 0f;
                 rotationLocked = true;
@@ -1070,6 +1202,13 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         if (IsBlocking == true)
         {
             moveMultiplier = settings.blockMoveMultiplier;
+            sprintBlocked = true;
+            jumpBlocked = true;
+        }
+
+        if (IsRestricted == true)
+        {
+            moveMultiplier *= RestrictedSpeed;
             sprintBlocked = true;
             jumpBlocked = true;
         }

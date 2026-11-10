@@ -29,6 +29,19 @@ public struct DamageInfo
 
     // How much heavier than a normal blow this lands: 1 doubles the hit-stop and shake, and it shoves the receiver.
     public float impact;
+
+    // A grab (the Master's Seize, the Colossus's Grasp): it goes through the shield and the parry window alike.
+    public bool unblockable;
+
+    // Forces the receiver to its knees for this many seconds (the Master's Command and Seize). The player can't act
+    // and nothing lands meanwhile; whoever forces it times their next blow for after the release.
+    public float kneelTime;
+
+    // The player's heavy attack, which the Ash Colossus's armour doesn't soften.
+    public bool heavy;
+
+    // Not a blow but a light (the Master's Command): a roll's i-frames don't escape it, only cover does.
+    public bool ignoresRoll;
 }
 
 public interface IDamageable

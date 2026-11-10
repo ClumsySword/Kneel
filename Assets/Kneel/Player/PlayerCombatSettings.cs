@@ -273,6 +273,11 @@ public class PlayerCombatSettings : ScriptableObject
     [FormerlySerializedAs("guardBreakDuration")]
     public float staggerDuration = 0.9f;
 
+    // A forced kneel (the Master's Command and Seize): seconds to go down to one knee and to stand back up. The hold in
+    // between is whatever the blow asks for.
+    public float kneelDownTime = 0.5f;
+    public float kneelUpTime = 0.6f;
+
     [Header("Poise Info")]
     public float maxPoise = 50f;
 
