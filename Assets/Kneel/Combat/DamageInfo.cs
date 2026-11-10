@@ -42,6 +42,14 @@ public struct DamageInfo
 
     // Not a blow but a light (the Master's Command): a roll's i-frames don't escape it, only cover does.
     public bool ignoresRoll;
+
+    // Knocks the receiver flat (the Ash Colossus's Reaping Sweep and Grasp): the player is down, invulnerable, then
+    // gets up; `fling` metres along `direction` first. A grab holds them `holdTime` seconds inside `holder` (hidden),
+    // then flings them.
+    public bool knockdown;
+    public float fling;
+    public float holdTime;
+    public Transform holder;
 }
 
 public interface IDamageable

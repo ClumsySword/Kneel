@@ -18803,6 +18803,7 @@ GameObject:
   - component: {fileID: 24221792}
   - component: {fileID: 24221794}
   - component: {fileID: 24221793}
+  - component: {fileID: 24221795}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -18850,7 +18851,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -18882,6 +18883,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 24221791}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &24221795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 24221791}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &24910935
 GameObject:
   m_ObjectHideFlags: 0
@@ -35938,6 +35952,7 @@ GameObject:
   - component: {fileID: 40486227}
   - component: {fileID: 40486229}
   - component: {fileID: 40486228}
+  - component: {fileID: 40486230}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -35985,7 +36000,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -36017,6 +36032,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 40486226}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &40486230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 40486226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &40593724
 GameObject:
   m_ObjectHideFlags: 0
@@ -70653,6 +70681,7 @@ GameObject:
   - component: {fileID: 60590333}
   - component: {fileID: 60590335}
   - component: {fileID: 60590334}
+  - component: {fileID: 60590336}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -70700,7 +70729,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -70732,6 +70761,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 60590332}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &60590336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 60590332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &60776432
 GameObject:
   m_ObjectHideFlags: 0
@@ -238005,6 +238047,7 @@ GameObject:
   - component: {fileID: 234138595}
   - component: {fileID: 234138597}
   - component: {fileID: 234138596}
+  - component: {fileID: 234138598}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -238052,7 +238095,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -238084,6 +238127,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 234138594}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &234138598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234138594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &235389499
 GameObject:
   m_ObjectHideFlags: 0
@@ -238130,6 +238186,7 @@ GameObject:
   - component: {fileID: 235799717}
   - component: {fileID: 235799719}
   - component: {fileID: 235799718}
+  - component: {fileID: 235799720}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -238177,7 +238234,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -238209,6 +238266,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 235799716}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &235799720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235799716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &236927159
 GameObject:
   m_ObjectHideFlags: 0
@@ -267741,6 +267811,7 @@ GameObject:
   - component: {fileID: 254803591}
   - component: {fileID: 254803595}
   - component: {fileID: 254803594}
+  - component: {fileID: 254803596}
   m_Layer: 0
   m_Name: TheMaster
   m_TagString: Untagged
@@ -267794,6 +267865,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MasterBoss
   settings: {fileID: 11400000, guid: 20d90bbdc638d2445a229a86c742bf92, type: 2}
   master: {fileID: 2097049715}
+  colossus: {fileID: 942065626}
+  unmaking: {fileID: 254803596}
   seal: {fileID: 2077856843}
   barPrefab: {fileID: 5770173679000271202, guid: 9ac0b87b14e79f44cafeca0481a10008, type: 3}
   throneSeat: {fileID: 1957369678}
@@ -267827,6 +267900,7 @@ Transform:
   - {fileID: 2097049716}
   - {fileID: 2144615061}
   - {fileID: 1487734858}
+  - {fileID: 942065627}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &254803594
@@ -267860,6 +267934,21 @@ MonoBehaviour:
   ashStorm: {fileID: 625338924}
   spacing: 0.5
   threadCutReach: 0.8
+--- !u!114 &254803596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254803590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddfe8d060e9e10e4ca8268812b88be75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Unmaking
+  smokeMaterial: {fileID: 2100000, guid: da4017ca5a103a64fa0361ce4471d272, type: 2}
+  emberMaterial: {fileID: 2100000, guid: 0a45aef16a136b04eadf74c71edddffe, type: 2}
+  crackMaterial: {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
 --- !u!1 &254997557
 GameObject:
   m_ObjectHideFlags: 0
@@ -298504,6 +298593,7 @@ GameObject:
   - component: {fileID: 275324495}
   - component: {fileID: 275324497}
   - component: {fileID: 275324496}
+  - component: {fileID: 275324498}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -298551,7 +298641,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -298583,6 +298673,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 275324494}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &275324498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 275324494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &275814507
 GameObject:
   m_ObjectHideFlags: 0
@@ -373858,11 +373961,14 @@ MonoBehaviour:
   floorY: 9
   lavaY: 8.55
   maxHoleLights: 4
-  playerDamage: 50
-  playerKneel: 1.5
   bossDamage: 50
   bossStagger: 2.5
   dust: {fileID: 261663544}
+  emberMaterial: {fileID: 2100000, guid: 0a45aef16a136b04eadf74c71edddffe, type: 2}
+  smokeMaterial: {fileID: 2100000, guid: da4017ca5a103a64fa0361ce4471d272, type: 2}
+  debrisMesh: {fileID: 4300000, guid: 0c6bd092db560c64a8ac57b3dea55bce, type: 3}
+  debrisMaterial: {fileID: 2100000, guid: a4973a0b7082e3147951d7a8b6a54715, type: 2}
+  burstDrop: 6
 --- !u!1 &362965653
 GameObject:
   m_ObjectHideFlags: 0
@@ -376181,6 +376287,7 @@ GameObject:
   - component: {fileID: 363125599}
   - component: {fileID: 363125601}
   - component: {fileID: 363125600}
+  - component: {fileID: 363125602}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -376228,7 +376335,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -376260,6 +376367,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 363125598}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &363125602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 363125598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &363697682
 GameObject:
   m_ObjectHideFlags: 0
@@ -410645,6 +410765,7 @@ GameObject:
   - component: {fileID: 403585136}
   - component: {fileID: 403585138}
   - component: {fileID: 403585137}
+  - component: {fileID: 403585139}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -410692,7 +410813,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -410724,6 +410845,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 403585135}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &403585139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403585135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &403649547
 GameObject:
   m_ObjectHideFlags: 0
@@ -446080,6 +446214,7 @@ GameObject:
   - component: {fileID: 428528282}
   - component: {fileID: 428528284}
   - component: {fileID: 428528283}
+  - component: {fileID: 428528285}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -446127,7 +446262,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -446159,6 +446294,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 428528281}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &428528285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428528281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &429064384
 GameObject:
   m_ObjectHideFlags: 0
@@ -668951,6 +669099,7 @@ GameObject:
   - component: {fileID: 611250914}
   - component: {fileID: 611250916}
   - component: {fileID: 611250915}
+  - component: {fileID: 611250917}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -668998,7 +669147,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -669030,6 +669179,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 611250913}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &611250917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 611250913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1001 &611462079
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -671505,6 +671667,7 @@ GameObject:
   - component: {fileID: 611674672}
   - component: {fileID: 611674674}
   - component: {fileID: 611674673}
+  - component: {fileID: 611674675}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -671552,7 +671715,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -671584,6 +671747,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 611674671}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &611674675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 611674671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &612041394
 GameObject:
   m_ObjectHideFlags: 0
@@ -923542,6 +923718,7 @@ GameObject:
   - component: {fileID: 790047933}
   - component: {fileID: 790047935}
   - component: {fileID: 790047934}
+  - component: {fileID: 790047936}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -923589,7 +923766,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -923621,6 +923798,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 790047932}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &790047936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790047932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &790412426
 GameObject:
   m_ObjectHideFlags: 0
@@ -1014961,6 +1015151,7 @@ GameObject:
   - component: {fileID: 875669840}
   - component: {fileID: 875669842}
   - component: {fileID: 875669841}
+  - component: {fileID: 875669843}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1015008,7 +1015199,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1015040,6 +1015231,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 875669839}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &875669843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 875669839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &875706529
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089952,6 +1090156,7 @@ GameObject:
   - component: {fileID: 938470509}
   - component: {fileID: 938470511}
   - component: {fileID: 938470510}
+  - component: {fileID: 938470512}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1089999,7 +1090204,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1090031,6 +1090236,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 938470508}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &938470512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 938470508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &938709988
 GameObject:
   m_ObjectHideFlags: 0
@@ -1090164,6 +1090382,7 @@ GameObject:
   - component: {fileID: 939536700}
   - component: {fileID: 939536702}
   - component: {fileID: 939536701}
+  - component: {fileID: 939536703}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1090211,7 +1090430,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1090243,6 +1090462,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 939536699}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &939536703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 939536699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &939587213
 GameObject:
   m_ObjectHideFlags: 0
@@ -1095143,6 +1095375,79 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 942030636}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &942065625
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 254803593}
+    m_Modifications:
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 54
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 465.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9106419827495031802, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+      propertyPath: m_Name
+      value: TheMaster_P2
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+--- !u!114 &942065626 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7959853001983677160, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+  m_PrefabInstance: {fileID: 942065625}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8835e3decf6e99445aae9fcce5f4bc01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AshColossus
+--- !u!4 &942065627 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1499424008483177854, guid: e15b6f6db293ce5469756c8be8bb92c2, type: 3}
+  m_PrefabInstance: {fileID: 942065625}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &942095652
 GameObject:
   m_ObjectHideFlags: 0
@@ -1162768,6 +1163073,7 @@ GameObject:
   - component: {fileID: 993529323}
   - component: {fileID: 993529325}
   - component: {fileID: 993529324}
+  - component: {fileID: 993529326}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1162815,7 +1163121,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1162847,6 +1163153,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 993529322}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &993529326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 993529322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &993617060
 GameObject:
   m_ObjectHideFlags: 0
@@ -1207619,6 +1207938,7 @@ GameObject:
   - component: {fileID: 1025239779}
   - component: {fileID: 1025239781}
   - component: {fileID: 1025239780}
+  - component: {fileID: 1025239782}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1207666,7 +1207986,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1207698,6 +1208018,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1025239778}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1025239782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025239778}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1027052268
 GameObject:
   m_ObjectHideFlags: 0
@@ -1238502,6 +1238835,7 @@ GameObject:
   - component: {fileID: 1055159982}
   - component: {fileID: 1055159984}
   - component: {fileID: 1055159983}
+  - component: {fileID: 1055159985}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1238549,7 +1238883,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1238581,6 +1238915,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1055159981}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1055159985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1055159981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1056735481
 GameObject:
   m_ObjectHideFlags: 0
@@ -1267060,6 +1267407,7 @@ GameObject:
   - component: {fileID: 1086925699}
   - component: {fileID: 1086925701}
   - component: {fileID: 1086925700}
+  - component: {fileID: 1086925702}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1267107,7 +1267455,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1267139,6 +1267487,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1086925698}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1086925702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1086925698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1087485204
 GameObject:
   m_ObjectHideFlags: 0
@@ -1272509,6 +1272870,7 @@ GameObject:
   - component: {fileID: 1094187493}
   - component: {fileID: 1094187495}
   - component: {fileID: 1094187494}
+  - component: {fileID: 1094187496}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1272556,7 +1272918,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1272588,6 +1272950,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1094187492}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1094187496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1094187492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1095223261
 GameObject:
   m_ObjectHideFlags: 0
@@ -1277979,6 +1278354,7 @@ GameObject:
   - component: {fileID: 1103825583}
   - component: {fileID: 1103825585}
   - component: {fileID: 1103825584}
+  - component: {fileID: 1103825586}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1278026,7 +1278402,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1278058,6 +1278434,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1103825582}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1103825586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103825582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1104222876
 GameObject:
   m_ObjectHideFlags: 0
@@ -1794838,6 +1795227,7 @@ GameObject:
   - component: {fileID: 1548366389}
   - component: {fileID: 1548366391}
   - component: {fileID: 1548366390}
+  - component: {fileID: 1548366392}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1794885,7 +1795275,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1794917,6 +1795307,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1548366388}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1548366392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1548366388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1548690755
 GameObject:
   m_ObjectHideFlags: 0
@@ -1810035,6 +1810438,7 @@ GameObject:
   - component: {fileID: 1562162666}
   - component: {fileID: 1562162668}
   - component: {fileID: 1562162667}
+  - component: {fileID: 1562162669}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1810082,7 +1810486,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1810114,6 +1810518,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1562162665}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1562162669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562162665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1562472998
 GameObject:
   m_ObjectHideFlags: 0
@@ -1864469,6 +1864886,7 @@ GameObject:
   - component: {fileID: 1616680986}
   - component: {fileID: 1616680988}
   - component: {fileID: 1616680987}
+  - component: {fileID: 1616680989}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1864516,7 +1864934,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1864548,6 +1864966,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1616680985}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1616680989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1616680985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1619166396
 GameObject:
   m_ObjectHideFlags: 0
@@ -1950222,6 +1950653,7 @@ GameObject:
   - component: {fileID: 1687383847}
   - component: {fileID: 1687383849}
   - component: {fileID: 1687383848}
+  - component: {fileID: 1687383850}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -1950269,7 +1950701,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1950301,6 +1950733,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1687383846}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1687383850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1687383846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1688732419
 GameObject:
   m_ObjectHideFlags: 0
@@ -2009405,6 +2009850,7 @@ GameObject:
   - component: {fileID: 1754091356}
   - component: {fileID: 1754091358}
   - component: {fileID: 1754091357}
+  - component: {fileID: 1754091359}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -2009452,7 +2009898,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2009484,6 +2009930,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1754091355}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1754091359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1754091355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1754666834
 GameObject:
   m_ObjectHideFlags: 0
@@ -2083880,6 +2084339,7 @@ GameObject:
   - component: {fileID: 1814423162}
   - component: {fileID: 1814423164}
   - component: {fileID: 1814423163}
+  - component: {fileID: 1814423165}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -2083927,7 +2084387,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2083959,6 +2084419,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1814423161}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1814423165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1814423161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1814540579
 GameObject:
   m_ObjectHideFlags: 0
@@ -2295151,6 +2295624,7 @@ GameObject:
   - component: {fileID: 1978900329}
   - component: {fileID: 1978900331}
   - component: {fileID: 1978900330}
+  - component: {fileID: 1978900332}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -2295198,7 +2295672,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2295230,6 +2295704,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1978900328}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1978900332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1978900328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &1979088510
 GameObject:
   m_ObjectHideFlags: 0
@@ -2335802,6 +2336289,7 @@ GameObject:
   - component: {fileID: 2012271798}
   - component: {fileID: 2012271800}
   - component: {fileID: 2012271799}
+  - component: {fileID: 2012271801}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -2335849,7 +2336337,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2335881,6 +2336369,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2012271797}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2012271801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2012271797}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &2013616337
 GameObject:
   m_ObjectHideFlags: 0
@@ -2433664,6 +2434165,7 @@ GameObject:
   - component: {fileID: 2101149364}
   - component: {fileID: 2101149366}
   - component: {fileID: 2101149365}
+  - component: {fileID: 2101149367}
   m_Layer: 0
   m_Name: Crack
   m_TagString: Untagged
@@ -2433711,7 +2434213,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  - {fileID: 2100000, guid: c7c631eb35eefea4996485d9c49ee6cc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2433743,6 +2434245,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2101149363}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2101149367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2101149363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 279e9eff4016e894b8107d6485baa7ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LavaCracks
+  map: {fileID: 2800000, guid: 441b944931eabc94f877fa240b1f85ce, type: 3}
 --- !u!1 &2101805403
 GameObject:
   m_ObjectHideFlags: 0

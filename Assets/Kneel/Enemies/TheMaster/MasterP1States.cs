@@ -163,12 +163,16 @@ public class MasterApproachState : EnemyState
     }
 }
 
-// The pause between strings: he circles the player at a slow walk, facing them (§4: 1-2 s).
+// The pause between strings (§4: 1-2 s): he stands his ground and turns to face the player, at a capped turn rate.
+// (It was a sideways circle at a slow walk, but with no strafe clip his feet glided: owner, 2026-11-10, "this should
+// never happen".)
 public class MasterCircleState : EnemyState
 {
     private readonly MasterP1 master;
     private float until;
-    private float side = 1f;
+
+    // Degrees a second he turns while standing.
+    public const float TurnRate = 110f;
 
     public MasterCircleState(Enemy enemyBase, EnemyStateMachine stateMachine, string animBoolName)
         : base(enemyBase, stateMachine, animBoolName) { master = enemyBase as MasterP1; }
@@ -178,7 +182,7 @@ public class MasterCircleState : EnemyState
     public override void Enter()
     {
         base.Enter();
-        side = Random.value < 0.5f ? -1f : 1f;
+        master.Stop();
         master.SetLeftArmRest(true);
         master.anim.CrossFadeInFixedTime("Circle", 0.25f, 0, 0f);
     }
@@ -187,23 +191,18 @@ public class MasterCircleState : EnemyState
     {
         base.Update();
         master.FeedLocomotion();
-        master.transform.rotation = master.FaceTarget(master.player.position);
-
-        if (master.Engaged && master.Untouchable == false)
-        {
-            Vector3 to = master.player.position - master.transform.position;
-            to.y = 0f;
-            Vector3 strafe = Vector3.Cross(Vector3.up, to.normalized) * side;
-            if (master.agent.enabled && master.agent.isOnNavMesh)
-                master.agent.Move(strafe * 0.8f * Time.deltaTime);
-        }
+        Vector3 to = master.player.position - master.transform.position;
+        to.y = 0f;
+        if (to.sqrMagnitude > 0.01f)
+            master.transform.rotation = Quaternion.RotateTowards(master.transform.rotation, Quaternion.LookRotation(to), TurnRate * Time.deltaTime);
 
         if (master.Engaged && master.Untouchable == false && Time.time >= until)
             master.BeginNextMove();
     }
 }
 
-// Parried: driven to one knee for the riposte window (every hit critical, §4), then up.
+// Parried: knocked reeling for the riposte window (every hit critical, §4). Owner, 2026-11-10: he never kneels to it;
+// it's the stagger (Large Hit Reaction), slowed to fill the window, then he recovers his stance.
 public class MasterParriedState : EnemyState
 {
     private readonly MasterP1 master;
@@ -228,34 +227,36 @@ public class MasterParriedState : EnemyState
         phase = 0;
         elapsedTime = 0f;
         master.Stop();
-        master.SetLeftArmRest(false);
+        master.SetLeftArmRest(true);
         master.bossTell?.StopTells();
         master.bossTell?.Kneel();
-        master.anim.CrossFadeInFixedTime("KneelDown", 0.06f, 0, 0f);
+        master.SetMoveSpeed(StaggerSpeed(master, duration - 0.35f));
+        master.anim.CrossFadeInFixedTime("ParriedStagger", 0.05f, 0, 0f);
     }
+
+    // The stagger clip fitted to `seconds`, never slower than 0.65x (slower reads as slow motion).
+    public static float StaggerSpeed(MasterP1 master, float seconds) =>
+        Mathf.Max(0.65f, master.staggerLength / Mathf.Max(seconds, 0.1f));
 
     public override void Update()
     {
         elapsedTime += Time.deltaTime;
-        if (phase == 0 && elapsedTime >= 0.5f)
+        if (phase == 0 && elapsedTime >= Mathf.Min(duration - 0.35f, master.staggerLength / StaggerSpeed(master, duration - 0.35f)))
         {
+            // Back into his stance for the last moment of the window.
             phase = 1;
-            master.anim.CrossFadeInFixedTime("KneelIdle", 0.12f, 0, 0f);
+            master.SetMoveSpeed(1f);
+            master.anim.CrossFadeInFixedTime("ParriedRecover", 0.3f, 0, 0f);
         }
 
-        if (phase == 1 && elapsedTime >= duration - 0.6f)
-        {
-            phase = 2;
-            master.anim.CrossFadeInFixedTime("KneelUp", 0.1f, 0, 0f);
-        }
-
-        if (phase == 2 && elapsedTime >= duration)
+        if (elapsedTime >= duration)
             master.MoveFinished();
     }
 
     public override void Exit()
     {
         base.Exit();
+        master.SetMoveSpeed(1f);
         elapsedTime = 0f;
     }
 
@@ -288,7 +289,14 @@ public class MasterStaggerState : EnemyState
         master.SetLeftArmRest(true);
         master.bossTell?.StopTells();
         master.poise.Reset();
+        master.SetMoveSpeed(MasterParriedState.StaggerSpeed(master, duration - 0.3f));
         master.anim.CrossFadeInFixedTime("Stagger", 0.06f, 0, 0f);
+    }
+
+    public override void Exit()
+    {
+        base.Exit();
+        master.SetMoveSpeed(1f);
     }
 
     public override void Update()

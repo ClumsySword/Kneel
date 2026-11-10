@@ -117,4 +117,135 @@ public class MasterSettings : ScriptableObject
     public float introBarFillTime = 1f;
     public float retryIntroTime = 4f;
     public float skipHoldTime = 0.5f;
+
+    [Header("Transition: the Unmaking (§5)")]
+    public float unmakingTime = 10f;
+    // Where the Colossus may rise: the nearest NavMesh point this clear of any edge, at most this far from where he knelt.
+    public float colossusClearance = 3.5f;
+    public float colossusMaxOffset = 4f;
+    // The floor's ring at the mask split pushes a player inside it out to this distance (3 R).
+    public float ringPush = 9f;
+    // A chandelier the transition drops shoves a player under it this far clear (1 R), with no damage.
+    public float chandelierShove = 3f;
+    public int threadRibbons = 60;
+
+    [Header("Phase 2: the Ash Colossus (§6)")]
+    public float p2MaxHealth = 650f;
+    public float p2MaxPoise = 160f;
+    public float p2PoiseRegenDelay = 3f;
+    public float p2PoiseRegenRate = 15f;
+    public float p2WalkSpeed = 1.8f;
+    public float p2TurnSpeed = 3.5f;
+    public float p2PauseMin = 0.8f;
+    public float p2PauseMax = 1.5f;
+    // Ash armour: a light (not a heavy, not a bash) does this share of its damage and no poise. A Topple ignores it.
+    public float lightArmour = 0.4f;
+    // Poise break or three parries running: he falls forward onto his hands, hits critical.
+    public float toppleTime = 3.5f;
+    // A parry (only the Cleave has a glint): he recoils and loses some poise.
+    public float recoilTime = 1.2f;
+    public float recoilPoise = 25f;
+    public int parriesToTopple = 3;
+    // A hazard landing on him (a panel giving way, a statue) breaks a wind-up into a Topple.
+
+    [Header("Phase 2: picker (§6)")]
+    public float p2BandNear = 6f;
+    public float p2BandMid = 12f;
+    public float greatCommandCooldown = 15f;
+    public float gatherCooldown = 30f;
+    // Gather only below this share of his health.
+    public float gatherBelow = 0.75f;
+    public float leapCooldown = 6f;
+    public float lashCooldown = 6f;
+    public float graspCooldown = 5f;
+
+    [Header("Cleave (glint)")]
+    public float cleaveTell = 1f;
+    public float cleaveDamage = 45f;
+    // A line along the blade's fall: from cleaveStart to cleaveStart + cleaveLength ahead of him, cleaveWidth wide.
+    public float cleaveStart = 1.5f;
+    public float cleaveLength = 5f;
+    public float cleaveWidth = 1.5f;
+    public float cleavePunish = 1.8f;
+
+    [Header("Reaping Sweep (ember)")]
+    public float sweepTell = 1.1f;
+    public float sweepDamage = 40f;
+    public float sweepReach = 6f;
+    public float sweepArc = 180f;
+    public float sweepFling = 2f;
+    public float sweepPunish = 1.5f;
+
+    [Header("Grasp (ember)")]
+    public float graspTell = 1f;
+    public float graspLock = 0.3f;
+    // The claw closes this far ahead of him, after a lunge of up to graspLunge along the locked line (3 R in all).
+    public float graspHandOut = 4.5f;
+    public float graspLunge = 4.5f;
+    public float graspLungeTime = 0.3f;
+    public float graspRadius = 2f;
+    public float graspDamage = 60f;
+    public float graspHold = 0.6f;
+    public float graspFling = 6f;
+    public float graspPunish = 2f;
+
+    [Header("Hammerfall (no glint)")]
+    public float hammerTell = 1.4f;
+    // The fists land this far ahead of him.
+    public float hammerOut = 3.5f;
+    public float hammerRadius = 4f;
+    public float hammerDamage = 50f;
+    // The lava cracks (owner, 2026-11-10, replacing the burning circle and the ring): they race out from the impact to
+    // hammerRingRadius in hammerCrackGrow, glow brighter for hammerCrackBrighten, then burst: hammerCrackDamage to a
+    // player standing on one. They fade over hammerCrackFade.
+    public float hammerRingRadius = 8f;
+    public float hammerCrackGrow = 0.45f;
+    public float hammerCrackBrighten = 0.8f;
+    public float hammerCrackDamage = 25f;
+    public float hammerCrackFade = 1.4f;
+    // How near a crack counts as standing on it (m).
+    public float hammerCrackMargin = 0.45f;
+    // The panel under the impact gives way this long after it.
+    public float hammerPanelDelay = 3f;
+    public float hammerPunish = 2.5f;
+
+    [Header("Leap")]
+    public float leapTell = 1.2f;
+    // The target (the shadow) stops following the player this long before he lands.
+    public float leapLock = 0.4f;
+    public float leapRadius = 4f;
+    public float leapDamage = 50f;
+    public float leapPunish = 2f;
+
+    [Header("Great Command (mask light)")]
+    public float greatCommandTell = 3.5f;
+    public float greatCommandTellAgain = 3f;
+    public float greatCommandDamage = 30f;
+    public float greatCommandKneel = 2f;
+    public float greatCommandPunish = 2f;
+    // The Hammerfall that follows lands this long after the player can move again.
+    public float greatCommandFollowupGap = 0.35f;
+
+    [Header("Gather (channel)")]
+    public float gatherTime = 4f;
+    public float gatherHeal = 0.08f;
+    // Broken by this much of the player's raw damage (heavies count double), or this many bashes: he Topples.
+    public float gatherBreakDamage = 60f;
+    public float gatherHeavyWeight = 2f;
+    public int gatherBreakBashes = 2;
+
+    [Header("Thread Lash")]
+    public float lashTell = 1f;
+    public int lashCount = 5;
+    public float lashFan = 12f;
+    public float lashLength = 24f;
+    public float lashDamage = 25f;
+    // Only at a player beyond 4 R.
+    public float lashMinRange = 12f;
+
+    [Header("Phase 2: 50% beat")]
+    public float roarTime = 3f;
+    // In P2, a darkness wave every this many seconds (never during a Great Command).
+    public float darknessEveryMin = 35f;
+    public float darknessEveryMax = 45f;
 }

@@ -90,6 +90,17 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
     private void OnDisable() => All.Remove(this);
 
     // The chain snaps: it lands `tell` seconds from now.
+    // The Unmaking's fall (§5, 3.0 s): no damage to anyone; a player under it is shoved `shove` metres clear.
+    public void Trigger(float shove)
+    {
+        if (Current != State.Hanging)
+            return;
+        harmlessShove = shove;
+        Trigger();
+    }
+
+    private float harmlessShove = -1f;
+
     public void Trigger()
     {
         if (Current != State.Hanging)
@@ -179,12 +190,25 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
             shadow.SetActive(false);
 
         Vector3 at = transform.position;
-        foreach (IHallBoss boss in HallActors.BossesNear(at, reach + 0.6f))
-            boss.HazardHit(bossDamage, bossStagger);
-
         PlayerCombat player = HallActors.Player;
-        if (player != null && HallActors.FlatDistance(player.transform.position, at) <= reach + 0.3f)
-            HallActors.HitPlayer(playerDamage, at, gameObject);
+        if (harmlessShove >= 0f)
+        {
+            if (player != null && HallActors.FlatDistance(player.transform.position, at) <= reach + 0.3f)
+            {
+                Vector3 away = player.transform.position - at;
+                away.y = 0f;
+                float d = away.magnitude;
+                player.Push(d > 0.1f ? away / d : Vector3.back, reach + harmlessShove - d);
+            }
+        }
+        else
+        {
+            foreach (IHallBoss boss in HallActors.BossesNear(at, reach + 0.6f))
+                boss.HazardHit(bossDamage, bossStagger);
+
+            if (player != null && HallActors.FlatDistance(player.transform.position, at) <= reach + 0.3f)
+                HallActors.HitPlayer(playerDamage, at, gameObject);
+        }
 
         if (impactDust != null)
         {
@@ -210,6 +234,7 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     public void ResetState()
     {
+        harmlessShove = -1f;
         Current = State.Hanging;
         ImpactAt = -1f;
         transform.SetPositionAndRotation(restPosition, restRotation);

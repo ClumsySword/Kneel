@@ -278,6 +278,19 @@ public class PlayerCombatSettings : ScriptableObject
     public float kneelDownTime = 0.5f;
     public float kneelUpTime = 0.6f;
 
+    // Knockdown (the Ash Colossus's Reaping Sweep and Grasp, The Master.md §6): down for knockdownDownTime
+    // (invulnerable), then up over knockdownUpTime; a roll pressed knockdownRollAfter into the get-up cuts it short.
+    // A fling travels at knockdownFlingSpeed.
+    public float knockdownDownTime = 1f;
+    public float knockdownUpTime = 1.4f;
+    public float knockdownRollAfter = 0.4f;
+    public float knockdownFlingSpeed = 14f;
+    // Clip seconds (Male Knocked Down From A Punch settles flat at 1.5 s; Getting Up starts to move at 0.3 s and is
+    // standing at 1.8 s), played at the speed that fits them to the times above.
+    public float knockdownFallClip = 1.5f;
+    public float knockdownUpClipStart = 0.3f;
+    public float knockdownUpClip = 1.5f;
+
     [Header("Poise Info")]
     public float maxPoise = 50f;
 

@@ -45,6 +45,14 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
     public float bossStagger = 2.5f;
     public ParticleSystem dust;
 
+    [Header("The burst as a panel opens (owner, 2026-11-10: lava cracks, not oil)")]
+    public Material emberMaterial;
+    public Material smokeMaterial;
+    public Mesh debrisMesh;
+    public Material debrisMaterial;
+    // The slab is thrown down this fast the instant it goes (m/s), then falls.
+    public float burstDrop = 6f;
+
     public int FallenCount { get; private set; }
 
     public event Action<int> PanelFell;
@@ -104,7 +112,16 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
         panel.state = PanelState.Cracking;
         panel.started = Time.time;
         if (panel.crack != null)
+        {
             panel.crack.SetActive(true);
+            LavaCracks cracks = panel.crack.GetComponent<LavaCracks>();
+            if (cracks != null)
+            {
+                cracks.Reveal = 0f;
+                cracks.Intensity = 1.5f;
+                cracks.Pulse = 0f;
+            }
+        }
         if (dust != null)
         {
             Vector2 c = panel.rect.center;
@@ -136,8 +153,17 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
                     nextRumble = now + Mathf.Lerp(0.5f, 0.2f, t / tell);
                 }
 
-                if (panel.crack != null)
-                    panel.crack.transform.localScale = Vector3.one * (0.9f + 0.1f * Mathf.Sin(t * 14f));
+                // The cracks run out over the panel in the first part of the tell, then glow hotter and hotter, flickering
+                // faster toward the burst.
+                LavaCracks cracks = panel.crack != null ? panel.crack.GetComponent<LavaCracks>() : null;
+                if (cracks != null)
+                {
+                    float k = Mathf.Clamp01(t / tell);
+                    cracks.Reveal = 1.05f * Mathf.Clamp01(t / (tell * 0.45f));
+                    cracks.Intensity = Mathf.Lerp(1.5f, 12f, k * k);
+                    cracks.Pulse = k;
+                }
+
                 if (t >= tell)
                     Drop(i);
             }
@@ -145,9 +171,9 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
             {
                 // The slab drops into the lava, tilting, and sinks out of sight.
                 float t = now - panel.started;
-                float drop = 0.5f * 22f * t * t;
+                float drop = burstDrop * t + 0.5f * 22f * t * t;
                 float toLava = panel.slabRest.y - lavaY + 0.1f;
-                float tLava = Mathf.Sqrt(2f * toLava / 22f);
+                float tLava = (-burstDrop + Mathf.Sqrt(burstDrop * burstDrop + 2f * 22f * toLava)) / 22f;
                 if (drop > toLava)
                     drop = toLava + (t - tLava) * 0.45f;
                 panel.slab.position = panel.slabRest + Vector3.down * drop;
@@ -188,6 +214,10 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
             panel.crack.SetActive(false);
         if (panel.hole != null)
             panel.hole.SetActive(true);
+
+        // The burst: the floor opens in that instant.
+        Vector2 centre = panel.rect.center;
+        LavaBurst.Spawn(new Vector3(centre.x, floorY, centre.y), panel.rect.size * 0.85f, emberMaterial, smokeMaterial, debrisMesh, debrisMaterial, 1.2f);
         if (panel.carve != null)
             panel.carve.enabled = true;
         LightHoles(index);

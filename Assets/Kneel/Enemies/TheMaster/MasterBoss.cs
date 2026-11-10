@@ -3,7 +3,8 @@ using Kneel.Core;
 using UnityEngine;
 
 // The L5 boss fight's owner (The Master.md): the hall's reveal, the intro, the seal and the bar, and the phases. Phase 1
-// is MasterP1; the transition, the Colossus and the finisher hook in at OnP1Down (Stages 6-7).
+// is MasterP1; when he falls the Unmaking (§5) raises Phase 2, the Ash Colossus (AshColossus), who is in the hall from
+// the start but hidden. The finisher hooks in at OnP2Down (Stage 7).
 //
 // Beats (§3, decided 2026-11-10):
 // - The reveal, once per save ("L5.Reveal"): crossing the grand doors, the camera pushes 6 m into the hall from the
@@ -15,10 +16,12 @@ using UnityEngine;
 [DefaultExecutionOrder(20)]
 public class MasterBoss : MonoBehaviour
 {
-    public enum Beat { Waiting, Reveal, Seated, Intro, Phase1, Phase1Down }
+    public enum Beat { Waiting, Reveal, Seated, Intro, Phase1, Phase1Down, Transition, Phase2, Phase2Down }
 
     public MasterSettings settings;
     public MasterP1 master;
+    public AshColossus colossus;
+    public Unmaking unmaking;
     public HallSeal seal;
     // The boss bar's prefab (MasterSetup builds it in the menus' style).
     public BossHealthBar barPrefab;
@@ -51,6 +54,12 @@ public class MasterBoss : MonoBehaviour
     // Raised when the fight proper starts (the bar has filled) and when Phase 1 ends.
     public event System.Action OnFightStarted;
     public event System.Action OnP1Down;
+    // Phase 2 proper starts (input returns after the Unmaking), and Phase 2 ends (the finisher, Stage 7).
+    public event System.Action OnP2Started;
+    public event System.Action OnP2Down;
+
+    // For the playtest: run the Unmaking skippable (as on a second save) and straight into Phase 2.
+    public static bool ForceSkippableUnmaking;
 
     private PlayerCombat player;
     private PlayerCamera playerCamera;
@@ -67,8 +76,10 @@ public class MasterBoss : MonoBehaviour
     {
         // The project enters Play without a domain reload, so statics outlive sessions.
         ForceShortIntro = false;
-        MasterP1.HazardImpactNear = null;
+        ForceSkippableUnmaking = false;
+        MasterBody.HazardImpactNear = null;
         MasterP1.ForceNext = null;
+        AshColossus.ForceNext = null;
         BossTell.DarkBoost = 1f;
     }
 
@@ -93,8 +104,30 @@ public class MasterBoss : MonoBehaviour
             Current = Beat.Phase1Down;
             Bar.Set(0f);
             OnP1Down?.Invoke();
+            if (colossus != null && unmaking != null)
+                StartCoroutine(Transition());
         };
-        master.health.OnDamaged += _ => Bar.Set(master.health.Fraction);
+        master.health.OnDamaged += _ =>
+        {
+            if (Current == Beat.Phase1)
+                Bar.Set(master.health.Fraction);
+        };
+
+        if (colossus != null)
+        {
+            colossus.Hide();
+            colossus.health.OnDamaged += _ =>
+            {
+                if (Current == Beat.Phase2)
+                    Bar.Set(colossus.health.Fraction);
+            };
+            colossus.OnDefeated += () =>
+            {
+                Current = Beat.Phase2Down;
+                Bar.Set(0f);
+                OnP2Down?.Invoke();
+            };
+        }
 
         Seat();
     }
@@ -102,7 +135,17 @@ public class MasterBoss : MonoBehaviour
     // Back to the start of the fight: on the throne, the seal down (also the retry reset, Stage 7).
     public void Seat()
     {
+        StopAllCoroutines();
+        introShot = false;
         Current = Beat.Seated;
+        if (master.gameObject.activeSelf == false)
+            master.gameObject.SetActive(true);
+        if (colossus != null)
+        {
+            colossus.Disengage();
+            colossus.Hide();
+        }
+
         if (master.agent.enabled)
             master.agent.enabled = false;
         if (throneSeat != null)
@@ -243,6 +286,50 @@ public class MasterBoss : MonoBehaviour
         }
 
         return kaelHead != null ? kaelHead.position : player.transform.position + Vector3.up * 1.7f;
+    }
+
+    // §5: the Unmaking, then Phase 2 (input returns at 10 s and he opens with a Great Command).
+    private IEnumerator Transition()
+    {
+        Current = Beat.Transition;
+        yield return new WaitForSeconds(0.1f);
+        bool skippable = ForceSkippableUnmaking || SaveFlags.Has("L5.Unmade");
+        yield return unmaking.Run(this, skippable);
+        SaveFlags.Set("L5.Unmade");
+        Current = Beat.Phase2;
+        Bar.Set(1f);
+        colossus.Engage();
+        OnP2Started?.Invoke();
+    }
+
+    // For the playtest: stops an Unmaking or intro under way (and lets Kael go), without seating him.
+    public void StopBeats()
+    {
+        StopAllCoroutines();
+        introShot = false;
+        player?.ReleaseRestriction();
+        player?.ReleaseShield();
+        playerCamera?.ClearOverride(0.01f);
+    }
+
+    // For the playtest: Phase 1 is over, now (as if the last blow had landed).
+    public void EndPhase1() => master.HazardHit(master.health.Current + 1f, 0f);
+
+    // For the playtest: straight into Phase 2 with no transition (the hall as the Unmaking leaves it is the
+    // playtest's to set). The Colossus stands at `at`, engaged.
+    public void StartPhase2At(Vector3 at)
+    {
+        StopAllCoroutines();
+        introShot = false;
+        master.gameObject.SetActive(false);
+        seal?.Kindle();
+        colossus.Show();
+        colossus.RiseAt(at, Quaternion.LookRotation(Vector3.back), 0.1f);
+        Current = Beat.Phase2;
+        Bar.Show();
+        Bar.Set(1f);
+        colossus.Engage();
+        OnP2Started?.Invoke();
     }
 
     private IEnumerator FillAndEngage()

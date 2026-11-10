@@ -134,7 +134,16 @@ public class FloorFire : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
         foreach (IHallBoss boss in HallActors.Bosses)
         {
-            if (boss == null || (boss as Object) == null || boss.IsDead || patch.Contains(boss.transform.position, 0.6f) == false)
+            if (boss == null || (boss as Object) == null || boss.IsDead)
+                continue;
+            if (patch.Contains(boss.transform.position, 0.6f) == false)
+            {
+                if (ReferenceEquals(patch.Spared, boss))
+                    patch.Spared = null;
+                continue;
+            }
+
+            if (ReferenceEquals(patch.Spared, boss))
                 continue;
             float damage = patch.Touch(boss, now, contactDamage, damagePerSecond * tickInterval, tickInterval);
             if (damage > 0f)
@@ -166,6 +175,9 @@ public class FirePatch
     public float Ends { get; private set; }
     public int Generation { get; private set; }
     public bool Dying { get; private set; }
+
+    // A boss standing in it as it lights (his own Hammerfall's circle) isn't burnt until he has stepped out of it.
+    public IHallBoss Spared { get; set; }
     public bool HasLight => light != null && light.enabled;
 
     private GameObject root;
@@ -226,6 +238,7 @@ public class FirePatch
 
     public void Begin(Vector3 a, Vector3 b, float half, float seconds, bool circle)
     {
+        Spared = null;
         Generation++;
         Circle = circle;
         Half = half;

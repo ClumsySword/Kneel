@@ -103,7 +103,11 @@ public class MasterMoveState : EnemyState
                 master.RaiseThreadsTell();
                 break;
             case MasterP1.MoveKind.Guard:
-                master.anim.CrossFadeInFixedTime("GuardIn", 0.15f, 0, 0f);
+                // His walk under the crossed blade (the GuardUp layer): he steps in, never glides.
+                master.anim.SetFloat("Speed", 0f);
+                master.anim.SetFloat("MoveRate", 1f);
+                master.anim.CrossFadeInFixedTime("GuardWalk", 0.2f, 0, 0f);
+                master.anim.SetBool("GuardUp", true);
                 master.bossTell?.Hum(S.guardMaxTime);
                 tell = S.guardMaxTime;
                 break;
@@ -114,6 +118,7 @@ public class MasterMoveState : EnemyState
     {
         base.Exit();
         master.SetMoveSpeed(1f);
+        master.anim.SetBool("GuardUp", false);
         master.Stop();
         master.bossTell?.StopTells();
     }
@@ -355,8 +360,6 @@ public class MasterMoveState : EnemyState
     {
         if (thrusting == false)
         {
-            if (elapsed > 0.45f && elapsed - Time.deltaTime <= 0.45f)
-                master.anim.CrossFadeInFixedTime("GuardIdle", 0.1f, 0, 0f);
 
             // Turns toward the player at guardTurnRate while walking in.
             Vector3 to = master.player.position - master.transform.position;
@@ -364,12 +367,16 @@ public class MasterMoveState : EnemyState
             if (to.sqrMagnitude > 0.01f)
                 master.transform.rotation = Quaternion.RotateTowards(master.transform.rotation, Quaternion.LookRotation(to), S.guardTurnRate * Time.deltaTime);
 
-            if (elapsed > 0.45f && master.agent.enabled && master.agent.isOnNavMesh)
+            bool walking = elapsed > 0.45f && master.agent.enabled && master.agent.isOnNavMesh;
+            if (walking)
                 master.agent.Move(master.transform.forward * S.guardWalkSpeed * Time.deltaTime);
+            // The walk tree at the speed he's really going, so the feet match it.
+            master.anim.SetFloat("Speed", walking ? S.guardWalkSpeed : 0f);
 
             if (elapsed >= S.guardMaxTime || (elapsed > 0.6f && master.PlayerDistance() <= S.thrustReach - 0.5f))
             {
                 thrusting = true;
+                master.anim.SetBool("GuardUp", false);
                 master.bossTell?.StopTells();
                 StartBlow("Thrust", S.thrustTell, master.thrustContact, glint: true);
                 contactAt = elapsed + S.thrustTell;

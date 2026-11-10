@@ -13,6 +13,8 @@ public class BossTell : MonoBehaviour
 
     [Header("Rig")]
     public Transform leftHand;
+    // Where the Command's shadow-casting light sits (P1: the left palm; the Colossus: his split mask). Defaults to leftHand.
+    public Transform palmLightAnchor;
     public Transform swordTip;
     public float bodyHeight = 4.2f;
 
@@ -82,7 +84,7 @@ public class BossTell : MonoBehaviour
         block = new MaterialPropertyBlock();
 
         emberLight = MakeLight("EmberHandLight", leftHand, emberColor, 3.5f, false);
-        palmLight = MakeLight("PalmLight", leftHand, palmColor, palmLightRange, true);
+        palmLight = MakeLight("PalmLight", palmLightAnchor != null ? palmLightAnchor : leftHand, palmColor, palmLightRange, true);
         palmLight.transform.localPosition = Vector3.zero;
         tipLight = MakeLight("GlintTipLight", swordTip, Color.white, 4f, false);
         emberSparks = MakeSparks(leftHand);

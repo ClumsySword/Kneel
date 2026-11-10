@@ -90,7 +90,7 @@ namespace Kneel.EditorTools
                 capsule.height = 4f;
                 capsule.center = new Vector3(0f, 2f, 0f);
 
-                if (root.GetComponent<Health>() == null) root.AddComponent<Health>();
+                NoRegen(Ensure<Health>(root));
                 var master = Ensure<MasterP1>(root);
                 var tell = Ensure<BossTell>(root);
                 master.settings = settings;
@@ -128,6 +128,14 @@ namespace Kneel.EditorTools
             }
 
             return log.ToString();
+        }
+
+        // Health defaults to regenerating to full after 3 s (for training targets): a boss must not.
+        private static void NoRegen(Health health)
+        {
+            var so = new SerializedObject(health);
+            so.FindProperty("regenerateToFull").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static T Ensure<T>(GameObject go) where T : Component
@@ -280,7 +288,8 @@ namespace Kneel.EditorTools
             float walk = EnsureSettings().walkSpeed;
             BlendTree move = EnemyRig.SpeedTree(controller, "Move", "Speed", (cuts["Idle"], 0f), (cuts["Walk"], walk));
             BlendTree circle = EnemyRig.SpeedTree(controller, "Circle", "Speed", (cuts["Idle"], 0f), (cuts["Walk"], walk * 0.5f));
-            foreach (BlendTree tree in new[] { move, circle })
+            BlendTree guardWalk = EnemyRig.SpeedTree(controller, "GuardWalk", "Speed", (cuts["Idle"], 0f), (cuts["Walk"], walk));
+            foreach (BlendTree tree in new[] { move, circle, guardWalk })
             {
                 ChildMotion[] children = tree.children;
                 children[1].timeScale = children[1].threshold / walkSpeed;
@@ -300,12 +309,12 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "Seize", motion = cuts["Seize"] },
                 new EnemyRig.State { name = "Command", motion = cuts["Command"] },
                 new EnemyRig.State { name = "Threads", motion = cuts["Threads"] },
-                new EnemyRig.State { name = "GuardIn", parameter = "Guard", motion = cuts["GuardIn"] },
-                new EnemyRig.State { name = "GuardIdle", parameter = "Guard", motion = cuts["GuardIdle"], chained = true },
+                // The Regal Guard walks in on his real walk (the guard is an upper-body layer over it: no glide).
+                new EnemyRig.State { name = "GuardWalk", parameter = "Guard", motion = guardWalk },
                 new EnemyRig.State { name = "Thrust", parameter = "Guard", motion = cuts["Thrust"], chained = true },
-                new EnemyRig.State { name = "KneelDown", parameter = "Parried", motion = cuts["KneelDown"], speed = 3.6f },
-                new EnemyRig.State { name = "KneelIdle", parameter = "Parried", motion = cuts["KneelIdle"], chained = true },
-                new EnemyRig.State { name = "KneelUp", parameter = "Parried", motion = cuts["KneelUp"], speed = 3f, chained = true },
+                // Parried: the stagger, not a kneel (owner, 2026-11-10).
+                new EnemyRig.State { name = "ParriedStagger", parameter = "Parried", motion = cuts["Stagger"], exitBlend = 0.2f },
+                new EnemyRig.State { name = "ParriedRecover", parameter = "Parried", motion = circle, chained = true, exitBlend = 0.2f },
                 new EnemyRig.State { name = "Stagger", motion = cuts["Stagger"], exitBlend = 0.2f },
                 new EnemyRig.State { name = "Flinch", motion = cuts["Flinch"], speed = 1.2f },
                 new EnemyRig.State { name = "Pommel", motion = cuts["Pommel"], exitBlend = 0.25f },
@@ -321,6 +330,7 @@ namespace Kneel.EditorTools
                 switch (s.name)
                 {
                     case "Decree": case "Sentence1": case "Sentence2": case "Sentence3": case "Seize": case "Command": case "Threads": case "Thrust":
+                    case "ParriedStagger": case "Stagger":
                         param = "MoveSpeed"; break;
                     case "Move": case "Circle": param = "MoveRate"; break;
                     case "Rise": param = "RiseSpeed"; break;
@@ -339,6 +349,9 @@ namespace Kneel.EditorTools
             AvatarMask leftArm = EnemyRig.ArmMask(Clips + "AM_LeftArm.mask", true);
             EnemyRig.SetOverlayLayer(controller, "LeftArmRest", leftArm, "LeftArmRest", cuts["LeftArmRest"], 0.2f);
             EnemyRig.SetOverlayLayer(controller, "PalmUp", leftArm, "PalmUp", cuts["PalmUp"], 0.6f);
+            // The crossed blade of the Regal Guard over his walk: arms, spine and head (Great Sword Blocking Idle).
+            AvatarMask upper = UpperBodyMask(Clips + "AM_UpperBody.mask");
+            EnemyRig.SetOverlayLayer(controller, "GuardUp", upper, "GuardUp", cuts["GuardIdle"], 0.25f);
             foreach (AnimatorControllerLayer layer in controller.layers)
             {
                 if (layer.name != "PalmUp") continue;
@@ -370,6 +383,7 @@ namespace Kneel.EditorTools
                 master.threadsRelease = ThreadsRelease;
                 master.thrustContact = ThrustContact;
                 master.pommelContact = PommelContact;
+                master.staggerLength = cuts["Stagger"].length;
                 master.walkClipSpeed = settings.walkSpeed;   // the Move tree's full-walk speed
                 PrefabUtility.SaveAsPrefabAsset(root, P1Prefab);
             }
@@ -382,6 +396,29 @@ namespace Kneel.EditorTools
             return string.Format("{0}: {1} cuts, walk clip {2:F2} m/s on him, rise {3:F2} s", P1Controller, cuts.Count, walkSpeed, cuts["Rise"].length);
         }
 
+        // Arms, fingers, spine and head; not the legs or the root (so the walk under it keeps its steps).
+        private static AvatarMask UpperBodyMask(string path)
+        {
+            var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
+            if (mask == null)
+            {
+                mask = new AvatarMask();
+                AssetDatabase.CreateAsset(mask, path);
+            }
+
+            for (int i = 0; i < (int)AvatarMaskBodyPart.LastBodyPart; i++)
+            {
+                var part = (AvatarMaskBodyPart)i;
+                bool on = part == AvatarMaskBodyPart.Body || part == AvatarMaskBodyPart.Head || part == AvatarMaskBodyPart.LeftArm
+                    || part == AvatarMaskBodyPart.RightArm || part == AvatarMaskBodyPart.LeftFingers || part == AvatarMaskBodyPart.RightFingers;
+                mask.SetHumanoidBodyPartActive(part, on);
+            }
+
+            EditorUtility.SetDirty(mask);
+            AssetDatabase.SaveAssetIfDirty(mask);
+            return mask;
+        }
+
         private static void EnsureFloat(AnimatorController controller, string name, float value)
         {
             foreach (AnimatorControllerParameter p in controller.parameters)
@@ -391,9 +428,9 @@ namespace Kneel.EditorTools
 
         // The in-place walk's real speed on him: how fast a planted foot slides back under him, in world space (the Brute
         // lesson: read the feet in world space, his scale counts).
-        public static float MeasureWalkSpeed(AnimationClip walk)
+        public static float MeasureWalkSpeed(AnimationClip walk, string prefab = P1Prefab)
         {
-            GameObject go = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(P1Prefab));
+            GameObject go = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefab));
             go.hideFlags = HideFlags.HideAndDontSave;
             try
             {

@@ -9,6 +9,10 @@ using UnityEngine;
 // - Levers the player sets off (winches, braziers) fire on time; instead he won't start a blow that would land
 //   within 0.5 s of one (MasterP1.HazardImpactNear).
 // - His Threads snap a chandelier's chain if they cross its winch; the statues bow at every Command.
+// - Phase 2 (§6, §8): at his 50% roar the four statues topple inward and the ash storm starts; a Gather thickens the
+//   storm and pulls threads into him, and if it completes the hall goes dark; a darkness wave also comes every
+//   35-45 s (never during a Great Command); the panel under a Hammerfall gives way 3 s after it; a second Cleave on
+//   the same panel cracks it.
 public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
 {
     public MasterBoss boss;
@@ -27,6 +31,9 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
     }
 
     private readonly List<Pending> scripted = new List<Pending>();
+    private readonly Dictionary<int, int> cleaves = new Dictionary<int, int>();
+    private float nextDarkness = -1f;
+    private ThreadPull gatherThreads;
 
     // How many times a scripted hazard was held back for a blow (the playtest reads it).
     public int Held { get; private set; }
@@ -46,6 +53,64 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
         }
 
         ThreadLine.OnSwept += OnThreadSwept;
+
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (colossus != null)
+        {
+            colossus.OnCommandTell += tell =>
+            {
+                foreach (HallStatue statue in HallStatue.All)
+                    statue.Bow(tell);
+            };
+            colossus.OnHalfHealth += () =>
+            {
+                foreach (HallStatue statue in HallStatue.All)
+                {
+                    HallStatue s = statue;
+                    Schedule("statue " + s.name, s.tell + s.fallTime, () => s.Topple());
+                }
+
+                ashStorm?.Begin();
+            };
+            colossus.OnGatherStart += () =>
+            {
+                ashStorm?.Thicken(colossus.settings.gatherTime);
+                Transform back = colossus.anim.GetBoneTransform(HumanBodyBones.Chest) ?? colossus.transform;
+                gatherThreads = ThreadPull.Begin(back, Vector3.zero, 16, 1.2f, colossus.settings.gatherTime - 1f, 0.6f);
+            };
+            colossus.OnTopple += () => gatherThreads?.Release();
+            colossus.OnGatherComplete += () =>
+            {
+                gatherThreads?.Release();
+                darkness?.Begin();
+                nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
+            };
+            colossus.OnHammerfall += at =>
+            {
+                int index = floor != null ? floor.IndexAt(at) : -1;
+                if (index >= 0)
+                    StartCoroutine(CrackLater(index, colossus.settings.hammerPanelDelay - floor.tell));
+            };
+            colossus.OnCleave += at =>
+            {
+                int index = floor != null ? floor.IndexAt(at) : -1;
+                if (index < 0)
+                    return;
+                cleaves[index] = cleaves.TryGetValue(index, out int n) ? n + 1 : 1;
+                if (cleaves[index] == 2)
+                    Schedule("panel under two Cleaves", floor.tell, () => floor.Crack(index));
+            };
+        }
+
+        if (boss != null)
+            boss.OnP2Started += () => nextDarkness = Time.time + UnityEngine.Random.Range(35f, 45f);
+    }
+
+    // The Hammerfall's panel: it cracks `delay` after the impact (and falls a tell later).
+    private System.Collections.IEnumerator CrackLater(int index, float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, delay));
+        Schedule("panel under the Hammerfall", floor.tell, () => floor.Crack(index));
     }
 
     private void OnDestroy()
@@ -64,6 +129,18 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     private void Update()
     {
+        // Phase 2's darkness waves, never during a Great Command (it would hide the shadows that are the answer).
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (nextDarkness > 0f && colossus != null && colossus.Engaged && Time.time >= nextDarkness && darkness != null)
+        {
+            bool commanding = colossus.stateMachine.currentState == colossus.commandState;
+            if (commanding == false && darkness.Active == false)
+            {
+                darkness.Begin();
+                nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
+            }
+        }
+
         for (int i = scripted.Count - 1; i >= 0; i--)
         {
             Pending p = scripted[i];
@@ -84,8 +161,11 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
     public float NextBlow()
     {
         MasterP1 master = boss != null ? boss.master : null;
-        if (master != null && master.stateMachine.currentState is MasterMoveState move)
+        if (master != null && master.isActiveAndEnabled && master.stateMachine.currentState is MasterMoveState move)
             return move.LandsAt;
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (colossus != null && colossus.Present && colossus.stateMachine.currentState is ColossusMoveState p2)
+            return p2.LandsAt;
         return -1f;
     }
 
@@ -130,7 +210,12 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     public void ResetState()
     {
+        StopAllCoroutines();
         scripted.Clear();
+        cleaves.Clear();
+        nextDarkness = -1f;
+        if (gatherThreads != null)
+            Destroy(gatherThreads.gameObject);
         Held = 0;
     }
 }

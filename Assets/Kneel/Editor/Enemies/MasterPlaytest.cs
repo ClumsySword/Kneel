@@ -16,7 +16,7 @@ namespace Kneel.EditorTools
     // (MasterP1.ForceNext) and reads the blow the moment it lands on the player: the time into its tell, the sword tip
     // against his front, and what the player's guard did with it. Results go to Temp/MasterPlaytest.txt. Nothing in the
     // scene is saved; the save file is put back after the long intro. Leave TakeShots off for timing.
-    public static class MasterPlaytest
+    public static partial class MasterPlaytest
     {
         public const string ResultPath = "Temp/MasterPlaytest.txt";
 
@@ -210,6 +210,9 @@ namespace Kneel.EditorTools
             Application.logMessageReceived -= OnLog;
             Application.targetFrameRate = -1;
             MasterP1.ForceNext = null;
+            AshColossus.ForceNext = null;
+            Unmaking.ForceSkip = false;
+            MasterBoss.ForceSkippableUnmaking = false;
 
             if (playerHealth != null && damageListener != null)
                 playerHealth.OnDamaged -= damageListener;
@@ -301,9 +304,16 @@ namespace Kneel.EditorTools
 
             foreach (var scenario in scenarios)
             {
-                if (Wants(scenario.group) && master.IsDead == false)
+                if (scenario.group != "lava" && Wants(scenario.group) && master.IsDead == false)
                     yield return scenario.body();
             }
+
+            // Phase 2 (Stage 6): the Unmaking, then the Colossus.
+            yield return Phase2();
+
+            // Last (the player doesn't get up from it).
+            if (Wants("lava"))
+                yield return LavaDrop();
         }
 
         private static void Setup()
@@ -320,7 +330,7 @@ namespace Kneel.EditorTools
             master = boss.master;
             foreach (Enemy other in UnityEngine.Object.FindObjectsByType<Enemy>())
             {
-                if (other != master)
+                if (other != master && other != boss.colossus)
                     other.gameObject.SetActive(false);
             }
 
@@ -606,7 +616,7 @@ namespace Kneel.EditorTools
             yield return Start(MasterP1.MoveKind.Decree, 3.5f);
             yield return ParryAt(S.decreeTell);
             Check("the parry catches it", lastParry > Time.time - 0.5f, "");
-            Check("he drops to one knee", State == master.parriedState, State.GetType().Name);
+            Check("he reels (the stagger, not a kneel)", State == master.parriedState, State.GetType().Name);
             float kneeled = Time.time;
             Shot("Decree_Parried");
 
@@ -616,10 +626,10 @@ namespace Kneel.EditorTools
             Press("OnHeavyPressed");
             yield return (Func<bool>)(() => master.health.Current < health || State != master.parriedState);
             float damage = health - master.health.Current;
-            Check("a heavy in the kneel is critical", Mathf.Abs(damage - 35f * 1.5f) < 1f, damage.ToString("F1") + " damage, " + (Time.time - kneeled).ToString("F2") + " s into the kneel");
+            Check("a heavy while he reels is critical", Mathf.Abs(damage - 35f * 1.5f) < 1f, damage.ToString("F1") + " damage, " + (Time.time - kneeled).ToString("F2") + " s in");
             Shot("Decree_Riposte");
             yield return (Func<bool>)(() => State != master.parriedState);
-            Check("the kneel lasts " + S.parryKneelTime + " s", Mathf.Abs(Time.time - kneeled - S.parryKneelTime) < 0.2f, (Time.time - kneeled).ToString("F2") + " s");
+            Check("the window lasts " + S.parryKneelTime + " s", Mathf.Abs(Time.time - kneeled - S.parryKneelTime) < 0.2f, (Time.time - kneeled).ToString("F2") + " s");
         }
 
         // --- Sentence ---
@@ -640,7 +650,7 @@ namespace Kneel.EditorTools
         }
 
         // Parries sweep `index` (blocking the ones before): 1 deflects and the string goes on, 2 deflects and cancels the
-        // third, 3 kneels him.
+        // third, 3 staggers him.
         private static IEnumerator SentenceParry(int index)
         {
             Note("--- Sentence, parrying sweep " + (index + 1));
@@ -675,7 +685,7 @@ namespace Kneel.EditorTools
             }
             else
             {
-                Check("the third's parry kneels him", State == master.parriedState, State.GetType().Name);
+                Check("the third's parry staggers him", State == master.parriedState, State.GetType().Name);
                 yield return (Func<bool>)(() => State != master.parriedState);
             }
         }
@@ -851,6 +861,8 @@ namespace Kneel.EditorTools
             int before = blows.Count;
             float start = Time.time;
             yield return Filmstrip("Threads", S.threadsTell);
+            yield return 0.4f;
+            Framed("Threads_running", Vector3.Lerp(master.transform.position, playerRoot.position, 0.5f), 12f, 18f);
             yield return (Func<bool>)(() => blows.Count > before);
 
             // Off the line before its fire catches (it trails the head by 3 m).
@@ -993,7 +1005,7 @@ namespace Kneel.EditorTools
             yield return (Func<bool>)(() => Move == null || Move.Thrusting);
             float thrustStart = Time.time;
             yield return ParryAt(S.thrustTell);
-            Check("the parry kneels him", lastParry > thrustStart && State == master.parriedState, State.GetType().Name);
+            Check("the parry staggers him", lastParry > thrustStart && State == master.parriedState, State.GetType().Name);
             yield return (Func<bool>)(() => State != master.parriedState);
         }
 
@@ -1467,7 +1479,7 @@ namespace Kneel.EditorTools
             PlaceFront(2.3f);
             Press("OnStrikePressed");
             yield return (Func<bool>)(() => master.IsDead);
-            Check("he falls to one knee", master.IsDead && defeats == 1 && boss.Current == MasterBoss.Beat.Phase1Down, State.GetType().Name + ", beat " + boss.Current);
+            Check("he falls to one knee, and the Unmaking begins", master.IsDead && defeats == 1 && (boss.Current == MasterBoss.Beat.Phase1Down || boss.Current == MasterBoss.Beat.Transition), State.GetType().Name + ", beat " + boss.Current);
             yield return 1.5f;
             Shot("Fallen");
         }
@@ -1486,20 +1498,23 @@ namespace Kneel.EditorTools
             UnityEngine.Object.FindAnyObjectByType<Kneel.Hazards.LevelReset>()?.ResetAll();
             yield return (Func<bool>)(() => combat.IsKneeling == false && combat.State != PlayerCombat.CombatState.Dodging);
 
-            if (master.agent.enabled == false)
-                master.agent.enabled = true;
-            master.agent.Warp(at);
-            float yaw = Camera.main.transform.eulerAngles.y + 180f;
-            master.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            master.stateMachine.ChangeState(master.circleState);
-            master.circleState.Hold(9999f);
-            typeof(MasterP1).GetField("pendingPoiseBreak", Any).SetValue(master, false);
-            typeof(MasterP1).GetField("lastFlinchTime", Any).SetValue(master, -99f);
-            ((Dictionary<MasterP1.MoveKind, float>)typeof(MasterP1).GetField("readyAt", Any).GetValue(master)).Clear();
-            ((List<MasterP1.MoveKind>)typeof(MasterP1).GetField("history", Any).GetValue(master)).Clear();
-            typeof(MasterP1).GetField("openingIndex", Any).SetValue(master, 99);
-            master.poise.Reset();
-            master.health.SetMax(master.health.Max, true);
+            if (master.gameObject.activeInHierarchy)
+            {
+                if (master.agent.enabled == false)
+                    master.agent.enabled = true;
+                master.agent.Warp(at);
+                float yaw = Camera.main.transform.eulerAngles.y + 180f;
+                master.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+                master.stateMachine.ChangeState(master.circleState);
+                master.circleState.Hold(9999f);
+                typeof(MasterP1).GetField("pendingPoiseBreak", Any).SetValue(master, false);
+                typeof(MasterP1).GetField("lastFlinchTime", Any).SetValue(master, -99f);
+                ((Dictionary<MasterP1.MoveKind, float>)typeof(MasterP1).GetField("readyAt", Any).GetValue(master)).Clear();
+                ((List<MasterP1.MoveKind>)typeof(MasterP1).GetField("history", Any).GetValue(master)).Clear();
+                typeof(MasterP1).GetField("openingIndex", Any).SetValue(master, 99);
+                master.poise.Reset();
+                master.health.SetMax(master.health.Max, true);
+            }
 
             playerHealth.SetMax(100000f, true);
             combat.Poise.Reset();
@@ -1598,7 +1613,8 @@ namespace Kneel.EditorTools
             if (master == null || Camera.main == null)
                 return;
 
-            typeof(PlayerMovement).GetField("aimInput", Any).SetValue(movement, (Vector2)Camera.main.WorldToScreenPoint(aimAt ?? master.transform.position));
+            Vector3 foe = colossus != null && colossus.Present ? colossus.transform.position : master.transform.position;
+            typeof(PlayerMovement).GetField("aimInput", Any).SetValue(movement, (Vector2)Camera.main.WorldToScreenPoint(aimAt ?? foe));
             Quaternion yaw = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
             Vector3 local = Quaternion.Inverse(yaw) * playerMove;
             typeof(PlayerMovement).GetField("moveInput", Any).SetValue(movement, new Vector2(local.x, local.z));

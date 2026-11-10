@@ -9,16 +9,11 @@ using UnityEngine;
 // Rules carried here (§1): hits during an armoured wind-up do windupDamageMultiplier of their damage and never flinch
 // him; a poise break waits for the blow to end; only hazards (HazardHit) break a wind-up; the bash only breaks the
 // Regal Guard. A parry drives him to one knee (critical window), except on Sentence's first two sweeps (deflected).
-public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
+public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
 {
     public enum MoveKind { Decree, Sentence, Seize, Command, Threads, Guard }
 
-    private static readonly int MoveRateId = Animator.StringToHash("MoveRate");
-    private static readonly int MoveSpeedId = Animator.StringToHash("MoveSpeed");
     private static readonly int LeftArmRestId = Animator.StringToHash("LeftArmRest");
-
-    public MasterSettings settings;
-    public BossTell bossTell;
 
     [Header("Rig (set by MasterSetup)")]
     // Clip seconds at which each blow lands on his rig, measured with the animator running (the sword tip's pass in
@@ -30,22 +25,14 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
     public float threadsRelease = 0.8f;
     public float thrustContact = 0.9f;
     public float pommelContact = 1.2f;
-
-    // The walk clip's own travel speed on him (m/s), for the Move tree's playback rate.
-    public float walkClipSpeed = 2.2f;
-
-    // His sword's tip and grip (glint and blade checks) and the left palm (Command light, Seize and Threads).
-    public Transform swordTip;
-    public Transform palm;
+    // The stagger clip's length (Large Hit Reaction), fitted to each stagger's window.
+    public float staggerLength = 1.37f;
 
     // Raised when a beat starts, for the hall and the Ash hooks (§9): Command tell (seconds), Threads tell, the 50% beat.
     public event System.Action<float> OnCommandTell;
     public event System.Action OnThreadsTell;
     public event System.Action OnHalfHealth;
     public event System.Action OnDefeated;
-
-    // Set by MasterBoss; the arena's hazard director can veto a blow that would land on top of a hazard (§8 pacing).
-    public static System.Func<float, bool> HazardImpactNear;
 
     public MasterSeatedState seatedState { get; private set; }
     public MasterRiseState riseState { get; private set; }
@@ -64,14 +51,9 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
     public MasterPommelState pommelState { get; private set; }
     public MasterFallenState fallenState { get; private set; }
 
-    // Hits pass through him (the intro, the 50% beat, the fall).
-    public bool Untouchable { get; set; }
-
-    public bool IsDead => stateMachine.currentState == fallenState;
+    public override bool IsDead => stateMachine.currentState == fallenState;
 
     public bool IsStaggered => stateMachine.currentState == parriedState || stateMachine.currentState == staggerState;
-
-    public bool Engaged { get; private set; }
 
     // The opening is fixed; then the picker takes over (§4).
     private static readonly MoveKind[] Opening = { MoveKind.Decree, MoveKind.Command, MoveKind.Sentence, MoveKind.Seize };
@@ -82,7 +64,6 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
     private bool halfReached;
     private bool pendingPoiseBreak;
     private float lastFlinchTime = -99f;
-    private Renderer bodyRenderer;
 
     // The move the approach is walking into reach for.
     public MoveKind Pending { get; private set; }
@@ -112,25 +93,9 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
     protected override void Start()
     {
         base.Start();
-        bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
         ApplySettings();
         health.SetMax(settings.maxHealth, true);
         stateMachine.Initialize(seatedState);
-    }
-
-    // The hall's chandeliers fade while they hang between the camera and him (Kneel.FightClearance).
-    // The hall's chandeliers fade while they hang between the camera and him (Kneel.FightClearance), and its hazards
-    // look for him (HallActors).
-    private void OnEnable()
-    {
-        Kneel.FightClearance.Subjects.Add(transform);
-        HallActors.Bosses.Add(this);
-    }
-
-    private void OnDisable()
-    {
-        Kneel.FightClearance.Subjects.Remove(transform);
-        HallActors.Bosses.Remove(this);
     }
 
     protected override void Update()
@@ -455,7 +420,7 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
     }
 
     // A hazard (brazier, chandelier, statue, panel) lands on him: it breaks any wind-up (§1 rule 3).
-    public void HazardHit(float damage, float stagger)
+    public override void HazardHit(float damage, float stagger)
     {
         if (IsDead || Untouchable)
             return;
@@ -486,102 +451,10 @@ public class MasterP1 : Enemy, IDamageable, IParryable, IStaggerable, IHallBoss
 
     // --- Helpers for the states ---
 
-    public float PlayerDistance()
-    {
-        Vector3 d = player.position - transform.position;
-        d.y = 0f;
-        return d.magnitude;
-    }
-
-    // He never starts an attack the camera can't see (§1).
-    public bool OnScreen()
-    {
-        Camera cam = Camera.main;
-        if (cam == null) return true;
-        Vector3 v = cam.WorldToViewportPoint(transform.position + Vector3.up * 2f);
-        return v.z > 0f && v.x > -0.05f && v.x < 1.05f && v.y > -0.05f && v.y < 1.05f;
-    }
-
-    // Plays the Move/Circle tree: Speed = the agent's real speed, MoveRate speeds the walk up into his stride.
-    public void FeedLocomotion()
-    {
-        UpdateSpeedParameter();
-        float speed = agent.enabled ? agent.velocity.magnitude : 0f;
-        anim.SetFloat(MoveRateId, Mathf.Max(1f, speed / Mathf.Max(walkClipSpeed, 0.1f)));
-    }
-
-    public void SetMoveSpeed(float speed) => anim.SetFloat(MoveSpeedId, speed);
-
     // The left arm's rest pose over the sword-and-shield clips (no shield), off for the spells (§15).
     public void SetLeftArmRest(bool on) => anim.SetBool(LeftArmRestId, on);
-
-    public void Stop()
-    {
-        if (agent.enabled && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-            agent.velocity = Vector3.zero;
-        }
-    }
-
-    public void Go(Vector3 destination, float speed)
-    {
-        if (agent.enabled == false || agent.isOnNavMesh == false) return;
-        agent.speed = speed;
-        agent.isStopped = false;
-        agent.SetDestination(destination);
-    }
-
-    public PlayerCombat PlayerCombat => player != null ? player.GetComponent<PlayerCombat>() : null;
-
-    // One blow in an arc in front of him: true if it reached the player (whatever the player's guard did with it).
-    public bool StrikeArc(float reach, float arc, float damage, float poiseDamage, bool unblockable = false, float kneel = 0f, float impact = 0f)
-    {
-        Vector3 to = player.position - transform.position;
-        to.y = 0f;
-        if (to.magnitude > reach + 0.35f || Vector3.Angle(transform.forward, to) > arc * 0.5f)
-            return false;
-
-        return Deal(damage, poiseDamage, unblockable, unblockable, kneel, impact, transform.forward);
-    }
-
-    // A straight thrust or lunge line ahead of him.
-    public bool StrikeLine(float length, float width, float damage, float poiseDamage)
-    {
-        Vector3 to = player.position - transform.position;
-        to.y = 0f;
-        float along = Vector3.Dot(to, transform.forward);
-        float across = (to - transform.forward * along).magnitude;
-        if (along < 0f || along > length + 0.35f || across > width * 0.5f + 0.35f)
-            return false;
-
-        return Deal(damage, poiseDamage, false, false, 0f, 0f, transform.forward);
-    }
-
-    public bool Deal(float damage, float poiseDamage, bool unblockable, bool unparryable, float kneel, float impact, Vector3 direction, bool ignoresRoll = false)
-    {
-        var target = player.GetComponent<IDamageable>();
-        if (target == null) return false;
-        direction.y = 0f;
-        target.TakeHit(new DamageInfo
-        {
-            amount = damage,
-            poiseDamage = poiseDamage,
-            point = player.position + Vector3.up * 1.2f,
-            direction = direction.normalized,
-            source = gameObject,
-            unblockable = unblockable,
-            unparryable = unparryable,
-            kneelTime = kneel,
-            impact = impact,
-            ignoresRoll = ignoresRoll,
-        });
-        return true;
-    }
 
     public void RaiseCommandTell(float tell) => OnCommandTell?.Invoke(tell);
 
     public void RaiseThreadsTell() => OnThreadsTell?.Invoke();
-
-    public bool BodyVisible => bodyRenderer == null || bodyRenderer.isVisible;
 }

@@ -895,6 +895,37 @@ Transform:
   - {fileID: 4377795603750613347}
   m_Father: {fileID: 6205865358950911860}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2335659457983748588
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5380868902398862811}
+  m_Layer: 0
+  m_Name: SwordTip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5380868902398862811
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2335659457983748588}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.6085367, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5939938502424428698}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2363250522582278728
 GameObject:
   m_ObjectHideFlags: 0
@@ -959,37 +990,6 @@ Transform:
   m_Children:
   - {fileID: 2148913241592175160}
   m_Father: {fileID: 6258098255600590121}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2419887903982559195
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 9018622632304964800}
-  m_Layer: 0
-  m_Name: SwordTip
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &9018622632304964800
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2419887903982559195}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.6085367, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8611624745777137256}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2442975196512151183
 GameObject:
@@ -2034,7 +2034,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
-  regenerateToFull: 1
+  regenerateToFull: 0
   regenDelay: 3
 --- !u!114 &3913075471914410828
 MonoBehaviour:
@@ -2072,6 +2072,9 @@ MonoBehaviour:
   patrolPoints: []
   settings: {fileID: 11400000, guid: 20d90bbdc638d2445a229a86c742bf92, type: 2}
   bossTell: {fileID: 1595228060008625126}
+  swordTip: {fileID: 5380868902398862811}
+  palm: {fileID: 5837374704627029688}
+  walkClipSpeed: 2.2
   decreeContact: 0.63
   sentenceContacts:
   - 0.74
@@ -2082,9 +2085,7 @@ MonoBehaviour:
   threadsRelease: 0.6
   thrustContact: 0.8
   pommelContact: 1.35
-  walkClipSpeed: 2.2
-  swordTip: {fileID: 9018622632304964800}
-  palm: {fileID: 5837374704627029688}
+  staggerLength: 1.3666668
 --- !u!114 &1595228060008625126
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2098,7 +2099,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossTell
   leftHand: {fileID: 5837374704627029688}
-  swordTip: {fileID: 9018622632304964800}
+  palmLightAnchor: {fileID: 0}
+  swordTip: {fileID: 5380868902398862811}
   bodyHeight: 4.2
   glintColor: {r: 1, g: 0.95, b: 0.85, a: 1}
   glintStrength: 7
@@ -3052,7 +3054,7 @@ Transform:
   m_LocalScale: {x: 0.99999976, y: 0.9999999, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8611624745777137256}
+  - {fileID: 5939938502424428698}
   m_Father: {fileID: 8276528801780792228}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7522254761034720907
@@ -3688,7 +3690,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1195736788012110638}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &8072731370499072387
+--- !u!1001 &6189177228120680305
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -3745,11 +3747,11 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: b74616c26b5950f4fbe49bd79794e670, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 9018622632304964800}
+      addedObject: {fileID: 5380868902398862811}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b74616c26b5950f4fbe49bd79794e670, type: 3}
---- !u!4 &8611624745777137256 stripped
+--- !u!4 &5939938502424428698 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b74616c26b5950f4fbe49bd79794e670, type: 3}
-  m_PrefabInstance: {fileID: 8072731370499072387}
+  m_PrefabInstance: {fileID: 6189177228120680305}
   m_PrefabAsset: {fileID: 0}
