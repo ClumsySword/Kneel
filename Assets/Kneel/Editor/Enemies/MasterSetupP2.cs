@@ -15,8 +15,8 @@ namespace Kneel.EditorTools
     {
         public const string P2Prefab = Folder + "TheMaster_P2.prefab";
         private const string P2Controller = Clips + "AC_Colossus.controller";
-        // The cross-guard Emberfracture Blade, scaled up to the 4.2 m his blows were measured with (see MasterSword).
-        private const string ColossusSword = Folder + "Weapons/SM_EmberfractureBlade.fbx";
+        // The spiked Molten Obsidian Blade, at the 4.2 m his blows were measured with (see MasterSword).
+        private const string ColossusSword = Folder + "Weapons/SM_ObsidianBlade.fbx";
         public const float ColossusSwordLength = 4.2f;
         private const string P2Cuts = Clips + "CutsP2/";
 

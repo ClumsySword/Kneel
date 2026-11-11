@@ -15,10 +15,11 @@ namespace Kneel.EditorTools
         public const string P1Prefab = Folder + "TheMaster_P1.prefab";
         public const string SettingsPath = Folder + "MasterSettings.asset";
         private const string P1Controller = Clips + "AC_MasterP1.controller";
-        // The Master wields the spiked Molten Obsidian Blade (colossus_sword.zip) and the Colossus the cross-guard
-        // Emberfracture Blade (master_sword.zip), whatever the zips are called (owner, 2026-11-11). Each blade is scaled to
-        // the length its phase's reaches and contacts were measured with: 3.12 m here, 4.2 m on the Colossus.
-        private const string MasterSword = Folder + "Weapons/SM_ObsidianBlade.fbx";
+        // The Master wields the straight, cross-guarded Emberfracture Blade (master_sword.zip) and the Colossus the spiked
+        // Molten Obsidian Blade (colossus_sword.zip): owner, 2026-11-11, confirmed on a picture of both. Each blade is
+        // scaled to the length its phase's reaches and contacts were measured with: 3.12 m here, 4.2 m on the Colossus
+        // (both their own lengths).
+        private const string MasterSword = Folder + "Weapons/SM_EmberfractureBlade.fbx";
         public const float MasterSwordLength = 3.12f;
         private const string Cuts = Clips + "Cuts/";
 
