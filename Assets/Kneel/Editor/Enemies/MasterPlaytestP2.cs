@@ -679,7 +679,8 @@ namespace Kneel.EditorTools
                 {
                     float r = 5f + (i % 5) * 0.5f;
                     Vector3 p = centre + Quaternion.Euler(0f, i * 7.3f, 0f) * Vector3.forward * r;
-                    bool ok = onCrack ? cracks.Covers(p, 0f) : ClearOfCracks(cracks, p, S2.hammerCrackMargin + 0.5f);
+                    // On a crack's core, not its soft edge (the lines are thin: 2026-11-12).
+                    bool ok = onCrack ? cracks.Covers(p, 0f, 0.75f) : ClearOfCracks(cracks, p, S2.hammerCrackMargin + 0.5f);
                     if (ok)
                         spot = p;
                 }
@@ -696,7 +697,7 @@ namespace Kneel.EditorTools
                 if (onCrack)
                 {
                     Check("they burst " + (S2.hammerCrackGrow + S2.hammerCrackBrighten).ToString("F2") + " s after the impact", Mathf.Abs(burst - landed - S2.hammerCrackGrow - S2.hammerCrackBrighten) < 0.15f, (burst - landed).ToString("F2") + " s");
-                    Check("on a crack: " + S2.hammerCrackDamage, hits.Count == 1 && Mathf.Abs(hits[0].amount - S2.hammerCrackDamage) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))));
+                    Check("on a crack: " + S2.hammerCrackDamage, hits.Count == 1 && Mathf.Abs(hits[0].amount - S2.hammerCrackDamage) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))) + (hits.Count == 0 ? " (Kael " + HallActors.FlatDistance(playerRoot.position, spot.Value).ToString("F2") + " m from the spot, covered " + (cracks != null && cracks.Covers(playerRoot.position, S2.hammerCrackMargin)) + ")" : ""));
                     Shot("P2_Hammer_burst");
                 }
                 else

@@ -7,7 +7,8 @@ using UnityEngine;
 namespace Kneel.EditorTools
 {
     // The throne hall's lava cracks (owner, 2026-11-10, with a reference of glowing branching cracks on black): the
-    // crack textures (red: the crack, a hot core with a soft glow round it and hot spots where cracks meet; green: the
+    // crack textures (red: the crack, a crisp hot core with a one-pixel soft edge and a faint, narrow glow; no discs where
+    // cracks meet or start (owner, 2026-11-12: "remove the circles", clean lines, not fuzz); green: the
     // order it spreads in, 0 at its seed to 1 at its tips), their Kneel/LavaCrack materials, and the hall's panels and the
     // Colossus wired to them. Safe to rerun.
     public static partial class MasterSetup
@@ -45,9 +46,10 @@ namespace Kneel.EditorTools
 
             material.shader = Shader.Find("Kneel/LavaCrack");
             material.SetTexture("_CrackTex", AssetDatabase.LoadAssetAtPath<Texture2D>(texture));
-            material.SetColor("_Color", new Color(1f, 0.36f, 0.07f, 1f));
-            material.SetColor("_HotColor", new Color(1f, 0.82f, 0.4f, 1f));
+            material.SetColor("_Color", new Color(1f, 0.22f, 0.03f, 1f));
+            material.SetColor("_HotColor", new Color(1f, 0.42f, 0.1f, 1f));
             material.SetFloat("_Edge", 0.04f);
+            material.SetFloat("_Gain", 0.32f);
             material.SetFloat("_Reveal", 1f);
             material.SetFloat("_Intensity", 1f);
             EditorUtility.SetDirty(material);
@@ -71,10 +73,11 @@ namespace Kneel.EditorTools
                 order = Enumerable.Repeat(float.MaxValue, size * size).ToArray();
             }
 
-            // A soft disc: the core (radius w) bright, a glow falling off to 4 w; the spread order where it shows.
-            public void Stamp(float x, float y, float w, float travelled, float boost = 1f)
+            // One step of a crack: the core (radius w) bright, a one-pixel soft edge, a faint glow out to 2.5 w; the
+            // spread order where it shows.
+            public void Stamp(float x, float y, float w, float travelled)
             {
-                float reach = w * 4f;
+                float reach = w * 2.5f + 1f;
                 int x0 = Mathf.Max(0, (int)(x - reach)), x1 = Mathf.Min(size - 1, (int)(x + reach) + 1);
                 int y0 = Mathf.Max(0, (int)(y - reach)), y1 = Mathf.Min(size - 1, (int)(y + reach) + 1);
                 for (int py = y0; py <= y1; py++)
@@ -84,8 +87,10 @@ namespace Kneel.EditorTools
                         float d = Mathf.Sqrt((px - x) * (px - x) + (py - y) * (py - y));
                         if (d > reach)
                             continue;
-                        float v = d <= w ? 1f - 0.3f * d / w : 0.42f * Mathf.Exp(-(d - w) / (w * 1.1f));
-                        v = Mathf.Min(1f, v * boost);
+                        float core = d <= w ? 1f - 0.2f * d / w : 0f;
+                        float edge = d > w && d < w + 1f ? 0.8f * (1f - (d - w)) : 0f;
+                        float halo = d > w ? 0.14f * Mathf.Exp(-(d - w) / (w * 0.9f)) : 0f;
+                        float v = Mathf.Min(1f, Mathf.Max(core, Mathf.Max(edge, halo)));
                         int i = py * size + px;
                         if (v > glow[i])
                             glow[i] = v;
@@ -99,7 +104,7 @@ namespace Kneel.EditorTools
         }
 
         // One crack from (x, y) heading `angle`: kinked straight runs 6-20 px long, each within 0.45 rad of its heading,
-        // tapering; it forks now and then (a hot spot where it does).
+        // tapering; it forks now and then.
         private static void PaintCrack(CrackCanvas canvas, System.Random random, float x, float y, float angle, float width, float length, float travelled, int depth)
         {
             float heading = angle;
@@ -127,7 +132,6 @@ namespace Kneel.EditorTools
                     float side = random.NextDouble() < 0.5 ? -1f : 1f;
                     float childAngle = heading + side * (0.45f + (float)random.NextDouble() * 0.6f);
                     float childLength = (length - done) * (0.35f + (float)random.NextDouble() * 0.3f) + 20f;
-                    canvas.Stamp(x, y, width * 1.45f, travelled + done, 1.15f);
                     PaintCrack(canvas, random, x, y, childAngle, width * 0.62f, childLength, travelled + done, depth + 1);
                 }
             }
@@ -140,8 +144,7 @@ namespace Kneel.EditorTools
             float c = size * 0.5f;
             if (radial)
             {
-                // From the impact: a hot heart, then the cracks out to the edge.
-                canvas.Stamp(c, c, size * 0.009f, 0f, 1.3f);
+                // From the impact out to the edge.
                 for (int i = 0; i < seeds; i++)
                 {
                     float angle = (i + (float)random.NextDouble() * 0.6f - 0.3f) * Mathf.PI * 2f / seeds;
@@ -155,7 +158,6 @@ namespace Kneel.EditorTools
                 {
                     float x = size * (0.25f + 0.5f * (float)random.NextDouble());
                     float y = size * (0.2f + 0.6f * i / Mathf.Max(1, seeds - 1));
-                    canvas.Stamp(x, y, size * 0.011f, 0f, 1.3f);
                     int arms = 3 + random.Next(2);
                     float start = (float)random.NextDouble() * Mathf.PI * 2f;
                     for (int a = 0; a < arms; a++)

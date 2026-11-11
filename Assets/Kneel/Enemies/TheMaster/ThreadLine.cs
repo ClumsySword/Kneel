@@ -77,8 +77,10 @@ public class ThreadLine : MonoBehaviour
         if (shader != null)
         {
             // Several threads leave him from one spot, and additive lines add up there: hot enough to read, no hotter.
-            t.material = Additive(shader, new Color(1f, 0.5f, 0.16f) * 2.2f);
-            t.glowMaterial = Additive(shader, new Color(1f, 0.26f, 0.05f) * 0.35f);
+            // Ember lines, as the floor's lava cracks (owner, 2026-11-12: clean, never fuzz; L5 grades at +1.45 stops, so
+            // anything brighter than this reads white).
+            t.material = Additive(shader, new Color(1f, 0.34f, 0.07f) * 0.8f);
+            t.glowMaterial = Additive(shader, new Color(1f, 0.22f, 0.04f) * 0.12f);
         }
 
         t.cracks.Add(t.NewCrack(t.origin, t.direction, length, width, 0));
@@ -107,7 +109,7 @@ public class ThreadLine : MonoBehaviour
     {
         var crack = new Crack { origin = from, direction = dir.normalized, length = len, width = w, depth = depth };
         crack.core = Line("Crack", w * (depth == 0 ? 0.32f : 0.24f), material);
-        crack.glow = Line("Glow", w * (depth == 0 ? 1.1f : 0.8f), glowMaterial);
+        crack.glow = Line("Glow", w * (depth == 0 ? 0.7f : 0.5f), glowMaterial);
         crack.points.Add(from);
         crack.nextPoint = PointSpacing;
         // The first fork comes 1.5-4 m in (the main line), a side crack's own (rarer) fork 1-2 m in.
@@ -144,7 +146,7 @@ public class ThreadLine : MonoBehaviour
             foreach (Crack crack in cracks)
             {
                 crack.core.widthMultiplier = crack.width * (crack.depth == 0 ? 0.32f : 0.24f) * k;
-                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 1.1f : 0.8f) * k;
+                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 0.7f : 0.5f) * k;
             }
 
             if (fade >= 0.6f)

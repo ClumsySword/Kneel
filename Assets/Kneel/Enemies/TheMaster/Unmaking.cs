@@ -342,6 +342,7 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
                 maskLight.type = LightType.Point;
                 maskLight.color = new Color(1f, 0.45f, 0.15f);
                 maskLight.shadows = LightShadows.None;
+                HallActors.LightBosses(maskLight);
             }
 
             maskLight.transform.SetParent(colossus.mask, false);
@@ -378,7 +379,7 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
         {
             float t = Time.time - start;
             ring.Reveal = Mathf.Clamp01(t / 0.35f) * 1.05f;
-            ring.Intensity = t < 0.6f ? Mathf.Lerp(3.2f, 1.8f, t / 0.6f) : Mathf.Lerp(1.8f, 0f, (t - 0.6f) / 2.8f);
+            ring.Intensity = t < 0.6f ? Mathf.Lerp(2.6f, 1.5f, t / 0.6f) : Mathf.Lerp(1.5f, 0f, (t - 0.6f) / 2.8f);
             yield return null;
         }
 
@@ -459,6 +460,7 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
         glow.range = 9f;
         glow.intensity = 9f;
         glow.shadows = LightShadows.None;
+        HallActors.LightBosses(glow);
         Destroy(glow.gameObject, 3.2f);
         return ps;
     }

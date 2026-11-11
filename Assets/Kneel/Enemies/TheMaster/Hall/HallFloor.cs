@@ -118,7 +118,7 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
             if (cracks != null)
             {
                 cracks.Reveal = 0f;
-                cracks.Intensity = 1.5f;
+                cracks.Intensity = 1.2f;
                 cracks.Pulse = 0f;
             }
         }
@@ -160,7 +160,7 @@ public class HallFloor : MonoBehaviour, Kneel.Hazards.ILevelResettable
                 {
                     float k = Mathf.Clamp01(t / tell);
                     cracks.Reveal = 1.05f * Mathf.Clamp01(t / (tell * 0.45f));
-                    cracks.Intensity = Mathf.Lerp(1.5f, 12f, k * k);
+                    cracks.Intensity = Mathf.Lerp(1.2f, 4.5f, k * k);
                     cracks.Pulse = k;
                 }
 

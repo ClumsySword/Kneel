@@ -1582,9 +1582,11 @@ namespace Kneel.EditorTools
             vignette.intensity.Override(0.42f);
             vignette.smoothness.Override(0.45f);
             var bloom = Get<Bloom>();
-            bloom.threshold.Override(0.8f);
-            bloom.intensity.Override(1.25f);
-            bloom.scatter.Override(0.72f);
+            // Owner, 2026-11-12: small, distinct light sources, never a blob of glow (L5Polish.Glow).
+            bloom.threshold.Override(L5Polish.BloomThreshold);
+            bloom.intensity.Override(L5Polish.BloomIntensity);
+            bloom.scatter.Override(L5Polish.BloomScatter);
+            bloom.highQualityFiltering.Override(true);
             bloom.tint.Override(L1Build.Hex("#FFB27A"));
             var grain = Get<FilmGrain>();
             grain.type.Override(FilmGrainLookup.Thin1);
@@ -1694,9 +1696,8 @@ namespace Kneel.EditorTools
         // never fills the screen with glow as the player walks under it.
         private static void Halo(Transform parent, Vector3 local, float size, float strength = 1f)
         {
-            var halo = L1Wayfinding.Particles("Halo", parent, HaloMaterial(), 16, 6f, new Vector2(2.4f, 2.6f), Vector2.zero,
-                new Vector2(size * 0.95f, size * 1.05f), new Color(1f, 0.62f, 0.3f, 0.13f * strength), new Color(1f, 0.55f, 0.25f, 0.11f * strength));
-            halo.transform.localPosition = local;
+            // Owner, 2026-11-12: no halo sprites round the fixtures (they read as blobs of glow; L5Polish.Glow removed
+            // them from the scene). Kept as a no-op so the fixture builders read as before.
         }
 
         private static Material HaloMaterial()

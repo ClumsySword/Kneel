@@ -14,6 +14,8 @@ Shader "Kneel/LavaCrack"
         _Reveal ("Reveal (0-1)", Range(0, 1.2)) = 1
         _Edge ("Reveal edge softness", Range(0.005, 0.2)) = 0.04
         _Pulse ("Pulse", Range(0, 1)) = 0
+        // The whole glow scaled (L5 grades at +1.45 stops: above ~0.5 a crack saturates to white).
+        _Gain("Gain", Float) = 1
     }
 
     SubShader
@@ -47,6 +49,7 @@ Shader "Kneel/LavaCrack"
                 float _Reveal;
                 float _Edge;
                 float _Pulse;
+                float _Gain;
             CBUFFER_END
 
             struct Attributes
@@ -82,11 +85,11 @@ Shader "Kneel/LavaCrack"
                 half shown = saturate((_Reveal - t.g) / _Edge);
                 half front = saturate(1 - abs(_Reveal - t.g) / (_Edge * 3)) * step(t.g, _Reveal);
                 // The cores (crack near 1) run hot; the glow round them stays orange.
-                half core = smoothstep(0.55, 1.0, crack);
+                half core = smoothstep(0.86, 1.0, crack);
                 half3 colour = lerp(_Color.rgb, _HotColor.rgb, core);
                 half flicker = 1 + _Pulse * 0.6 * sin(_Time.y * 37 + t.g * 23) * core;
-                half3 c = colour * crack * shown * (_Intensity * flicker + front * 2.5);
-                return half4(max(c, 0), 1);
+                half3 c = colour * crack * shown * (_Intensity * flicker + front * 1.2);
+                return half4(max(c * _Gain, 0), 1);
             }
             ENDHLSL
         }

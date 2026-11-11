@@ -117,6 +117,7 @@ namespace Kneel.EditorTools
                 tell.leftHand = leftHand;
                 tell.bodyHeight = MasterAgentHeight;
 
+                L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P1Prefab);
                 log.AppendLine(string.Format("{0}: humanScale {1:F2}, grip offsets x{2:F2}, sword tip {3:F2} m up the blade, agent '{4}' ({5})",
                     P1Prefab, animator.humanScale, k, tip.localPosition.y, MasterAgent, agent.agentTypeID));
@@ -385,6 +386,7 @@ namespace Kneel.EditorTools
                 master.pommelContact = PommelContact;
                 master.staggerLength = cuts["Stagger"].length;
                 master.walkClipSpeed = settings.walkSpeed;   // the Move tree's full-walk speed
+                L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P1Prefab);
             }
             finally

@@ -29,6 +29,25 @@ public static class HallActors
         player = null;
     }
 
+    // The bosses render on their own rendering layer ("Bosses", with Characters), so the hall's chandeliers, hung
+    // 12 m up and bright enough to light the floor, don't burn the head and shoulders of a 6 m body: each chandelier
+    // has a weaker boss light beside it (ChandelierDrop.bossLight). Every other light that should reach them (the
+    // torches, the fire, his own tells) has this layer added; lights made in code start on Default only.
+    public const string BossLayerName = "Bosses";
+
+    public static uint BossLayer => RenderingLayerMask.GetMask(BossLayerName);
+
+    public static void LightBosses(Light light)
+    {
+        if (light == null)
+            return;
+        uint mask = (uint)light.renderingLayerMask | BossLayer;
+        light.renderingLayerMask = (int)mask;
+        var data = light.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>();
+        if (data != null)
+            data.renderingLayers = mask;
+    }
+
     public static PlayerCombat Player
     {
         get

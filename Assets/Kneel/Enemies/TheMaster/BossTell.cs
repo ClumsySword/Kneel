@@ -101,6 +101,7 @@ public class BossTell : MonoBehaviour
         light.color = color;
         light.range = range;
         light.intensity = 0f;
+        HallActors.LightBosses(light);
         // Only the Command's palm light casts shadows, and only while it's lit (the L5 atlas lesson: one at a time).
         light.shadows = LightShadows.None;
         light.enabled = false;

@@ -18,6 +18,7 @@ public static class LavaBurst
         light.color = new Color(1f, 0.5f, 0.15f);
         light.shadows = LightShadows.None;
         light.range = Mathf.Max(size.x, size.y) * 1.6f + 4f;
+        HallActors.LightBosses(light);
         lightGo.AddComponent<FadeLight>().Begin(35f * strength, 0.5f);
 
         Vector3 box = new Vector3(size.x, 0.3f, size.y);

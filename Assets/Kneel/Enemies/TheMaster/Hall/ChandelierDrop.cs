@@ -91,7 +91,18 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
     {
         hangingLight.range = range;
         hangingLight.intensity = intensity * (wave != null ? wave.Rebase(hangingLight, intensity) : 1f);
+        if (bossLight != null)
+        {
+            float boss = intensity * bossLightRatio;
+            bossLight.range = range;
+            bossLight.intensity = boss * (wave != null ? wave.Rebase(bossLight, boss) : 1f);
+        }
     }
+
+    // The same light for the bosses' rendering layer (HallActors.BossLayer), weaker: the hanging light is set for the
+    // floor 11 m down, and a 6 m Colossus's head is half that distance from it.
+    public Light bossLight;
+    public float bossLightRatio = 0.25f;
 
     private DarknessWave wave;
 

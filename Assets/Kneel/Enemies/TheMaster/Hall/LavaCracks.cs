@@ -18,7 +18,7 @@ public class LavaCracks : MonoBehaviour
     public Texture2D map;
 
     // The flash at the burst (the playtest waits for it).
-    public const float BurstIntensity = 9f;
+    public const float BurstIntensity = 3.6f;
 
     public float Reveal { get; set; }
     public float Intensity { get; set; } = 1f;
@@ -100,7 +100,7 @@ public class LavaCracks : MonoBehaviour
         {
             float t = (Time.time - start) / grow;
             Reveal = 1.05f * (1f - (1f - t) * (1f - t));
-            Intensity = Mathf.Lerp(1.2f, 1.5f, t);
+            Intensity = Mathf.Lerp(1f, 1.2f, t);
             yield return null;
         }
 
@@ -109,7 +109,7 @@ public class LavaCracks : MonoBehaviour
         while (Time.time - start < brighten)
         {
             float t = (Time.time - start) / brighten;
-            Intensity = Mathf.Lerp(1.5f, 5f, t * t);
+            Intensity = Mathf.Lerp(1.2f, 2.6f, t * t);
             Pulse = t;
             yield return null;
         }

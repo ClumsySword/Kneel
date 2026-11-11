@@ -208,6 +208,14 @@ public class FirePatch
         patch.root = template != null ? Object.Instantiate(template, parent) : new GameObject();
         patch.root.name = "FirePatch";
         patch.root.SetActive(true);
+        // The oil fire's soft glow sprite read as a blob of light from the gameplay camera: the flames and the light
+        // carry the fire here (owner, 2026-11-12: small, distinct light sources).
+        foreach (ParticleSystemRenderer r in patch.root.GetComponentsInChildren<ParticleSystemRenderer>(true))
+        {
+            if (r.sharedMaterial != null && r.sharedMaterial.name.Contains("Glow"))
+                Object.DestroyImmediate(r.gameObject);
+        }
+
         patch.systems = patch.root.GetComponentsInChildren<ParticleSystem>(true);
         patch.baseRates = new float[patch.systems.Length];
         patch.baseShape = new Vector3[patch.systems.Length];
@@ -225,6 +233,7 @@ public class FirePatch
         {
             patch.lightBase = patch.light.intensity;
             patch.light.shadows = LightShadows.None;
+            HallActors.LightBosses(patch.light);
             // Its own flicker script would fight the fade.
             foreach (MonoBehaviour flicker in patch.light.GetComponents<MonoBehaviour>())
                 flicker.enabled = false;

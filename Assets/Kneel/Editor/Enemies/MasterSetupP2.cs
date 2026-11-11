@@ -207,6 +207,7 @@ namespace Kneel.EditorTools
                 tell.palmLightRange = 60f;
                 tell.palmLightIntensity = 90f;
 
+                L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P2Prefab);
                 return string.Format("{0}: humanScale {1:F2}, sword {2:F2} m, grip at {3} in the hand, agent '{4}' ({5})",
                     P2Prefab, animator.humanScale, swordMesh.bounds.size.y, socket.localPosition.ToString("F2"), ColossusAgent, agent.agentTypeID);
@@ -382,6 +383,7 @@ namespace Kneel.EditorTools
                 colossus.recoilLength = cuts["Recoil"].length;
                 colossus.lastCommandLength = LastCommandPeak;
                 colossus.walkClipSpeed = walk;
+                L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P2Prefab);
             }
             finally
