@@ -2513,88 +2513,9 @@ namespace Kneel.EditorTools
         // texture holds four lozenges (tiled at a quarter), so its wear doesn't repeat every runner width: the nap
         // trodden flat down the middle, the borders grimed, a few old dark stains (owner, 2026-10-23: "rough the place
         // up a bit... too clean"; and "a slightly darker red").
-        // The carpet's weave (owner, 2026-11-11: "Remove the triangle pattern but keep the edges pattern (refine but make
-        // true to the low poly theme of the game"; an Elden Ring runner for reference). A plain crimson field between
-        // borders in flat colour: an oxblood edge, a gold line, a dark band carrying a chain of gold lozenges with a gold
-        // dot between each two, another gold line, and a fine dark pinstripe inside it. Crisp shapes (4x supersampled),
-        // no grain or stains; only a broad, faint wear down the middle where the feet go. u runs across the carpet, v
-        // along it: the texture covers four carpet widths (scale 1/lozenges) and the border's chain repeats 16 times in it.
-        public static Material CarpetMaterial()
-        {
-            const int w = 256, h = 1024, lozenges = 4, links = 16, ss = 4;
-            var px = new Color[w * h];
-            var field = L1Build.Hex("#4A141B");
-            var edgeDark = L1Build.Hex("#1A0608");
-            var band = L1Build.Hex("#2A090D");
-            var gold = L1Build.Hex("#8C6A34");
-            var pin = L1Build.Hex("#2A090D");
-
-            Color Sample(float u, float whole)
-            {
-                float e = Mathf.Min(u, 1f - u);
-                float link = Mathf.Repeat(whole * links, 1f);
-                if (e < 0.03f)
-                    return edgeDark;
-                if (e < 0.045f)
-                    return gold;
-                if (e < 0.11f)
-                {
-                    // The chain: a lozenge in the middle of each link, a small square dot at its ends.
-                    float bu = (e - 0.0775f) / 0.022f, bv = (link - 0.5f) / 0.16f;
-                    if (Mathf.Abs(bu) + Mathf.Abs(bv) < 1f)
-                        return gold;
-                    float dv = Mathf.Min(link, 1f - link) / 0.035f;
-                    if (Mathf.Abs(bu) < 0.3f && dv < 1f)
-                        return gold;
-                    return band;
-                }
-
-                if (e < 0.125f)
-                    return gold;
-                if (e > 0.15f && e < 0.158f)
-                    return pin;
-                return field;
-            }
-
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    Color c = Color.clear;
-                    for (int sy = 0; sy < ss; sy++)
-                    {
-                        for (int sx = 0; sx < ss; sx++)
-                            c += Sample((x + (sx + 0.5f) / ss) / w, (y + (sy + 0.5f) / ss) / h);
-                    }
-
-                    c /= ss * ss;
-                    float u = (x + 0.5f) / w, whole = (y + 0.5f) / h;
-                    float tread = Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) / 0.3f) * (0.75f + 0.25f * Mathf.PerlinNoise(u * 3f, whole * 12f));
-                    c = Color.Lerp(c, c * 0.88f + new Color(0.02f, 0.012f, 0.01f), 0.5f * tread);
-                    c.a = 1f;
-                    px[y * w + x] = c;
-                }
-            }
-
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, true);
-            tex.SetPixels(px);
-            tex.Apply();
-            string texPath = TexturesPath + "/L5_Carpet_Weave.png";
-            File.WriteAllBytes(texPath, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
-            var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
-            importer.wrapMode = TextureWrapMode.Repeat;
-            importer.filterMode = FilterMode.Trilinear;
-            importer.anisoLevel = 4;
-            importer.SaveAndReimport();
-
-            var mat = Flat("L5_Carpet", "#FFFFFF", 0.04f);
-            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f / lozenges));
-            EditorUtility.SetDirty(mat);
-            return mat;
-        }
+        // The flights' runner: drawn by L5Polish.RunnerMaterial (owner, 2026-11-11: worn and dirty, no lozenge chain;
+        // the border every L5 carpet shares).
+        public static Material CarpetMaterial() => L5Polish.RunnerMaterial();
 
         // ---------------------------------------------------------------- Look-dev shots
 

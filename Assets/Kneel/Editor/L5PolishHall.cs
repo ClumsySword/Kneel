@@ -47,6 +47,7 @@ namespace Kneel.EditorTools
             log.Add(StripFlatGables());
             log.Add(RetileWalls());
             log.Add(GableDressing());
+            log.Add(Threshold());
             log.Add(Carpets());
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
@@ -176,6 +177,9 @@ namespace Kneel.EditorTools
             public Vault vault;
             public float face, room, wallTop, rose, roseHeight;
             public bool fill;
+            // An open arch (the nave's mouth): no string course across it, and a soffit through the wall to `through`.
+            public bool open;
+            public float through;
         }
 
         private static readonly EndWall[] EndWalls =
@@ -188,8 +192,11 @@ namespace Kneel.EditorTools
             // Where the nave opens into the stair hall: the wall over its mouth now rises from its own face into the arch.
             new EndWall { name = "StairSouthEnd", vault = StairVault, face = 360f, room = 1f, wallTop = 20f, rose = 6f, roseHeight = 30.5f, fill = true },
             new EndWall { name = "NaveSouthEnd", vault = NaveVault, face = 269.5f, room = 1f, wallTop = 11f, rose = 1.9f, roseHeight = 15.4f, fill = true },
-            // The nave's north end: the wall over its mouth already fills it to 20 m, above its crown.
-            new EndWall { name = "NaveNorthEnd", vault = NaveVault, face = 358.5f, room = -1f, wallTop = 20f, rose = 0f, fill = false },
+            // The nave's mouth into the stair hall (owner, 2026-11-11: "the wall covering the exit just before the
+            // stairs need to be an arch as well. There should not be a big square wall blocking the view"): the wall
+            // over it is cut to the nave vault's own arch, framed on both faces, a soffit through the wall between.
+            new EndWall { name = "NaveNorthEnd", vault = NaveVault, face = 358.5f, room = -1f, wallTop = 20f, rose = 0f, fill = false, open = true, through = 360f },
+            new EndWall { name = "NaveMouth", vault = NaveVault, face = 360f, room = 1f, wallTop = 20f, rose = 0f, fill = false, open = true, through = 358.5f },
         };
 
         // The vaults' flat gables: every triangle fanned from the middle of a springing line at either end.
@@ -252,6 +259,7 @@ namespace Kneel.EditorTools
 
         private static string RetileWalls()
         {
+            string log0 = "";
             // The original tiles are kept, switched off, as the record of where the walls are (so this reruns).
             Transform art = GameObject.Find("L5_Root/Art").transform;
             Transform walls = art.Find("Walls");
@@ -316,6 +324,33 @@ namespace Kneel.EditorTools
                 plane.regions.Add(Ccw(arch));
             }
 
+            // The nave's mouth: its arch is cut out of the wall over it (to the floor; below 11 m it was open already).
+            List<Vector2> mouth = NaveVault.Profile(out _);
+            mouth.Add(new Vector2(NaveVault.x1, -1f));
+            mouth.Add(new Vector2(NaveVault.x0, -1f));
+            mouth = Ccw(mouth);
+            int cut = 0;
+            foreach (WallPlane plane in planes.Values.Where(p => p.alongX && Mathf.Abs(p.t0 - 358.5f) < 0.06f && Mathf.Abs(p.t1 - 360f) < 0.06f))
+            {
+                var kept = new List<List<Vector2>>();
+                foreach (List<Vector2> region in plane.regions)
+                {
+                    if (Overlap(region, mouth) == false)
+                    {
+                        kept.Add(region);
+                        continue;
+                    }
+
+                    kept.AddRange(Subtract(region, mouth));
+                    cut++;
+                }
+
+                plane.regions.Clear();
+                plane.regions.AddRange(kept);
+            }
+
+            log0 = cut + " wall pieces cut to the nave's mouth, " + StripMouthCore();
+
             if (holder != null)
                 Object.DestroyImmediate(holder.gameObject);
             holder = new GameObject(KnightsWallName + "s").transform;
@@ -348,7 +383,7 @@ namespace Kneel.EditorTools
             }
 
             source.gameObject.SetActive(false);
-            return "walls: " + tiles.Count + " tiles in " + made + " planes rebaked as " + meshes + " meshes (" + vertices / 1000 + "k vertices), " + overlaps + " overlapping tiles found";
+            return "walls: " + log0 + "; " + tiles.Count + " tiles in " + made + " planes rebaked as " + meshes + " meshes (" + vertices / 1000 + "k vertices), " + overlaps + " overlapping tiles found";
         }
 
         // Tiles a plane's regions in running bond and bakes them, clipped to the regions, a mesh per 8 m along it.
@@ -527,6 +562,16 @@ namespace Kneel.EditorTools
 
             public void Quad(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector2 uv0, Vector3 facing) => Quad(sub, a, b, c, d, uv0, uv0, uv0, uv0, facing);
 
+            public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c, Vector2 ua, Vector2 ub, Vector2 uc, Vector3 facing)
+            {
+                bool flipped = Vector3.Dot(Vector3.Cross(b - a, c - a), facing) < 0f;
+                int k = p.Count;
+                p.AddRange(new[] { a, b, c });
+                n.AddRange(Enumerable.Repeat(facing.normalized, 3));
+                uv.AddRange(new[] { ua, ub, uc });
+                Sub(sub).AddRange(flipped ? new[] { k, k + 2, k + 1 } : new[] { k, k + 1, k + 2 });
+            }
+
             public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c, Vector2 uv0, Vector3 facing)
             {
                 bool flipped = Vector3.Dot(Vector3.Cross(b - a, c - a), facing) < 0f;
@@ -673,6 +718,112 @@ namespace Kneel.EditorTools
             return true;
         }
 
+        // A convex region less a convex hole: the parts of the region outside each of the hole's edges in turn.
+        private static List<List<Vector2>> Subtract(List<Vector2> region, List<Vector2> hole)
+        {
+            var pieces = new List<List<Vector2>>();
+            List<Vector2> remaining = region;
+            for (int i = 0; i < hole.Count && remaining.Count >= 3; i++)
+            {
+                Vector2 a = hole[i], e = hole[(i + 1) % hole.Count] - a;
+                var outward = new Vector2(e.y, -e.x);
+                List<Vector2> outside = ClipHalfPlane(remaining, a, outward);
+                if (outside.Count >= 3 && Area(outside) > 1e-3f)
+                    pieces.Add(Ccw(outside));
+                remaining = ClipHalfPlane(remaining, a, -outward);
+            }
+
+            return pieces;
+        }
+
+        private static float Area(List<Vector2> polygon)
+        {
+            float area = 0f;
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 a = polygon[i], b = polygon[(i + 1) % polygon.Count];
+                area += a.x * b.y - b.x * a.y;
+            }
+
+            return Mathf.Abs(area) * 0.5f;
+        }
+
+        // The wall's solid core over the nave's mouth (L5Level's Clad 46.5-61.5, 358.5-360, 11-20) goes with it.
+        private static string StripMouthCore()
+        {
+            var filter = Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).FirstOrDefault(f => f.name == "WallCores");
+            if (filter == null)
+                return "no wall cores";
+            Mesh mesh = filter.sharedMesh;
+            Vector3[] v = mesh.vertices;
+            bool In(Vector3 p) => p.x > 46.4f && p.x < 61.6f && p.y > 10.9f && p.y < 20.1f && p.z > 358.4f && p.z < 360.1f;
+            int removed = 0;
+            for (int s = 0; s < mesh.subMeshCount; s++)
+            {
+                int[] tris = mesh.GetTriangles(s);
+                var keep = new List<int>(tris.Length);
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    if (In(v[tris[i]]) && In(v[tris[i + 1]]) && In(v[tris[i + 2]]))
+                    {
+                        removed++;
+                        continue;
+                    }
+
+                    keep.AddRange(new[] { tris[i], tris[i + 1], tris[i + 2] });
+                }
+
+                mesh.SetTriangles(keep, s);
+            }
+
+            EditorUtility.SetDirty(mesh);
+            return removed + " core triangles removed";
+        }
+
+        // ---------------------------------------------------------------- The grand doors' threshold
+
+        // The gallery's floor and the hall's meet in a straight line under the grand doors (owner: "fix the hard edge of
+        // the floor from outside the throneroom at top of stairs and from the inside"). A threshold of big stone slabs,
+        // flush with both floors, spans the doorway and laps over the line on either side.
+        private static string Threshold()
+        {
+            Transform art = GameObject.Find("L5_Root/Art").transform;
+            Transform old = art.Find("Threshold");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var b = new MeshBuilder();
+            const float top = L5Greybox.Hall + 0.006f, bottom = L5Greybox.Hall - 0.12f, joint = 0.03f;
+            float[] xs = { 48.7f, 51.4f, 54.1f, 56.6f, 59.3f };
+            float[] zs = { 405.5f, 407.2f, 408.9f };
+            int[] tones = { L2PolyKit.Side, L2PolyKit.TopDark, L2PolyKit.End };
+            int k = 0;
+            for (int i = 0; i + 1 < xs.Length; i++)
+            {
+                for (int j = 0; j + 1 < zs.Length; j++)
+                {
+                    float x0 = xs[i] + joint * 0.5f, x1 = xs[i + 1] - joint * 0.5f, z0 = zs[j] + joint * 0.5f, z1 = zs[j + 1] - joint * 0.5f;
+                    Vector2 uv = Cell(tones[(k++ * 7 + j) % tones.Length]);
+                    Vector2 dark = Cell(L2PolyKit.TopDark);
+                    b.Quad(0, new Vector3(x0, top, z0), new Vector3(x0, top, z1), new Vector3(x1, top, z1), new Vector3(x1, top, z0), uv, Vector3.up);
+                    b.Quad(0, new Vector3(x0, bottom, z0), new Vector3(x1, bottom, z0), new Vector3(x1, top, z0), new Vector3(x0, top, z0), dark, Vector3.back);
+                    b.Quad(0, new Vector3(x0, bottom, z1), new Vector3(x1, bottom, z1), new Vector3(x1, top, z1), new Vector3(x0, top, z1), dark, Vector3.forward);
+                    b.Quad(0, new Vector3(x0, bottom, z0), new Vector3(x0, bottom, z1), new Vector3(x0, top, z1), new Vector3(x0, top, z0), dark, Vector3.left);
+                    b.Quad(0, new Vector3(x1, bottom, z0), new Vector3(x1, bottom, z1), new Vector3(x1, top, z1), new Vector3(x1, top, z0), dark, Vector3.right);
+                }
+            }
+
+            // The joints between the slabs: a dark bed just under their tops.
+            float jy = top - 0.03f;
+            b.Quad(0, new Vector3(xs[0], jy, zs[0]), new Vector3(xs[0], jy, zs[zs.Length - 1]), new Vector3(xs[xs.Length - 1], jy, zs[zs.Length - 1]), new Vector3(xs[xs.Length - 1], jy, zs[0]), Cell(L2PolyKit.Joint), Vector3.up);
+            Mesh mesh = SaveMeshAsset(b.ToMesh(1), PolishMeshes + "/L5_GrandDoorsThreshold.asset");
+            var go = new GameObject("Threshold");
+            go.transform.SetParent(art, false);
+            GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = L4Kit.Stone;
+            return "a threshold under the grand doors";
+        }
+
         private static List<Vector2> ClipHalfPlane(List<Vector2> polygon, Vector2 point, Vector2 normal)
         {
             var output = new List<Vector2>();
@@ -778,7 +929,10 @@ namespace Kneel.EditorTools
                 var b = new MeshBuilder();
                 List<Vector2> profile = end.vault.Profile(out List<Vector2> inward);
                 Archivolt(b, profile, inward, end.face, end.room);
-                StringCourse(b, end.vault.x0, end.vault.x1, end.vault.spring, end.face, end.room);
+                if (end.open)
+                    Soffit(b, profile, inward, end.face, end.through);
+                else
+                    StringCourse(b, end.vault.x0, end.vault.x1, end.vault.spring, end.face, end.room);
                 if (end.rose > 0f)
                 {
                     Rose(b, new Vector3((end.vault.x0 + end.vault.x1) * 0.5f, end.roseHeight, end.face), end.room, end.rose);
@@ -825,6 +979,17 @@ namespace Kneel.EditorTools
                     Vector2 p = profile[i], pi = p + inward[i] * order.depth;
                     b.Quad(0, At(p, z0), At(pi, z0), At(pi, z1), At(p, z1), Cell(L2PolyKit.TopDark), Vector3.down);
                 }
+            }
+        }
+
+        // The underside of an arch cut through a wall, from one face to the other.
+        private static void Soffit(MeshBuilder b, List<Vector2> profile, List<Vector2> inward, float z0, float z1)
+        {
+            for (int i = 0; i + 1 < profile.Count; i++)
+            {
+                Vector2 a = profile[i], c = profile[i + 1];
+                var n = new Vector3((inward[i].x + inward[i + 1].x) * 0.5f, (inward[i].y + inward[i + 1].y) * 0.5f, 0f);
+                b.Quad(0, new Vector3(a.x, a.y, z0), new Vector3(a.x, a.y, z1), new Vector3(c.x, c.y, z1), new Vector3(c.x, c.y, z0), Cell(i % 2 == 0 ? L2PolyKit.Side : L2PolyKit.End), n);
             }
         }
 
@@ -919,157 +1084,8 @@ namespace Kneel.EditorTools
             b.Quad(0, a - across, c - across, c - across + front, a - across + front, Cell(L2PolyKit.TopDark), -across.normalized);
         }
 
-        // ---------------------------------------------------------------- Carpets
+        // ---------------------------------------------------------------- Carpets (L5PolishCarpet.cs)
 
         private const float CarpetLift = 0.014f;
-
-        private static string Carpets()
-        {
-            Transform art = GameObject.Find("L5_Root/Art").transform;
-            Transform old = art.Find("Carpets");
-            if (old != null)
-                Object.DestroyImmediate(old.gameObject);
-            var holder = new GameObject("Carpets").transform;
-            holder.SetParent(art, false);
-
-            Material carpet = L5Level.CarpetMaterial();
-            Material trim = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Materials/L4/L4_Knights_Bronze.mat");
-            var log = new List<string>();
-
-            // The hall: from the grand doors' threshold down the processional, up the dais's three steps, and under the
-            // footstool to the throne's seat.
-            const float floor = L5Greybox.Hall;
-            var hall = new List<Vector3>
-            {
-                new Vector3(54f, floor + CarpetLift, 406.5f),
-                new Vector3(54f, floor + CarpetLift, 466.5f - 0.014f),
-                new Vector3(54f, floor + 0.206f + CarpetLift, 466.5f - 0.014f),
-                new Vector3(54f, floor + 0.206f + CarpetLift, 467f - 0.014f),
-                new Vector3(54f, floor + 0.4f + CarpetLift, 467f - 0.014f),
-                new Vector3(54f, floor + 0.4f + CarpetLift, 467.5f - 0.014f),
-                new Vector3(54f, floor + 0.61f + CarpetLift, 467.5f - 0.014f),
-                new Vector3(54f, floor + 0.61f + CarpetLift, 469.7f),
-            };
-            // 4.6 m in all, clear of the candles either side of the dais (x 54 +- 2.7).
-            log.Add(Lay(holder, "HallRunner", hall, 4.32f, 0.14f, 0f, carpet, trim));
-
-            // The stair hall: a ring round the fire bowl, outside its candles and over the nave runner's end.
-            Vector3 bowl = L5Greybox.Centrepiece;
-            var ring = new List<Vector3>();
-            const int segments = 72;
-            for (int i = 0; i <= segments; i++)
-            {
-                float a = -Mathf.PI * 0.5f + i * Mathf.PI * 2f / segments;
-                ring.Add(new Vector3(bowl.x + Mathf.Cos(a) * 5f, CarpetLift + 0.006f, bowl.z + Mathf.Sin(a) * 5f));
-            }
-
-            log.Add(Lay(holder, "BowlRing", ring, 1.6f, 0.15f, 0f, carpet, trim, closed: true));
-
-            // And to the foot of each flight, meeting its runner square on (1.6 m, gold-edged, the weave running on).
-            foreach (bool west in new[] { true, false })
-            {
-                float foot = L5Greybox.StairAngle(0, west);
-                Vector3 end = L5Greybox.StairPoint(15f, foot, CarpetLift - 0.005f);
-                Vector3 into = (L5Greybox.StairPoint(15f, foot + (west ? -1f : 1f), 0f) - L5Greybox.StairPoint(15f, foot, 0f)).normalized;
-                float side = west ? -1f : 1f;
-                Vector3 p0 = new Vector3(54f + side * 0.6f, end.y, 362.2f);
-                Vector3 p1 = p0 + new Vector3(side * 3.2f, 0f, 0.5f);
-                Vector3 p2 = end - into * 3.4f;
-                var path = new List<Vector3>();
-                for (int i = 0; i <= 28; i++)
-                {
-                    float t = i / 28f, s = 1f - t;
-                    path.Add(s * s * s * p0 + 3f * s * s * t * p1 + 3f * s * t * t * p2 + t * t * t * end);
-                }
-
-                // The weave's v counts back from the flight's foot, where its own runner starts at 0.
-                log.Add(Lay(holder, "FlightRunner_" + (west ? "W" : "E"), path, 1.6f, 0.15f, -PathLength(path) / 1.6f, carpet, trim));
-            }
-
-            return "carpets: " + string.Join(", ", log);
-        }
-
-        private static float PathLength(List<Vector3> path)
-        {
-            float length = 0f;
-            for (int i = 0; i + 1 < path.Count; i++)
-                length += Vector3.Distance(path[i], path[i + 1]);
-            return length;
-        }
-
-        // A runner along `path` (its centre line at carpet height; a step up is two points one above the other): the
-        // carpet `width` across, a gold trim either side, the weave's u across and v along (in carpet widths, from
-        // vStart). Risers face back down the path.
-        private static string Lay(Transform parent, string name, List<Vector3> path, float width, float trim, float vStart, Material carpet, Material gold, bool closed = false)
-        {
-            var b = new MeshBuilder();
-            int count = path.Count;
-            var across = new Vector3[count];
-            Vector3 lastHeading = Vector3.forward;
-            for (int i = 0; i < count; i++)
-            {
-                Vector3 inDir = i > 0 ? Flat(path[i] - path[i - 1]) : Vector3.zero;
-                Vector3 outDir = i + 1 < count ? Flat(path[i + 1] - path[i]) : Vector3.zero;
-                if (closed && i == 0)
-                    inDir = Flat(path[count - 1] - path[count - 2]);
-                if (closed && i == count - 1)
-                    outDir = Flat(path[1] - path[0]);
-                Vector3 heading = (inDir + outDir).sqrMagnitude > 1e-6f ? (inDir + outDir).normalized : lastHeading;
-                lastHeading = heading;
-                float miter = 1f;
-                if (inDir.sqrMagnitude > 1e-6f && outDir.sqrMagnitude > 1e-6f)
-                    miter = 1f / Mathf.Max(0.5f, Vector3.Dot(inDir, heading));
-                across[i] = new Vector3(heading.z, 0f, -heading.x) * miter;
-            }
-
-            float total = PathLength(path);
-            float vScale = 1f;
-            if (closed)
-            {
-                // A whole number of the border's repeats round the ring, so its join doesn't show.
-                float repeats = total / width / 0.25f;
-                vScale = Mathf.Max(1f, Mathf.Round(repeats)) / repeats;
-            }
-
-            float v = vStart;
-            float half = width * 0.5f;
-            for (int i = 0; i + 1 < count; i++)
-            {
-                Vector3 a = path[i], c = path[i + 1];
-                Vector3 seg = c - a;
-                bool riser = Flat(seg).sqrMagnitude < 1e-6f;
-                Vector3 facing = riser ? -Flat(path[Mathf.Min(i + 2, count - 1)] - a).normalized : Vector3.up;
-                if (riser && facing.sqrMagnitude < 0.5f)
-                    facing = Vector3.back;
-                float v1 = v + seg.magnitude / width * vScale;
-                Vector3 la = across[i], lc = across[i + 1];
-                b.Quad(0, a - la * half, c - lc * half, c + lc * half, a + la * half,
-                    new Vector2(0f, v), new Vector2(0f, v1), new Vector2(1f, v1), new Vector2(1f, v), facing);
-                foreach (float s in new[] { -1f, 1f })
-                {
-                    Vector3 i0 = a + la * (half * s), i1 = c + lc * (half * s);
-                    Vector3 o0 = a + la * ((half + trim) * s), o1 = c + lc * ((half + trim) * s);
-                    b.Quad(1, i0, i1, o1, o0, Vector2.zero, facing);
-                }
-
-                v = v1;
-            }
-
-            Mesh mesh = SaveMeshAsset(b.ToMesh(2), PolishMeshes + "/L5_Carpet_" + name + ".asset");
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            var r = go.AddComponent<MeshRenderer>();
-            r.sharedMaterials = new[] { carpet, gold };
-            r.shadowCastingMode = ShadowCastingMode.Off;
-            return name + " " + total.ToString("F1") + " m";
-        }
-
-        private static Vector3 Flat(Vector3 v)
-        {
-            v.y = 0f;
-            return v.sqrMagnitude > 1e-8f ? v.normalized : Vector3.zero;
-        }
     }
 }
