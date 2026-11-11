@@ -1524,7 +1524,7 @@ namespace Kneel.EditorTools
             RenderSettings.sun = null;
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = L1Build.Hex("#2B2E36");
+            RenderSettings.ambientSkyColor = L1Build.Hex("#302A26"); // warm: nothing in the castle lights blue (L5Polish.WarmTheDark)
             RenderSettings.ambientEquatorColor = L1Build.Hex("#302A25");
             RenderSettings.ambientGroundColor = L1Build.Hex("#15120F");
             RenderSettings.fog = true;
@@ -1538,7 +1538,7 @@ namespace Kneel.EditorTools
             fillGo.transform.rotation = Quaternion.Euler(50f, -25f, 0f);
             var fill = fillGo.AddComponent<Light>();
             fill.type = LightType.Directional;
-            fill.color = L1Build.Hex("#C9CCD4");
+            fill.color = L1Build.Hex("#D6C6B2");
             fill.intensity = 0.5f;
             fill.shadows = LightShadows.None;
             uint characters = (uint)RenderingLayerMask.GetMask(L1LightingPass.CharactersLayer);
@@ -2513,78 +2513,64 @@ namespace Kneel.EditorTools
         // texture holds four lozenges (tiled at a quarter), so its wear doesn't repeat every runner width: the nap
         // trodden flat down the middle, the borders grimed, a few old dark stains (owner, 2026-10-23: "rough the place
         // up a bit... too clean"; and "a slightly darker red").
-        private static Material CarpetMaterial()
+        // The carpet's weave (owner, 2026-11-11: "Remove the triangle pattern but keep the edges pattern (refine but make
+        // true to the low poly theme of the game"; an Elden Ring runner for reference). A plain crimson field between
+        // borders in flat colour: an oxblood edge, a gold line, a dark band carrying a chain of gold lozenges with a gold
+        // dot between each two, another gold line, and a fine dark pinstripe inside it. Crisp shapes (4x supersampled),
+        // no grain or stains; only a broad, faint wear down the middle where the feet go. u runs across the carpet, v
+        // along it: the texture covers four carpet widths (scale 1/lozenges) and the border's chain repeats 16 times in it.
+        public static Material CarpetMaterial()
         {
-            const int w = 256, h = 1024, lozenges = 4;
+            const int w = 256, h = 1024, lozenges = 4, links = 16, ss = 4;
             var px = new Color[w * h];
-            var field = L1Build.Hex("#47131A");
-            var deep = L1Build.Hex("#200709");
-            var band = L1Build.Hex("#2E0B0F");
-            var gold = L1Build.Hex("#7E5E2E");
-            var rose = L1Build.Hex("#5B1B21");
-            var stainColour = L1Build.Hex("#1C0B09");
-            var stains = new List<Vector3>();
-            var sr = new System.Random(9177);
-            for (int i = 0; i < 9; i++)
+            var field = L1Build.Hex("#4A141B");
+            var edgeDark = L1Build.Hex("#1A0608");
+            var band = L1Build.Hex("#2A090D");
+            var gold = L1Build.Hex("#8C6A34");
+            var pin = L1Build.Hex("#2A090D");
+
+            Color Sample(float u, float whole)
             {
-                stains.Add(new Vector3(0.15f + (float)sr.NextDouble() * 0.7f, (float)sr.NextDouble(), 0.03f + (float)sr.NextDouble() * 0.05f));
+                float e = Mathf.Min(u, 1f - u);
+                float link = Mathf.Repeat(whole * links, 1f);
+                if (e < 0.03f)
+                    return edgeDark;
+                if (e < 0.045f)
+                    return gold;
+                if (e < 0.11f)
+                {
+                    // The chain: a lozenge in the middle of each link, a small square dot at its ends.
+                    float bu = (e - 0.0775f) / 0.022f, bv = (link - 0.5f) / 0.16f;
+                    if (Mathf.Abs(bu) + Mathf.Abs(bv) < 1f)
+                        return gold;
+                    float dv = Mathf.Min(link, 1f - link) / 0.035f;
+                    if (Mathf.Abs(bu) < 0.3f && dv < 1f)
+                        return gold;
+                    return band;
+                }
+
+                if (e < 0.125f)
+                    return gold;
+                if (e > 0.15f && e < 0.158f)
+                    return pin;
+                return field;
             }
 
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
                 {
-                    float u = (x + 0.5f) / w, whole = (y + 0.5f) / h, v = Mathf.Repeat(whole * lozenges, 1f);
-                    float edge = Mathf.Min(u, 1f - u);
-                    Color c = field;
-                    if (edge < 0.1f)
+                    Color c = Color.clear;
+                    for (int sy = 0; sy < ss; sy++)
                     {
-                        // The border band, with a gold diamond every eighth of a repeat.
-                        c = band;
-                        float bv = Mathf.Repeat(v * 8f, 1f) - 0.5f, bu = (edge - 0.05f) / 0.035f;
-                        if (Mathf.Abs(bu) + Mathf.Abs(bv) * 1.6f < 0.55f)
-                        {
-                            c = gold;
-                        }
-                    }
-                    else if (Mathf.Abs(edge - 0.115f) < 0.007f)
-                    {
-                        c = gold;
-                    }
-                    else
-                    {
-                        // The lozenge chain: dark outline, rose fill, gold heart; small dark crosses where two meet.
-                        float lz = Mathf.Abs(u - 0.5f) / 0.3f + Mathf.Abs(v - 0.5f) / 0.46f;
-                        if (lz < 1f)
-                        {
-                            c = lz > 0.86f ? deep : lz < 0.3f ? (lz < 0.1f ? deep : gold) : rose;
-                        }
-                        else
-                        {
-                            float cv = Mathf.Min(v, 1f - v), cu = Mathf.Abs(u - 0.5f);
-                            if ((cu < 0.012f && cv < 0.07f) || (cv < 0.01f && cu < 0.05f))
-                            {
-                                c = deep;
-                            }
-                        }
+                        for (int sx = 0; sx < ss; sx++)
+                            c += Sample((x + (sx + 0.5f) / ss) / w, (y + (sy + 0.5f) / ss) / h);
                     }
 
-                    // The weave: fine rows across, a little noise in every thread.
-                    float grain = 0.93f + 0.07f * Mathf.PerlinNoise(x * 0.9f, y * 0.13f) + ((y & 1) == 0 ? 0.025f : -0.025f);
-                    c *= grain;
-
-                    // Wear: the nap trodden flat and dulled down the middle, grime toward the borders, old stains.
-                    float tread = Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) / 0.22f) * (0.6f + 0.4f * Mathf.PerlinNoise(u * 6f, whole * 40f));
-                    c = Color.Lerp(c, new Color(c.grayscale, c.grayscale * 0.8f, c.grayscale * 0.75f) * 1.15f, 0.22f * tread);
-                    c *= 1f - 0.18f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.16f, 0.02f, edge)) * Mathf.PerlinNoise(u * 20f, whole * 90f);
-                    foreach (var s in stains)
-                    {
-                        float dv = Mathf.Abs(whole - s.y);
-                        dv = Mathf.Min(dv, 1f - dv) * lozenges;
-                        float d = new Vector2(u - s.x, dv).magnitude / s.z + (Mathf.PerlinNoise(x * 0.15f, y * 0.15f) - 0.5f) * 0.8f;
-                        c = Color.Lerp(c, stainColour, 0.55f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.1f, 0.6f, d)));
-                    }
-
+                    c /= ss * ss;
+                    float u = (x + 0.5f) / w, whole = (y + 0.5f) / h;
+                    float tread = Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) / 0.3f) * (0.75f + 0.25f * Mathf.PerlinNoise(u * 3f, whole * 12f));
+                    c = Color.Lerp(c, c * 0.88f + new Color(0.02f, 0.012f, 0.01f), 0.5f * tread);
                     c.a = 1f;
                     px[y * w + x] = c;
                 }

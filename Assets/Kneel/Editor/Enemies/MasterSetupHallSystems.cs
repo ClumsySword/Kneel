@@ -182,11 +182,11 @@ namespace Kneel.EditorTools
 
         // The hall's chandeliers hang high and light the room evenly (owner, 2026-11-11: "remove the logic for the
         // chandeliers to fall down. They block player view. Instead place chandeliers in the top ... so they light up
-        // the room evenly. They should be placed evenly apart."). Five on the hall's axis, one in the middle of each
-        // bay between the vault's ribs (12 m apart, the last over the dais), hung 22 m over the floor: the camera
+        // the room evenly. They should be placed evenly apart."). Five on the hall's axis, 12 m apart and centred on
+        // the hall (8.25 m from each end wall, so none burns the rose windows there), hung 22 m over the floor: the camera
         // rides at most about 16 m over it (the Colossus's framing, 17 m out at 65 degrees), and a camera looking
         // down never sees above itself, so no chandelier can come between it and the fight.
-        public static readonly float[] ChandelierRows = { 420f, 432f, 444f, 456f, 468f };
+        public static readonly float[] ChandelierRows = { 416.25f, 428.25f, 440.25f, 452.25f, 464.25f };
         public const float ChandelierHang = FloorTop + 22f;
 
         // The underside of the hall vault's crown, where each chain is made fast (L5Level's HallVault).
