@@ -5,13 +5,13 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 namespace Kneel.EditorTools
 {
     // Stage 5: the throne hall's systems (The Master.md §8), added to the open L5 scene in place (L5Level's Build Scene
     // is never rerun over it). Each step skips what's already there, so it can be rerun after a change:
-    // - the four arena chandeliers on chains to winches at the pillars' feet (the y 422 one moves to y 443, over the
-    //   arena), split at the bridle ring so the vault chain stays hanging when one falls;
+    // - the hall's five chandeliers, hung high above the camera's reach and evenly apart (no longer a hazard);
     // - the four braziers as levers, and the floor fire they (and his Threads) leave;
     // - the arena floor cut into 30 panels over a burning undercroft, each with its hole, rubble lip and carve;
     // - four 5 m knight statues in the side bands, split at the knee;
@@ -51,7 +51,7 @@ namespace Kneel.EditorTools
             Transform hall = Child(master.transform, "Hall", Vector3.zero, Quaternion.identity);
 
             FloorFire fire = BuildFloorFire(hall);
-            log.Add(BuildChandeliers(hall));
+            log.Add(HangChandeliers());
             log.Add(BuildBraziers(hall));
             HallFloor floor = BuildFloor(hall, log);
             log.Add(BuildStatues(hall));
@@ -180,173 +180,158 @@ namespace Kneel.EditorTools
 
         // --- Chandeliers ---
 
-        // Each chandelier's winch: the arena pillar it's tied to (alternating sides), by the chandelier's y.
-        private static readonly (float z, Vector2 pillar)[] Tethers =
-        {
-            (436f, new Vector2(39f, 438f)),
-            (443f, new Vector2(69f, 438f)),
-            (450f, new Vector2(39f, 450f)),
-            (463f, new Vector2(69f, 462f)),
-        };
+        // The hall's chandeliers hang high and light the room evenly (owner, 2026-11-11: "remove the logic for the
+        // chandeliers to fall down. They block player view. Instead place chandeliers in the top ... so they light up
+        // the room evenly. They should be placed evenly apart."). Five on the hall's axis, one in the middle of each
+        // bay between the vault's ribs (12 m apart, the last over the dais), hung 22 m over the floor: the camera
+        // rides at most about 16 m over it (the Colossus's framing, 17 m out at 65 degrees), and a camera looking
+        // down never sees above itself, so no chandelier can come between it and the fight.
+        public static readonly float[] ChandelierRows = { 420f, 432f, 444f, 456f, 468f };
+        public const float ChandelierHang = FloorTop + 22f;
 
-        private static string BuildChandeliers(Transform hall)
+        // The underside of the hall vault's crown, where each chain is made fast (L5Level's HallVault).
+        private const float VaultCrown = 40.5f;
+
+        // Each light's pool, sized for the new height: 410 at a 55 m range keeps the arena's mean floor light where it
+        // was (1.9 lux before the grade), but every spot of the arena now gets 1.1-2.4 instead of 0.2-4.7.
+        public const float ChandelierIntensity = 410f;
+        public const float ChandelierRange = 55f;
+
+        // The bosses' rendering layer gets a weaker copy of each (HallActors.BossLayer): a 6 m head is 15 m from the
+        // light where the floor is 21 m, so (15/21)^2 of the floor light's strength lights it as brightly.
+        public const float ChandelierBossRatio = 0.5f;
+
+        // The hall's chandeliers, south to north.
+        public static List<Transform> HallChandeliers()
         {
             GameObject fixtures = GameObject.Find(HallFixturesPath);
-            List<Transform> chandeliers = fixtures.transform.Cast<Transform>().Where(t => t.name == "Chandelier").ToList();
-            var notes = new List<string>();
-            Material shadow = ShadowMaterial();
-            Material iron = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Materials/L4/L4_Iron.mat");
-
-            foreach (Transform c in chandeliers)
-            {
-                // The one over the hall's entrance moves over the arena (§4, decided).
-                if (Mathf.Abs(c.position.z - 422f) < 0.5f)
-                    c.position = new Vector3(c.position.x, c.position.y, 443f);
-            }
-
-            for (int i = 0; i < chandeliers.Count; i++)
-            {
-                Transform c = chandeliers[i];
-                var tie = Tethers.OrderBy(t => Mathf.Abs(t.z - c.position.z)).First();
-                SplitChain(c, i);
-
-                var drop = Ensure<ChandelierDrop>(c.gameObject);
-                drop.chain = c.Find("Chain");
-                drop.hangingLight = c.Find("Light")?.GetComponent<Light>();
-                drop.floorY = FloorTop;
-
-                // The winch at the pillar's foot, on the aisle side; the chain runs up the pillar, over its top and out
-                // to the hoop.
-                float side = tie.pillar.x < 54f ? -1f : 1f;
-                Vector3 winchAt = new Vector3(tie.pillar.x + side * 2.45f, FloorTop, tie.pillar.y);
-                Transform winch = c.parent.Find("Winch_" + i);
-                if (winch == null)
-                {
-                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kneel/Prefabs/L4/Hazards/L4_Winch.prefab");
-                    var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, c.parent);
-                    PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-                    go.name = "Winch_" + i;
-                    Object.DestroyImmediate(go.GetComponent<Kneel.Hazards.Winch>());
-                    Transform prompt = go.transform.Find("Prompt");
-                    if (prompt != null)
-                        Object.DestroyImmediate(prompt.gameObject);
-                    winch = go.transform;
-                }
-
-                winch.SetPositionAndRotation(winchAt, Quaternion.Euler(0f, 90f, 0f));
-                Transform strike = Child(winch, "Strike", winchAt + Vector3.up * 0.7f, winch.rotation);
-                strike.gameObject.layer = LayerMask.NameToLayer("Enemy");
-                var box = Ensure<BoxCollider>(strike.gameObject);
-                box.size = new Vector3(2.2f, 1.4f, 1.1f);
-                drop.winch = Ensure<HallStrikeTarget>(strike.gameObject);
-
-                // The hoop's edge on the pillar's side.
-                Vector3 hoop = c.position + new Vector3(side * 2.3f, 0.05f, 0f);
-                float faceArena = tie.pillar.x - side * 1.95f;
-                float faceAisle = tie.pillar.x + side * 1.95f;
-                Transform tetherGo = Child(c, "Tether", c.position, Quaternion.identity);
-                var line = Ensure<LineRenderer>(tetherGo.gameObject);
-                line.useWorldSpace = true;
-                line.positionCount = 5;
-                line.SetPositions(new[]
-                {
-                    hoop,
-                    new Vector3(faceArena, 18.3f, tie.pillar.y),
-                    new Vector3(tie.pillar.x, 18.75f, tie.pillar.y),
-                    new Vector3(faceAisle, 18.3f, tie.pillar.y),
-                    winchAt + Vector3.up * 0.75f,
-                });
-                line.widthMultiplier = 0.07f;
-                line.sharedMaterial = iron;
-                line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                line.numCornerVertices = 2;
-                drop.tether = line;
-
-                // Beside it, not under it: the shadow stays flat on the floor while it tilts as it falls.
-                Transform shadowGo = c.parent.Find("Shadow_" + i);
-                if (shadowGo == null)
-                    shadowGo = FloorDecal("Shadow_" + i, c.parent, new Vector3(c.position.x, FloorTop + 0.03f, c.position.z), new Vector2(6f, 6f), 0f, shadow).transform;
-                shadowGo.gameObject.SetActive(false);
-                drop.shadow = shadowGo.gameObject;
-
-                var wreck = Ensure<BoxCollider>(c.gameObject);
-                wreck.center = new Vector3(0f, 0.3f, 0f);
-                wreck.size = new Vector3(4.6f, 1.1f, 4.6f);
-                wreck.enabled = false;
-                drop.wreck = wreck;
-                var carve = Ensure<NavMeshObstacle>(c.gameObject);
-                carve.shape = NavMeshObstacleShape.Box;
-                carve.center = new Vector3(0f, 0.5f, 0f);
-                carve.size = new Vector3(4.8f, 2f, 4.8f);
-                carve.carving = true;
-                carve.enabled = false;
-                drop.wreckCarve = carve;
-
-                if (c.Find("SnapSparks") == null)
-                    Particles("SnapSparks", c, winchAt, Fx("L1_FX_Ember"), new Color(1f, 0.7f, 0.3f), new Vector2(0.04f, 0.09f), new Vector2(0.3f, 0.8f), new Vector2(2f, 6f), new Vector3(0.4f, 0.4f, 0.4f), 0f, 40, 1f, false);
-                if (c.Find("ImpactDust") == null)
-                    Particles("ImpactDust", c, new Vector3(c.position.x, FloorTop + 0.2f, c.position.z), Fx("L1_FX_Smoke"), new Color(0.45f, 0.42f, 0.4f, 0.6f), new Vector2(1.2f, 2.4f), new Vector2(1.2f, 2.2f), new Vector2(1f, 3f), new Vector3(4f, 4f, 0.3f), 0f, 26, -0.05f, false);
-                drop.snapSparks = c.Find("SnapSparks").GetComponent<ParticleSystem>();
-                drop.impactDust = c.Find("ImpactDust").GetComponent<ParticleSystem>();
-                notes.Add("chandelier y " + c.position.z + " tied to the pillar at (" + tie.pillar.x + ", " + tie.pillar.y + ")");
-            }
-
-            return "Chandeliers: " + string.Join("; ", notes);
+            return fixtures == null ? new List<Transform>() :
+                fixtures.transform.Cast<Transform>().Where(t => t.name == "Chandelier").OrderBy(t => t.position.z).ToList();
         }
 
-        // The vault chain (above the bridle ring, 2.55 m over the hoop) out of the chandelier's body into its own piece.
-        private static void SplitChain(Transform chandelier, int index)
+        [MenuItem("Kneel/Enemies/The Master/Hang Hall Chandeliers")]
+        public static void HangChandeliersMenu()
         {
-            if (chandelier.Find("Chain") != null)
+            Debug.Log(HangChandeliers());
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        }
+
+        public static string HangChandeliers()
+        {
+            List<Transform> chandeliers = HallChandeliers();
+            if (chandeliers.Count == 0)
+                return "Chandeliers: none found under " + HallFixturesPath;
+            Transform fixtures = chandeliers[0].parent;
+
+            // What the fall needed goes: the winches, the tethers, the floor shadows, the wreck's collider and carve,
+            // the snap and impact effects, and the fade that kept a low chandelier out of the camera's way.
+            int removed = 0;
+            foreach (Transform t in fixtures.Cast<Transform>().ToList())
+            {
+                if (t.name.StartsWith("Winch_") || t.name.StartsWith("Shadow_"))
+                {
+                    Object.DestroyImmediate(t.gameObject);
+                    removed++;
+                }
+            }
+
+            foreach (Transform c in chandeliers)
+                removed += StripFall(c);
+
+            while (chandeliers.Count < ChandelierRows.Length)
+            {
+                Transform copy = Object.Instantiate(chandeliers[chandeliers.Count - 1].gameObject, fixtures).transform;
+                copy.name = "Chandelier";
+                chandeliers.Add(copy);
+            }
+
+            for (int i = ChandelierRows.Length; i < chandeliers.Count; i++)
+                Object.DestroyImmediate(chandeliers[i].gameObject);
+
+            for (int i = 0; i < ChandelierRows.Length; i++)
+            {
+                Transform c = chandeliers[i];
+                c.SetPositionAndRotation(new Vector3(54f, ChandelierHang, ChandelierRows[i]), Quaternion.identity);
+                TrimChain(c, VaultCrown - ChandelierHang);
+
+                Light floor = c.Find("Light")?.GetComponent<Light>();
+                Light boss = c.Find("BossLight")?.GetComponent<Light>();
+                if (floor == null)
+                    continue;
+                floor.intensity = ChandelierIntensity;
+                floor.range = ChandelierRange;
+                EditorUtility.SetDirty(floor);
+                if (boss != null)
+                {
+                    boss.transform.SetPositionAndRotation(floor.transform.position, floor.transform.rotation);
+                    boss.intensity = ChandelierIntensity * ChandelierBossRatio;
+                    boss.range = ChandelierRange;
+                    EditorUtility.SetDirty(boss);
+                }
+            }
+
+            return "Chandeliers: " + ChandelierRows.Length + " hung at " + ChandelierHang + " m, z " + string.Join(", ", ChandelierRows) + "; " + removed + " pieces of the fall removed";
+        }
+
+        private static int StripFall(Transform c)
+        {
+            int removed = GameObjectUtility.RemoveMonoBehavioursWithMissingScript(c.gameObject);
+            foreach (string child in new[] { "Tether", "SnapSparks", "ImpactDust" })
+            {
+                Transform t = c.Find(child);
+                if (t != null)
+                {
+                    Object.DestroyImmediate(t.gameObject);
+                    removed++;
+                }
+            }
+
+            foreach (Component component in c.GetComponents<Component>())
+            {
+                if (component is OcclusionFade || component is Collider || component is NavMeshObstacle)
+                {
+                    Object.DestroyImmediate(component);
+                    removed++;
+                }
+            }
+
+            return removed;
+        }
+
+        // The vault chain, cut at the crown: the links more than `length` above the hoop would run through the vault.
+        private static void TrimChain(Transform chandelier, float length)
+        {
+            Transform chain = chandelier.Find("Chain");
+            var filter = chain != null ? chain.GetComponent<MeshFilter>() : null;
+            if (filter == null || filter.sharedMesh == null)
                 return;
-            Transform body = chandelier.Find("Body");
-            var filter = body.GetComponent<MeshFilter>();
             Mesh mesh = filter.sharedMesh;
             Vector3[] v = mesh.vertices;
-            Vector3[] n = mesh.normals;
-            Vector2[] uv = mesh.uv;
-            int subs = mesh.subMeshCount;
-            var low = new List<int>[subs];
-            var high = new List<int>[subs];
-            for (int s = 0; s < subs; s++)
+            bool changed = false;
+            var subs = new List<int>[mesh.subMeshCount];
+            for (int s = 0; s < subs.Length; s++)
             {
-                low[s] = new List<int>();
-                high[s] = new List<int>();
+                subs[s] = new List<int>();
                 int[] tris = mesh.GetTriangles(s);
                 for (int i = 0; i < tris.Length; i += 3)
                 {
-                    float y = (v[tris[i]].y + v[tris[i + 1]].y + v[tris[i + 2]].y) / 3f;
-                    (y > 2.55f ? high[s] : low[s]).AddRange(new[] { tris[i], tris[i + 1], tris[i + 2] });
+                    if (Mathf.Max(v[tris[i]].y, v[tris[i + 1]].y, v[tris[i + 2]].y) > length + 0.1f)
+                    {
+                        changed = true;
+                        continue;
+                    }
+
+                    subs[s].Add(tris[i]);
+                    subs[s].Add(tris[i + 1]);
+                    subs[s].Add(tris[i + 2]);
                 }
             }
 
-            Mesh bodyMesh = Build(mesh.name, low, v, n, uv, Matrix4x4.identity);
-            string path = AssetDatabase.GetAssetPath(mesh);
-            mesh.Clear();
-            EditorUtility.CopySerialized(bodyMesh, mesh);
-            Object.DestroyImmediate(bodyMesh);
-            Mesh chainMesh = SaveMesh(Build("L5_Hall_ChandelierChain_" + index, high, v, n, uv, Matrix4x4.identity), HallMeshes + "L5_Hall_ChandelierChain_" + index + ".asset");
-
-            var chain = new GameObject("Chain");
-            chain.transform.SetParent(chandelier, false);
-            chain.AddComponent<MeshFilter>().sharedMesh = chainMesh;
-            var r = chain.AddComponent<MeshRenderer>();
-            var bodyRenderer = body.GetComponent<MeshRenderer>();
-            r.sharedMaterials = bodyRenderer.sharedMaterials;
-            r.renderingLayerMask = bodyRenderer.renderingLayerMask;
-            r.shadowCastingMode = bodyRenderer.shadowCastingMode;
-
-            // The fade covers the chain too.
-            var fade = chandelier.GetComponent<OcclusionFade>();
-            if (fade != null)
-            {
-                var so = new SerializedObject(fade);
-                SerializedProperty renderers = so.FindProperty("renderers");
-                renderers.arraySize++;
-                renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = r;
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
-
+            if (changed == false)
+                return;
+            for (int s = 0; s < subs.Length; s++)
+                mesh.SetTriangles(subs[s], s, false);
+            mesh.RecalculateBounds();
             EditorUtility.SetDirty(mesh);
         }
 

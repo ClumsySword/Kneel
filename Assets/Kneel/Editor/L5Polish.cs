@@ -248,11 +248,11 @@ namespace Kneel.EditorTools
         }
 
         // Every light that lit Default now also lights the bosses, except the hall chandeliers' floor lights; each of
-        // those gets a boss light beside it (ChandelierDrop.bossLight) at bossLightRatio of its strength.
+        // those gets a boss light beside it at MasterSetup.ChandelierBossRatio of its strength.
         private static string LightTheBosses()
         {
-            var drops = Object.FindObjectsByType<ChandelierDrop>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            var floorLights = new HashSet<Light>(drops.Where(d => d.hangingLight != null).Select(d => d.hangingLight));
+            List<Transform> chandeliers = MasterSetup.HallChandeliers();
+            var floorLights = new HashSet<Light>(chandeliers.Select(c => c.Find("Light")?.GetComponent<Light>()).Where(l => l != null));
             int lit = 0;
             foreach (Light light in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
@@ -264,11 +264,8 @@ namespace Kneel.EditorTools
             }
 
             int made = 0;
-            foreach (ChandelierDrop drop in drops)
+            foreach (Light floor in floorLights)
             {
-                Light floor = drop.hangingLight;
-                if (floor == null)
-                    continue;
                 Transform existing = floor.transform.parent.Find("BossLight");
                 Light boss = existing != null ? existing.GetComponent<Light>() : null;
                 if (boss == null)
@@ -284,16 +281,14 @@ namespace Kneel.EditorTools
                 boss.type = floor.type;
                 boss.color = floor.color;
                 boss.range = floor.range;
-                boss.intensity = floor.intensity * drop.bossLightRatio;
+                boss.intensity = floor.intensity * MasterSetup.ChandelierBossRatio;
                 boss.shadows = LightShadows.None;
                 boss.renderingLayerMask = (int)HallActors.BossLayer;
                 boss.GetComponent<UniversalAdditionalLightData>().renderingLayers = HallActors.BossLayer;
-                drop.bossLight = boss;
                 EditorUtility.SetDirty(boss);
-                EditorUtility.SetDirty(drop);
             }
 
-            return lit + " lights reach the bosses, " + drops.Length + " chandelier boss lights (" + made + " new)";
+            return lit + " lights reach the bosses, " + floorLights.Count + " chandelier boss lights (" + made + " new)";
         }
     }
 }

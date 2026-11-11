@@ -6,9 +6,9 @@ using UnityEngine;
 // pacing rule, so the player has one impact to read at a time.
 // - Scripted hazards (panel F1 at P1's 50% beat now; the statues, the darkness and P2's panels in Stage 6) are held
 //   while their impact would land within 0.5 s of one of his blows.
-// - Levers the player sets off (winches, braziers) fire on time; instead he won't start a blow that would land
-//   within 0.5 s of one (MasterP1.HazardImpactNear).
-// - His Threads snap a chandelier's chain if they cross its winch; the statues bow at every Command.
+// - Levers the player sets off (the braziers) fire on time; instead he won't start a blow that would land within
+//   0.5 s of one (MasterP1.HazardImpactNear).
+// - The statues bow at every Command.
 // - Phase 2 (§6, §8): at his 50% roar the four statues topple inward and the ash storm starts; a Gather thickens the
 //   storm and pulls threads into him, and if it completes the hall goes dark; a darkness wave also comes every
 //   35-45 s (never during a Great Command); the panel under a Hammerfall gives way 3 s after it; a second Cleave on
@@ -21,7 +21,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
     public DarknessWave darkness;
     public AshStorm ashStorm;
     public float spacing = 0.5f;
-    public float threadCutReach = 0.8f;
 
     private struct Pending
     {
@@ -51,8 +50,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
                     statue.Bow(tell);
             };
         }
-
-        ThreadLine.OnSwept += OnThreadSwept;
 
         AshColossus colossus = boss != null ? boss.colossus : null;
         if (colossus != null)
@@ -115,7 +112,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     private void OnDestroy()
     {
-        ThreadLine.OnSwept -= OnThreadSwept;
         if (MasterP1.HazardImpactNear == (Func<float, bool>)ImpactNear)
             MasterP1.HazardImpactNear = null;
     }
@@ -183,8 +179,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     private IEnumerable<float> Impacts()
     {
-        foreach (ChandelierDrop c in ChandelierDrop.All)
-            yield return c.ImpactAt;
         foreach (BrazierTopple b in BrazierTopple.All)
             yield return b.ImpactAt;
         foreach (HallStatue s in HallStatue.All)
@@ -193,18 +187,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
         {
             for (int i = 0; i < floor.panels.Length; i++)
                 yield return floor.ImpactAt(i);
-        }
-    }
-
-    // His Threads: a line crossing a winch snaps its chain.
-    private void OnThreadSwept(Vector3 from, Vector3 to, float width)
-    {
-        foreach (ChandelierDrop chandelier in ChandelierDrop.All)
-        {
-            if (chandelier.Current != ChandelierDrop.State.Hanging || chandelier.winch == null)
-                continue;
-            if (HallActors.SegmentDistance(chandelier.winch.transform.position, from, to) <= width * 0.5f + threadCutReach)
-                chandelier.Trigger();
         }
     }
 

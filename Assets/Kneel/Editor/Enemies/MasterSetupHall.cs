@@ -11,9 +11,9 @@ namespace Kneel.EditorTools
     {
         private const string HallFixturesPath = "L5_Root/Art/Hall/Fixtures";
 
-        // The four hall chandeliers come out of the hall's baked fixtures mesh into their own bodies, so each can fade
-        // when it hangs between the camera and the fight (owner, 2026-11-10) and fall when its winch is struck (§4,
-        // Stage 5). The baked mesh keeps the candelabras. Run once; it skips chandeliers already split.
+        // The hall chandeliers come out of the hall's baked fixtures mesh into their own bodies, so each can be moved on
+        // its own (MasterSetup.HangChandeliers hangs them high and evenly apart). The baked mesh keeps the candelabras.
+        // Run once; it skips chandeliers already split.
         [MenuItem("Kneel/Enemies/The Master/Split Hall Chandeliers")]
         public static void SplitHallChandeliers()
         {
@@ -72,7 +72,6 @@ namespace Kneel.EditorTools
 
             string folder = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(mesh)).Replace('\\', '/');
             Material[] materials = renderer.sharedMaterials;
-            Material[] faded = materials.Select(FadedCopy).ToArray();
 
             for (int c = 0; c < chandeliers.Count; c++)
             {
@@ -91,27 +90,6 @@ namespace Kneel.EditorTools
                 bodyRenderer.renderingLayerMask = renderer.renderingLayerMask;
                 bodyRenderer.shadowCastingMode = renderer.shadowCastingMode;
                 bodyRenderer.receiveShadows = renderer.receiveShadows;
-
-                // The flames and the halo fade with it (they're transparent already, so they are their own faded copy).
-                var all = new List<Renderer> { bodyRenderer };
-                var sources = new List<Material>(materials);
-                var see = new List<Material>(faded);
-                foreach (ParticleSystemRenderer particles in chandelier.GetComponentsInChildren<ParticleSystemRenderer>(true))
-                {
-                    all.Add(particles);
-                    if (particles.sharedMaterial != null && sources.Contains(particles.sharedMaterial) == false)
-                    {
-                        sources.Add(particles.sharedMaterial);
-                        see.Add(particles.sharedMaterial);
-                    }
-                }
-
-                var fade = Ensure<OcclusionFade>(chandelier.gameObject);
-                fade.Configure(all.ToArray(), sources.ToArray(), see.ToArray());
-                var so = new SerializedObject(fade);
-                so.FindProperty("fadedAlpha").floatValue = 0.06f;
-                so.ApplyModifiedPropertiesWithoutUndo();
-                Ensure<FightClearance>(chandelier.gameObject);
             }
 
             Mesh rest = Build(mesh.name, keep, vertices, normals, uvs, Matrix4x4.identity);
@@ -175,42 +153,6 @@ namespace Kneel.EditorTools
             EditorUtility.CopySerialized(mesh, existing);
             Object.DestroyImmediate(mesh);
             return existing;
-        }
-
-        // A see-through copy of a URP Lit material beside it (as L2Build.FadedMaterial makes them): it still writes
-        // depth, so a faded chandelier doesn't show its own far side through itself.
-        private static Material FadedCopy(Material source)
-        {
-            string folder = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(source)).Replace('\\', '/') + "/Faded";
-            EnsureFolder(folder);
-            string path = folder + "/" + source.name + "_Faded.mat";
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mat == null)
-            {
-                mat = new Material(source);
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            else
-            {
-                mat.shader = source.shader;
-                mat.CopyPropertiesFromMaterial(source);
-            }
-
-            mat.SetFloat("_Surface", 1f);
-            mat.SetFloat("_Blend", 0f);
-            mat.SetOverrideTag("RenderType", "Transparent");
-            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            mat.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
-            mat.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            mat.SetFloat("_ZWrite", 1f);
-            mat.SetFloat("_AlphaClip", 0f);
-            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            mat.DisableKeyword("_ALPHATEST_ON");
-            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-            EditorUtility.SetDirty(mat);
-            return mat;
         }
     }
 }

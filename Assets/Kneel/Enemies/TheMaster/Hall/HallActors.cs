@@ -30,8 +30,8 @@ public static class HallActors
     }
 
     // The bosses render on their own rendering layer ("Bosses", with Characters), so the hall's chandeliers, hung
-    // 12 m up and bright enough to light the floor, don't burn the head and shoulders of a 6 m body: each chandelier
-    // has a weaker boss light beside it (ChandelierDrop.bossLight). Every other light that should reach them (the
+    // 22 m up and bright enough to light the floor, don't burn the head and shoulders of a 6 m body: each chandelier
+    // has a weaker boss light beside it (MasterSetup.ChandelierBossRatio). Every other light that should reach them (the
     // torches, the fire, his own tells) has this layer added; lights made in code start on Default only.
     public const string BossLayerName = "Bosses";
 
@@ -58,7 +58,7 @@ public static class HallActors
         }
     }
 
-    // A blow from the hall (a falling chandelier, a statue, the floor going): no block, no parry; kneel > 0 forces a
+    // A blow from the hall (a statue, the floor going): no block, no parry; kneel > 0 forces a
     // kneel. A roll's i-frames still dodge it, as they would a blow.
     public static void HitPlayer(float damage, Vector3 from, GameObject source, float kneel = 0f)
     {

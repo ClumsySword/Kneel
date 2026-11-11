@@ -49,9 +49,6 @@ public class ThreadLine : MonoBehaviour
     // Raised when a thread reaches its end, with its start and end (the floor fire hooks in here).
     public static event System.Action<Vector3, Vector3, float> OnLineDrawn;
 
-    // Each frame's stretch of a crack's head (the hall's winches listen: a thread crossing one snaps its chain).
-    public static event System.Action<Vector3, Vector3, float> OnSwept;
-
     private const float FireLag = 3f;
     private const float PointSpacing = 0.55f;
 
@@ -180,7 +177,6 @@ public class ThreadLine : MonoBehaviour
             Draw(crack, head);
             if (crack.depth == 0)
             {
-                OnSwept?.Invoke(from, head, crack.width);
                 Touch(from, head, crack.width);
             }
 

@@ -9,8 +9,7 @@ using UnityEngine.AI;
 //  0.5  he turns the sword on himself (MasterStabPose): an ember burst and a jolt at the contact.
 //  1.5  the threads go taut: ~60 ember lines from the dead outside into his back (ThreadPull), on the summon clip.
 //  2.5  the first darkness wave (the hall's DarknessWave), until 8.5.
-//  3.0  every chandelier still up falls (no damage; a player under one is shoved 1 R clear), every brazier goes over,
-//       the banners catch fire (visual only).
+//  3.0  every brazier still standing goes over, the banners catch fire (visual only).
 //  4.0  an ash vortex rises round him, opaque 4.5-5.5; the P1 body is gone at 5.0.
 //  5.5  the Colossus rises in it (Mutant Flexing Muscles) at the nearest clear NavMesh point.
 //  7.0  the camera pulls back to the fight's framing.
@@ -227,12 +226,6 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
     // 3.0 s: the hall comes down around him.
     private void DropTheHall(Vector3 him, MasterSettings s)
     {
-        foreach (ChandelierDrop chandelier in ChandelierDrop.All)
-        {
-            if (chandelier.Current == ChandelierDrop.State.Hanging)
-                chandelier.Trigger(s.chandelierShove);
-        }
-
         foreach (BrazierTopple brazier in BrazierTopple.All)
         {
             if (brazier.Current == BrazierTopple.State.Standing)

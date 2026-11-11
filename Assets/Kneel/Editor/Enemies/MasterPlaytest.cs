@@ -76,6 +76,13 @@ namespace Kneel.EditorTools
         private static float homeMaxDistance;
         private static int failures;
         private static float worstFrame;
+
+        // The hall's chandeliers hang above the camera (owner, 2026-11-11: "they block player view"): every frame of the
+        // run that the game camera frames the fight (no scripted shot or cutscene pose), none may be in its view.
+        private static Renderer[] chandelierRenderers;
+        private static int framesWatched;
+        private static int chandelierFrames;
+        private static float lowestClearance;
         private static Vector3 playerMove;
         private static Action<float> damageListener;
         private static float lastParry;
@@ -112,6 +119,10 @@ namespace Kneel.EditorTools
             Errors.Clear();
             failures = 0;
             worstFrame = 0f;
+            framesWatched = 0;
+            chandelierFrames = 0;
+            lowestClearance = float.MaxValue;
+            chandelierRenderers = MasterSetup.HallChandeliers().SelectMany(c => c.GetComponentsInChildren<Renderer>()).ToArray();
             halfBeats = 0;
             defeats = 0;
             saveBackup = null;
@@ -136,6 +147,7 @@ namespace Kneel.EditorTools
             }
 
             worstFrame = Mathf.Max(worstFrame, Time.unscaledDeltaTime);
+            WatchChandeliers();
             DriveInput();
             if (framedName != null && Now >= framedUntil)
             {
@@ -224,6 +236,8 @@ namespace Kneel.EditorTools
 
             RestoreSave();
 
+            Check("no chandelier comes into the camera's view in play", framesWatched > 0 && chandelierFrames == 0,
+                chandelierFrames + " of " + framesWatched + " frames; the camera stays " + lowestClearance.ToString("F1") + " m or more under the lowest chandelier");
             Note("worst frame " + worstFrame.ToString("F3") + " s");
             Note("console errors: " + Errors.Count);
             foreach (string error in Errors.Distinct().Take(10))
@@ -232,6 +246,27 @@ namespace Kneel.EditorTools
             string summary = failures == 0 && Errors.Count == 0 ? "PASS" : "FAIL (" + failures + " checks, " + Errors.Count + " errors)";
             Lines.Insert(0, summary);
             File.WriteAllLines(ResultPath, Lines);
+        }
+
+        private static void WatchChandeliers()
+        {
+            Camera cam = Camera.main;
+            PlayerCamera follow = cam != null ? cam.GetComponent<PlayerCamera>() : null;
+            if (follow == null || follow.HasOverride || framedName != null || releaseFrameAt > 0f || chandelierRenderers == null)
+                return;
+            framesWatched++;
+            Plane[] planes = GeometryUtility.CalculateFrustumPlanes(cam);
+            bool seen = false;
+            foreach (Renderer r in chandelierRenderers)
+            {
+                if (r == null || r.enabled == false)
+                    continue;
+                lowestClearance = Mathf.Min(lowestClearance, r.bounds.min.y - cam.transform.position.y);
+                seen |= GeometryUtility.TestPlanesAABB(planes, r.bounds);
+            }
+
+            if (seen)
+                chandelierFrames++;
         }
 
         private static bool Wants(string group) => string.IsNullOrEmpty(Only) || Only.Split(',').Contains(group);
@@ -289,9 +324,6 @@ namespace Kneel.EditorTools
                 ("armour", Armour),
                 ("hazard", Hazard),
                 ("hall", HallLook),
-                ("chandelier", ChandelierLever),
-                ("chandelier", ChandelierOnPlayer),
-                ("chandelier", ThreadsCutChain),
                 ("brazier", BrazierLever),
                 ("fire", FireRules),
                 ("statues", Statues),
@@ -1056,10 +1088,10 @@ namespace Kneel.EditorTools
             yield return (Func<bool>)(() => State != master.staggerState);
         }
 
-        // A hazard (chandelier, brazier) breaks a wind-up. The hazards are Stage 5; this drives their call.
+        // A hazard (a brazier, a statue, the floor) breaks a wind-up. The hazards are Stage 5; this drives their call.
         private static IEnumerator Hazard()
         {
-            Note("--- a hazard in his wind-up (the call the chandeliers and braziers make)");
+            Note("--- a hazard in his wind-up (the call the hall's hazards make)");
             yield return ResetFight(Centre);
             yield return Start(MasterP1.MoveKind.Decree, 3.5f);
             yield return 0.3f;
@@ -1067,7 +1099,7 @@ namespace Kneel.EditorTools
             int before = blows.Count;
             master.HazardHit(60f, 2.5f);
             float hit = Time.time;
-            Check("a chandelier (60, 2.5 s) breaks the Decree", State == master.staggerState && Mathf.Approximately(health - master.health.Current, 60f), State.GetType().Name + ", " + (health - master.health.Current) + " damage");
+            Check("a heavy hazard (60, 2.5 s) breaks the Decree", State == master.staggerState && Mathf.Approximately(health - master.health.Current, 60f), State.GetType().Name + ", " + (health - master.health.Current) + " damage");
             yield return (Func<bool>)(() => State != master.staggerState);
             Check("2.5 s stagger, and the Decree never lands", Mathf.Abs(Time.time - hit - 2.5f) < 0.2f && blows.Count == before, (Time.time - hit).ToString("F2") + " s, " + (blows.Count - before) + " hits");
 
@@ -1100,70 +1132,6 @@ namespace Kneel.EditorTools
             yield return 1.5f;
             Framed("Hall_West", new Vector3(39f, 10f, 447f), 9f, 6f, -60f);
             yield return FarCamera(false);
-        }
-
-        // The player strikes a winch: the chain snaps and the chandelier lands on him 1.0 s later.
-        private static IEnumerator ChandelierLever()
-        {
-            Note("--- a chandelier, from its winch");
-            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 450f)).First();
-            Vector3 under = new Vector3(chandelier.transform.position.x, 9f, chandelier.transform.position.z);
-            yield return ResetFight(under);
-            master.circleState.Hold(9999f);
-            Vector3 winch = chandelier.winch.transform.position;
-            Vector3 side = winch.x < 54f ? Vector3.left : Vector3.right;
-            PlaceAbsolute(winch - side * 1.7f, side);
-            aimAt = winch;
-            yield return 0.4f;
-            float health = master.health.Current;
-            Press("OnStrikePressed");
-            yield return (Func<bool>)(() => chandelier.Current != ChandelierDrop.State.Hanging);
-            float struck = Time.time;
-            Check("a blow on the winch snaps the chain", chandelier.Current == ChandelierDrop.State.Falling, chandelier.Current.ToString());
-            yield return 0.5f;
-            Framed("Chandelier_Falling", under + Vector3.up * 5f, 14f, 6f);
-            yield return (Func<bool>)(() => chandelier.Current == ChandelierDrop.State.Fallen);
-            Check("it lands 1.0 s after the blow", Mathf.Abs(Time.time - struck - 1f) < 0.08f, (Time.time - struck).ToString("F2") + " s");
-            yield return 0.05f;
-            Check("under it, he takes 60 (+ 25 if he stands in the burning wreck) and a 2.5 s stagger", (Mathf.Abs(health - master.health.Current - 60f) < 1f || Mathf.Abs(health - master.health.Current - 85f) < 1f) && State == master.staggerState, (health - master.health.Current).ToString("F0") + " damage, " + State.GetType().Name + ", " + HallActors.FlatDistance(master.transform.position, under).ToString("F1") + " m from its centre");
-            float staggered = Time.time;
-            yield return 0.4f;
-            Framed("Chandelier_Fallen", under, 10f, 7f);
-            Check("the wreck burns and is cover", FloorFire.IsBurning(under) && chandelier.wreck.enabled && BossTell.LineOfSight(under + new Vector3(0f, 0.6f, -6f), under + new Vector3(0f, 0.6f, 6f), null, null) == false, "");
-            yield return (Func<bool>)(() => State != master.staggerState);
-            Check("the stagger lasts 2.5 s", Mathf.Abs(Time.time - staggered - 2.45f) < 0.25f, (Time.time - staggered + 0.05f).ToString("F2") + " s");
-            yield return 6.2f;
-            Check("the fire goes out after 6 s, the wreck stays", FloorFire.IsBurning(under) == false && chandelier.wreck.enabled, "");
-        }
-
-        private static IEnumerator ChandelierOnPlayer()
-        {
-            Note("--- a chandelier on the player");
-            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 436f)).First();
-            Vector3 under = new Vector3(chandelier.transform.position.x, 9f, chandelier.transform.position.z);
-            yield return ResetFight(Centre + Vector3.forward * 8f);
-            PlaceAbsolute(under + Vector3.right * 1f, Vector3.forward);
-            yield return 0.3f;
-            int before = blows.Count;
-            chandelier.Trigger();
-            yield return (Func<bool>)(() => chandelier.Current == ChandelierDrop.State.Fallen);
-            yield return 0.05f;
-            var hits = blows.Skip(before).ToList();
-            Check("it does 40 to the player under it", hits.Count >= 1 && Mathf.Abs(hits[0].amount - 40f) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))));
-        }
-
-        // A Threads line crossing a winch snaps its chain by accident.
-        private static IEnumerator ThreadsCutChain()
-        {
-            Note("--- his Threads across a winch");
-            yield return ResetFight(Centre);
-            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => c.winch.transform.position.x).First();
-            Vector3 winch = chandelier.winch.transform.position;
-            Vector3 from = winch + new Vector3(6f, 0f, -6f);
-            ThreadLine.Launch(master, from, winch - from, S.threadSpeed, 12f, S.threadWidth, 0f);
-            yield return (Func<bool>)(() => chandelier.Current != ChandelierDrop.State.Hanging);
-            Check("the thread snaps the chain", chandelier.Current != ChandelierDrop.State.Hanging, chandelier.Current.ToString());
-            yield return 1.2f;
         }
 
         // The player strikes a brazier from the aisle: it rocks 1 s, goes over into the arena and spills on him.
@@ -1319,19 +1287,21 @@ namespace Kneel.EditorTools
         private static IEnumerator Pacing()
         {
             Note("--- pacing (0.5 s between a hazard and his blow)");
-            ChandelierDrop chandelier = ChandelierDrop.All.OrderBy(c => Mathf.Abs(c.transform.position.z - 463f)).First();
+            BrazierTopple brazier = BrazierTopple.All.OrderBy(b => b.transform.position.z).Last();
             yield return ResetFight(Centre);
             PlaceFront(3.5f);
             yield return 0.1f;
             int held = master.HeldForHazards;
-            chandelier.Trigger();
-            float impact = chandelier.ImpactAt;
+            brazier.Trigger(brazier.transform.position + Vector3.left);
+            float impact = brazier.ImpactAt;
+            // Forced when it's 1.0 s from landing, inside a Decree's tell.
+            yield return (Func<bool>)(() => impact - Time.time <= 1f);
             MasterP1.ForceNext = MasterP1.MoveKind.Decree;
             master.circleState.Hold(0f);
             int before = blows.Count;
             yield return (Func<bool>)(() => blows.Count > before);
             float landed = blows[blows.Count - 1].time;
-            Check("he holds a Decree that would land on a falling chandelier", master.HeldForHazards > held && Mathf.Abs(landed - impact) >= 0.5f, (landed - impact).ToString("F2") + " s from its impact, held " + (master.HeldForHazards - held) + "x");
+            Check("he holds a Decree that would land on a falling brazier", master.HeldForHazards > held && Mathf.Abs(landed - impact) >= 0.5f, (landed - impact).ToString("F2") + " s from its impact, held " + (master.HeldForHazards - held) + "x");
             yield return WaitMoveEnds();
 
             yield return ResetFight(Centre);
@@ -1426,8 +1396,8 @@ namespace Kneel.EditorTools
                 FloorFire.Circle(new Vector3(42f + (i % 4) * 8f, 9f, 436f + (i / 4) * 10f), 1.6f, 20f);
             UnityEngine.Object.FindAnyObjectByType<DarknessWave>().Begin(4f);
             UnityEngine.Object.FindAnyObjectByType<AshStorm>().Begin();
-            foreach (ChandelierDrop c in ChandelierDrop.All)
-                c.Trigger();
+            foreach (BrazierTopple b in BrazierTopple.All)
+                b.Trigger(b.transform.position + Vector3.left);
             PlaceFront(6f);
             master.circleState.Hold(0f);
             var frames = new List<float>();
@@ -1504,7 +1474,7 @@ namespace Kneel.EditorTools
             aimAt = null;
             SetBlock(false);
 
-            // The hall back to its start (fires out, chandeliers up, the floor whole).
+            // The hall back to its start (fires out, braziers standing, the floor whole).
             UnityEngine.Object.FindAnyObjectByType<Kneel.Hazards.LevelReset>()?.ResetAll();
             yield return (Func<bool>)(() => combat.IsKneeling == false && combat.State != PlayerCombat.CombatState.Dodging);
 

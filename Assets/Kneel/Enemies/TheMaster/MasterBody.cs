@@ -2,7 +2,7 @@ using UnityEngine;
 
 // What the Master's two bodies share (The Master.md): Phase 1's duellist (MasterP1) and Phase 2's Ash Colossus
 // (AshColossus). Each is an Enemy with its own states; this holds the blows they deal, how far and where the player
-// is, the walk feed, and their place in the hall (its hazards hurt them, its chandeliers fade in front of them).
+// is, the walk feed, and their place in the hall (its hazards hurt them).
 public abstract class MasterBody : Enemy, IHallBoss
 {
     protected static readonly int MoveRateId = Animator.StringToHash("MoveRate");
@@ -42,17 +42,14 @@ public abstract class MasterBody : Enemy, IHallBoss
         bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
     }
 
-    // The hall's chandeliers fade while they hang between the camera and him (Kneel.FightClearance), and its hazards
-    // look for him (HallActors).
+    // The hall's hazards look for him (HallActors).
     protected virtual void OnEnable()
     {
-        Kneel.FightClearance.Subjects.Add(transform);
         HallActors.Bosses.Add(this);
     }
 
     protected virtual void OnDisable()
     {
-        Kneel.FightClearance.Subjects.Remove(transform);
         HallActors.Bosses.Remove(this);
     }
 

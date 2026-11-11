@@ -993,7 +993,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     }
 
     // Moves the player `distance` metres along `direction` over the shove time, as a blow's shove does (the Master's
-    // transition: a falling chandelier, the floor's ring).
+    // transition: the floor's ring).
     public void Push(Vector3 direction, float distance)
     {
         direction.y = 0f;

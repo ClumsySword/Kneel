@@ -27,7 +27,7 @@ public class MasterSettings : ScriptableObject
     public float parryKneelTime = 2f;
     // Poise break: a stagger in which hits crit (never during a wind-up: it waits for the blow to end).
     public float poiseStaggerTime = 1.5f;
-    // A hazard breaks his wind-up (braziers and chandeliers set their own stagger; this is the default).
+    // A hazard breaks his wind-up (the braziers set their own stagger; this is the default).
     public float hazardStaggerTime = 2f;
     // A hit outside any move makes him flinch, at most this often.
     public float flinchCooldown = 2.5f;
@@ -128,8 +128,6 @@ public class MasterSettings : ScriptableObject
     public float colossusMaxOffset = 4f;
     // The floor's ring at the mask split pushes a player inside it out to this distance (3 R).
     public float ringPush = 9f;
-    // A chandelier the transition drops shoves a player under it this far clear (1 R), with no damage.
-    public float chandelierShove = 3f;
     public int threadRibbons = 60;
 
     [Header("Phase 2: the Ash Colossus (§6)")]

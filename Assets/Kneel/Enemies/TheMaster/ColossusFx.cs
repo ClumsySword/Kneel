@@ -1,8 +1,8 @@
 using UnityEngine;
 
-// The Ash Colossus's one-shot effects, in the hall's own language (the L1 smoke, ember and glow sprites the chandeliers,
-// statues and holes use): a burst of ash and embers where a blow lands, the Hammerfall's low ring of dust, and the
-// Leap's ground shadow (the chandeliers' shadow decal). Each cleans itself up.
+// The Ash Colossus's one-shot effects, in the hall's own language (the L1 smoke, ember and glow sprites the statues and
+// holes use): a burst of ash and embers where a blow lands, the Hammerfall's low ring of dust, and the Leap's ground
+// shadow (the statues' shadow decal). Each cleans itself up.
 public static class ColossusFx
 {
     // Ash and embers thrown up over a circle of `radius` where a blow lands.

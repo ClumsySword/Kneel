@@ -419,7 +419,7 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         }
     }
 
-    // A hazard (brazier, chandelier, statue, panel) lands on him: it breaks any wind-up (§1 rule 3).
+    // A hazard (brazier, statue, panel) lands on him: it breaks any wind-up (§1 rule 3).
     public override void HazardHit(float damage, float stagger)
     {
         if (IsDead || Untouchable)

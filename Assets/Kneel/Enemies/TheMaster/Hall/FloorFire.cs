@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 // Fire on the hall floor (The Master.md §8, redesigned 2026-11-10): it lands where it's cast (his Threads and Thread
-// Lash lines, the Hammerfall circle, a brazier's spill, a fallen chandelier), burns 8 s and fades over the last
+// Lash lines, the Hammerfall circle, a brazier's spill), burns 8 s and fades over the last
 // 1.5 s as its tell, does 25 on contact and then 25/s to the player and to him alike, never spreads, and is cut out
 // of every NavMesh. Pooled: at most 12 patches and about 20% of the arena at once; the oldest goes out first.
 // A patch is a segment with a half-width (a circle is a zero-length one). Its look is the L4 oil slick's burning

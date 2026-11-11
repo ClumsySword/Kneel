@@ -175,7 +175,6 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
         Present = false;
         Untouchable = true;
         Engaged = false;
-        Kneel.FightClearance.Subjects.Remove(transform);
         HallActors.Bosses.Remove(this);
     }
 
@@ -183,8 +182,6 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
     {
         SetPresent(true);
         Present = true;
-        if (Kneel.FightClearance.Subjects.Contains(transform) == false)
-            Kneel.FightClearance.Subjects.Add(transform);
         if (HallActors.Bosses.Contains(this) == false)
             HallActors.Bosses.Add(this);
     }

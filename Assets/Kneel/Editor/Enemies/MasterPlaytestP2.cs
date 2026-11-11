@@ -126,11 +126,11 @@ namespace Kneel.EditorTools
             yield return ReviveP1();
             MasterBoss.ForceSkippableUnmaking = skip;
 
-            // The player 6 m from him, in the open; a chandelier over the player's head to see the harmless drop.
+            // The player 6 m from him, in the open.
             PlaceFront(6f);
             Vector3 knelt = master.transform.position;
             float playerHealthBefore = playerHealth.Current;
-            int chandeliersUp = ChandelierDrop.All.Count(c => c.Current == ChandelierDrop.State.Hanging);
+            int braziersUp = BrazierTopple.All.Count(b => b.Current == BrazierTopple.State.Standing);
             boss.EndPhase1();
             float began = Time.time;
             Unmaking unmaking = boss.unmaking;
@@ -143,7 +143,7 @@ namespace Kneel.EditorTools
                 Unmaking.ForceSkip = false;
                 MasterBoss.ForceSkippableUnmaking = false;
                 Check("the skip jumps to the mask split: input back after about 4 s", Mathf.Abs(Time.time - began - 4.1f) < 0.6f && unmaking.Skipped, (Time.time - began).ToString("F2") + " s, skipped " + unmaking.Skipped);
-                Check("the hazards are down all the same", ChandelierDrop.All.All(c => c.Current != ChandelierDrop.State.Hanging) && BrazierTopple.All.All(b => b.Current != BrazierTopple.State.Standing), "");
+                Check("the hazards are down all the same", BrazierTopple.All.All(b => b.Current != BrazierTopple.State.Standing), "");
                 Check("and the Colossus is up and fighting", colossus.Present && colossus.Engaged, "");
                 yield break;
             }
@@ -162,7 +162,7 @@ namespace Kneel.EditorTools
             Check("nothing lands on the player", playerHealth.Current >= playerHealthBefore - 0.01f && combat.IsKneeling == false, (playerHealthBefore - playerHealth.Current).ToString("F1") + " damage");
             var darkness = UnityEngine.Object.FindAnyObjectByType<DarknessWave>();
             Check("the darkness wave (2.5 s)", darkness != null && darkness.Active, "");
-            Check("the chandeliers and braziers come down (3.0 s)", ChandelierDrop.All.All(c => c.Current != ChandelierDrop.State.Hanging) && BrazierTopple.All.All(b => b.Current != BrazierTopple.State.Standing), chandeliersUp + " chandeliers were up");
+            Check("the braziers go over (3.0 s)", BrazierTopple.All.All(b => b.Current != BrazierTopple.State.Standing), braziersUp + " braziers were standing");
             yield return (Func<bool>)(() => unmaking.Elapsed >= 4.8f);
             Shot("Unmaking_3vortex");
             yield return (Func<bool>)(() => unmaking.Elapsed >= 5.2f);
@@ -172,14 +172,14 @@ namespace Kneel.EditorTools
             var filter = new UnityEngine.AI.NavMeshQueryFilter { agentTypeID = colossus.agent.agentTypeID, areaMask = UnityEngine.AI.NavMesh.AllAreas };
             UnityEngine.AI.NavMesh.FindClosestEdge(unmaking.RisePoint, out UnityEngine.AI.NavMeshHit edge, filter);
             float clear = edge.distance + colossus.agent.radius;
-            // Where nothing within reach is that clear (the fallen chandeliers lie about), he takes the clearest point.
+            // Where nothing within reach is that clear (the fallen braziers and statues lie about), he takes the clearest point.
             Check("the Colossus rises within " + S2.colossusMaxOffset + " m, " + S2.colossusClearance + " m clear of anything (or the clearest spot there is)", colossus.Present && offset <= S2.colossusMaxOffset + 0.1f && (clear >= S2.colossusClearance - 0.05f || Unmaking.LastRiseFellBack), offset.ToString("F1") + " m from the kneel, " + clear.ToString("F1") + " m clear (his NavMesh edge + his radius)" + (Unmaking.LastRiseFellBack ? "; nothing within reach was that clear, so the clearest spot" : ""));
             Check("untouchable as he rises", colossus.Untouchable, "");
 
             // The ring at the mask split pushes a player inside it out to 3 R.
             yield return (Func<bool>)(() => unmaking.Elapsed >= 7.1f);
             Shot("Unmaking_4rise");
-            // 4 m from him on a side with nothing in the way of the push (the fallen chandeliers lie about).
+            // 4 m from him on a side with nothing in the way of the push (the fallen braziers lie about).
             Vector3 toward = Flat(playerRoot.position - colossus.transform.position).normalized;
             // Everything that stops the player (the holes' lip walls are on Ignore Raycast), not him or Kael.
             int blocks = ~LayerMask.GetMask("Player", "Enemy");
