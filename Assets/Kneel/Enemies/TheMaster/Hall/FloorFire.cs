@@ -122,8 +122,16 @@ public class FloorFire : MonoBehaviour, Kneel.Hazards.ILevelResettable
         }
     }
 
+    // The finisher (§7): the fire still burns and blocks paths, but hurts no one.
+    public static bool Harmless;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetHarmless() => Harmless = false;
+
     private void Burn(FirePatch patch, float now)
     {
+        if (Harmless)
+            return;
         PlayerCombat player = HallActors.Player;
         if (player != null && patch.Contains(player.transform.position, 0.3f))
         {

@@ -267812,6 +267812,8 @@ GameObject:
   - component: {fileID: 254803595}
   - component: {fileID: 254803594}
   - component: {fileID: 254803596}
+  - component: {fileID: 254803598}
+  - component: {fileID: 254803597}
   m_Layer: 0
   m_Name: TheMaster
   m_TagString: Untagged
@@ -267867,6 +267869,10 @@ MonoBehaviour:
   master: {fileID: 2097049715}
   colossus: {fileID: 942065626}
   unmaking: {fileID: 254803596}
+  finisher: {fileID: 254803598}
+  music: {fileID: 254803597}
+  framingP1: 13
+  framingP2: 17
   seal: {fileID: 2077856843}
   barPrefab: {fileID: 5770173679000271202, guid: 9ac0b87b14e79f44cafeca0481a10008, type: 3}
   throneSeat: {fileID: 1957369678}
@@ -267949,6 +267955,50 @@ MonoBehaviour:
   smokeMaterial: {fileID: 2100000, guid: da4017ca5a103a64fa0361ce4471d272, type: 2}
   emberMaterial: {fileID: 2100000, guid: 0a45aef16a136b04eadf74c71edddffe, type: 2}
   crackMaterial: {fileID: 2100000, guid: 252f7caa77e1d754aa49b5b595b1462a, type: 2}
+  ringCrackMaterial: {fileID: 2100000, guid: 98b4c315ea6f16d4081437343a89b3a2, type: 2}
+  ringCrackMap: {fileID: 2800000, guid: 39e092cc158431944b0f78e6b08fb3e0, type: 3}
+--- !u!114 &254803597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254803590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2716b2ae1705a8346a525ce22aeff990, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MusicDirector
+  phase1: {fileID: 0}
+  transitionNote: {fileID: 0}
+  phase2: {fileID: 0}
+  finisherNote: {fileID: 0}
+  volume: 0.8
+  crossfade: 1.5
+--- !u!114 &254803598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254803590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6db1aed4265377d4ebc6e674653d8408, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MasterFinisher
+  palmTime: 3.5
+  lowerTime: 0.8
+  reach: 4.5
+  kneelTime: 2
+  stillness: 4
+  fadeTime: 2.5
+  endCardTime: 3.5
+  line: Go on.
+  lineVoice: {fileID: 0}
+  font: {fileID: 11400000, guid: 9505442ca93c5794d91b8ca3a5f14708, type: 2}
+  ashMaterial: {fileID: 2100000, guid: da4017ca5a103a64fa0361ce4471d272, type: 2}
+  emberMaterial: {fileID: 2100000, guid: 0a45aef16a136b04eadf74c71edddffe, type: 2}
 --- !u!1 &254997557
 GameObject:
   m_ObjectHideFlags: 0
@@ -1758954,6 +1759004,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCamera
   target: {fileID: 0}
   settings: {fileID: 11400000, guid: da21127ee16560d6e87c50aab81605fc, type: 2}
+  framingBias: 0.35
+  framingSubjectHeight: 5
+  framingMinPlayerPixels: 60
+  framingPlayerRoom: 3
+  framingAcross: 0.5
 --- !u!81 &1519833462
 AudioListener:
   m_ObjectHideFlags: 0
@@ -2119101,6 +2119156,7 @@ GameObject:
   - component: {fileID: 1848247989}
   - component: {fileID: 1848247991}
   - component: {fileID: 1848247990}
+  - component: {fileID: 1848247992}
   m_Layer: 0
   m_Name: ShrineC_LastShrine
   m_TagString: Untagged
@@ -2119180,6 +2119236,24 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1848247988}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1848247992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1848247988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7967ccb48d3bf84d8fbeb51fdf7b095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineRest
+  flag: L5.ShrineC
+  reach: 2.6
+  kneelTime: 2.2
+  respawnOut: 2.2
+  respawnFacing: {x: 0, y: 0, z: 1}
+  labelFormat: '{0} to Rest'
 --- !u!1 &1848248674
 GameObject:
   m_ObjectHideFlags: 0

@@ -41,6 +41,8 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
     private readonly List<Lamp> lamps = new List<Lamp>();
     private readonly List<Flame> flames = new List<Flame>();
+    private readonly Dictionary<Light, int> lampIndex = new Dictionary<Light, int>();
+    private readonly Dictionary<Light, float> levels = new Dictionary<Light, float>();
     private float started = -1f;
     private float hold;
     private float ambientIntensity;
@@ -53,6 +55,7 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
     {
         gathered = true;
         lamps.Clear();
+        lampIndex.Clear();
         flames.Clear();
         foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
         {
@@ -66,6 +69,7 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
                 level = light.name.Contains("FixtureGlow") ? fixtureLevel : 0f,
                 delay = Delay(light.transform.position),
             });
+            lampIndex[light] = lamps.Count - 1;
         }
 
         foreach (ParticleSystemRenderer r in FindObjectsByType<ParticleSystemRenderer>(FindObjectsSortMode.None))
@@ -91,7 +95,9 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
     {
         return t.GetComponentInParent<FloorFire>() != null || t.GetComponentInParent<MasterP1>() != null
             || t.GetComponentInParent<PlayerCombat>() != null || t.GetComponentInParent<BossTell>() != null
-            || t.GetComponentInParent<HallSeal>() != null;
+            || t.GetComponentInParent<HallSeal>() != null
+            // Braziers are fire (fire stays lit in the dark), and they put their own light out when they go over.
+            || t.GetComponentInParent<BrazierTopple>() != null;
     }
 
     private float Delay(Vector3 p) => Mathf.Clamp01((p.z - doors.z) / Mathf.Max(hall.yMax - doors.z, 1f)) * waveTime;
@@ -117,6 +123,7 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
             if (lamp.light == null)
                 continue;
             float level = Mathf.Lerp(1f, lamp.level, Amount(t, lamp.delay, back));
+            levels[lamp.light] = level;
 
             // A flickering torch sets its own intensity every frame: it's dimmed through its flicker instead.
             if (lamp.flicker != null && lamp.flicker.enabled)
@@ -152,9 +159,26 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
         return Mathf.SmoothStep(0f, 1f, down) * (1f - Mathf.SmoothStep(0f, 1f, up));
     }
 
+    // A script that animates one of the hall's lights itself (a falling chandelier's) tells the wave the light's new
+    // undimmed intensity, so the wave dims and restores that one and not the one it found when it gathered the hall:
+    // a chandelier that fell in the dark came back at its 12 m hanging brightness, on the floor. Returns the light's
+    // current dim level (1 when the hall is lit), for the caller to apply.
+    public float Rebase(Light light, float intensity)
+    {
+        if (light != null && lampIndex.TryGetValue(light, out int i) && i < lamps.Count && lamps[i].light == light)
+        {
+            Lamp lamp = lamps[i];
+            lamp.intensity = intensity;
+            lamps[i] = lamp;
+        }
+
+        return light != null && levels.TryGetValue(light, out float level) ? level : 1f;
+    }
+
     private void Restore()
     {
         started = -1f;
+        levels.Clear();
         Darkness = 0f;
         foreach (Lamp lamp in lamps)
         {

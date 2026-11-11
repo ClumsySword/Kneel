@@ -33,6 +33,8 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
     public float toppleDown = 1.5f;
     public float flexLength = 4.67f;
     public float gatherLength = 3.25f;
+    // The clip second the last palm is fully raised (the finisher plays up to it, then back).
+    public float lastCommandLength = 1.6f;
     public float recoilLength = 1.37f;
 
     // The mask (the Great Command's light and the transition's split).
@@ -429,9 +431,26 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
 
     // --- Taking hits ---
 
+    // The finisher (§7): once his palm comes down, the next blow that connects ends him (any blow, ordinary hit-stop).
+    public bool FinisherOpen { get; set; }
+
+    public event System.Action OnFinisherBlow;
+
     public void TakeHit(DamageInfo info)
     {
-        if (IsDead || Untouchable)
+        if (IsDead)
+        {
+            if (FinisherOpen && info.isEnvironmental == false)
+            {
+                FinisherOpen = false;
+                Flash();
+                OnFinisherBlow?.Invoke();
+            }
+
+            return;
+        }
+
+        if (Untouchable)
             return;
 
         ColossusMoveState move = stateMachine.currentState as ColossusMoveState;

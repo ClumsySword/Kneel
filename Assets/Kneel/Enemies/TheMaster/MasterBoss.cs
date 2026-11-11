@@ -22,6 +22,12 @@ public class MasterBoss : MonoBehaviour
     public MasterP1 master;
     public AshColossus colossus;
     public Unmaking unmaking;
+    public MasterFinisher finisher;
+    public MusicDirector music;
+
+    [Header("Boss framing (§10): how far out the camera may go to keep him in frame")]
+    public float framingP1 = 13f;
+    public float framingP2 = 17f;
     public HallSeal seal;
     // The boss bar's prefab (MasterSetup builds it in the menus' style).
     public BossHealthBar barPrefab;
@@ -57,6 +63,10 @@ public class MasterBoss : MonoBehaviour
     // Phase 2 proper starts (input returns after the Unmaking), and Phase 2 ends (the finisher, Stage 7).
     public event System.Action OnP2Started;
     public event System.Action OnP2Down;
+    // He's gone (the finisher's blow): the ending hooks in here.
+    public event System.Action OnBossDefeated;
+
+    public void RaiseBossDefeated() => OnBossDefeated?.Invoke();
 
     // For the playtest: run the Unmaking skippable (as on a second save) and straight into Phase 2.
     public static bool ForceSkippableUnmaking;
@@ -125,7 +135,21 @@ public class MasterBoss : MonoBehaviour
             {
                 Current = Beat.Phase2Down;
                 Bar.Set(0f);
+                Bar.Hide();
                 OnP2Down?.Invoke();
+                music?.Play(MusicDirector.Slot.Finisher);
+                if (finisher != null)
+                    StartCoroutine(finisher.Run(this));
+            };
+        }
+
+        // Kael dies: the frame and the score let go (the death screen takes over).
+        if (player != null)
+        {
+            player.OnDied += () =>
+            {
+                playerCamera?.ClearFraming();
+                music?.Stop();
             };
         }
 
@@ -137,6 +161,8 @@ public class MasterBoss : MonoBehaviour
     {
         StopAllCoroutines();
         introShot = false;
+        playerCamera?.ClearFraming();
+        music?.Stop();
         Current = Beat.Seated;
         if (master.gameObject.activeSelf == false)
             master.gameObject.SetActive(true);
@@ -292,6 +318,9 @@ public class MasterBoss : MonoBehaviour
     private IEnumerator Transition()
     {
         Current = Beat.Transition;
+        music?.Play(MusicDirector.Slot.Transition);
+        // Once the Unmaking's close shot lets go (7 s), the camera settles on the Colossus's framing.
+        playerCamera?.SetFraming(colossus.transform, framingP2);
         yield return new WaitForSeconds(0.1f);
         bool skippable = ForceSkippableUnmaking || SaveFlags.Has("L5.Unmade");
         yield return unmaking.Run(this, skippable);
@@ -299,6 +328,7 @@ public class MasterBoss : MonoBehaviour
         Current = Beat.Phase2;
         Bar.Set(1f);
         colossus.Engage();
+        music?.Play(MusicDirector.Slot.Phase2);
         OnP2Started?.Invoke();
     }
 
@@ -306,6 +336,7 @@ public class MasterBoss : MonoBehaviour
     public void StopBeats()
     {
         StopAllCoroutines();
+        playerCamera?.ClearFraming();
         introShot = false;
         player?.ReleaseRestriction();
         player?.ReleaseShield();
@@ -329,6 +360,8 @@ public class MasterBoss : MonoBehaviour
         Bar.Show();
         Bar.Set(1f);
         colossus.Engage();
+        playerCamera?.SetFraming(colossus.transform, framingP2);
+        music?.Play(MusicDirector.Slot.Phase2);
         OnP2Started?.Invoke();
     }
 
@@ -340,6 +373,8 @@ public class MasterBoss : MonoBehaviour
         introShot = false;
         Current = Beat.Phase1;
         master.Engage();
+        playerCamera?.SetFraming(master.transform, framingP1);
+        music?.Play(MusicDirector.Slot.Phase1);
         OnFightStarted?.Invoke();
     }
 }

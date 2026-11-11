@@ -212,6 +212,7 @@ namespace Kneel.EditorTools
             MasterP1.ForceNext = null;
             AshColossus.ForceNext = null;
             Unmaking.ForceSkip = false;
+            MasterFinisher.HoldMainMenu = false;
             MasterBoss.ForceSkippableUnmaking = false;
 
             if (playerHealth != null && damageListener != null)
@@ -311,9 +312,16 @@ namespace Kneel.EditorTools
             // Phase 2 (Stage 6): the Unmaking, then the Colossus.
             yield return Phase2();
 
+            // Stage 7: Shrine C, the framing, the whole fight to the end card.
+            yield return Ending();
+
             // Last (the player doesn't get up from it).
             if (Wants("lava"))
                 yield return LavaDrop();
+
+            // After everything: a real reload replaces the scene the other groups hold.
+            if (Wants("shrinereload"))
+                yield return ShrineReload();
         }
 
         private static void Setup()
@@ -1519,6 +1527,9 @@ namespace Kneel.EditorTools
             playerHealth.SetMax(100000f, true);
             combat.Poise.Reset();
             movement.GetType().GetField("sprintHeld", Any).SetValue(movement, false);
+            // Any scripted shot (the intro's) eased out first: aiming goes through the camera.
+            PlayerCamera followCamera = UnityEngine.Object.FindAnyObjectByType<PlayerCamera>();
+            yield return (Func<bool>)(() => followCamera == null || followCamera.HasOverride == false);
             PlaceFront(8f);
             if (combat.State == PlayerCombat.CombatState.Sheathed)
                 Press("OnDrawPressed");

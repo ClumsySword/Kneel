@@ -24,6 +24,9 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
     public Material smokeMaterial;
     public Material emberMaterial;
     public Material crackMaterial;
+    // The ring's lava cracks (the Hammerfall's): they race out from him at the mask split, glow, and cool away.
+    public Material ringCrackMaterial;
+    public Texture2D ringCrackMap;
 
     public bool Running { get; private set; }
 
@@ -347,17 +350,14 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
             Burst(colossus.mask.position, 0.5f, 80);
         }
 
-        // The ring: cracks round him, dust, and a push out to 3 R for anyone inside it.
+        // The ring: lava cracks racing out round him (they cool away again), dust, and a push out to 3 R.
         Vector3 at = colossus.transform.position;
-        var ring = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        ring.name = "UnmakingRing";
-        Destroy(ring.GetComponent<Collider>());
-        ring.transform.SetPositionAndRotation(new Vector3(at.x, at.y + 0.03f, at.z), Quaternion.Euler(90f, Random.Range(0f, 360f), 0f));
-        ring.transform.localScale = Vector3.one * s.ringPush * 1.4f;
-        var renderer = ring.GetComponent<MeshRenderer>();
-        renderer.sharedMaterial = crackMaterial;
-        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        spawned.Add(ring);
+        if (ringCrackMaterial != null)
+        {
+            LavaCracks ring = LavaCracks.Spawn(ringCrackMaterial, ringCrackMap, at, s.ringPush, Random.Range(0f, 360f));
+            spawned.Add(ring.gameObject);
+            StartCoroutine(Cool(ring));
+        }
         ColossusFx.Ring(colossus, at, 2.5f, s.ringPush, 0.4f);
         cam?.AddShake(0.45f, 1.2f);
 
@@ -371,14 +371,29 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
         }
     }
 
+    private static IEnumerator Cool(LavaCracks ring)
+    {
+        float start = Time.time;
+        while (ring != null && Time.time - start < 3.4f)
+        {
+            float t = Time.time - start;
+            ring.Reveal = Mathf.Clamp01(t / 0.35f) * 1.05f;
+            ring.Intensity = t < 0.6f ? Mathf.Lerp(3.2f, 1.8f, t / 0.6f) : Mathf.Lerp(1.8f, 0f, (t - 0.6f) / 2.8f);
+            yield return null;
+        }
+
+        if (ring != null)
+            Destroy(ring.gameObject);
+    }
+
     private IEnumerator MaskFlare(Light light)
     {
         float start = Time.time;
         while (light != null && Time.time - start < 2.5f)
         {
             float t = Time.time - start;
-            light.intensity = t < 0.3f ? Mathf.Lerp(0f, 45f, t / 0.3f) : Mathf.Lerp(45f, 8f, (t - 0.3f) / 2.2f);
-            light.range = Mathf.Lerp(18f, 7f, t / 2.5f);
+            light.intensity = t < 0.3f ? Mathf.Lerp(0f, 30f, t / 0.3f) : Mathf.Lerp(30f, 4f, (t - 0.3f) / 2.2f);
+            light.range = Mathf.Lerp(16f, 6f, t / 2.5f);
             yield return null;
         }
     }

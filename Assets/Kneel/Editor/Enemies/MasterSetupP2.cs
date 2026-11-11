@@ -38,6 +38,8 @@ namespace Kneel.EditorTools
         private const float ToppleStart = 1.9f;
         private const float ToppleCut = 3f;
         private const float FallenCut = 2.75f;
+        // Kneeling To Pointing: the arm is fully raised at 1.6 s (it comes down again after 2 s).
+        private const float LastCommandPeak = 1.6f;
 
         private static readonly Cut[] P2CutTable =
         {
@@ -60,6 +62,8 @@ namespace Kneel.EditorTools
             new Cut { name = "Topple", source = "Colossus_Topple", start = ToppleStart, end = ToppleCut, bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "ToppleHold", source = "Colossus_Topple", start = ToppleCut - 0.05f, end = ToppleCut, bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "Fallen", source = "Colossus_Topple", start = ToppleStart, end = FallenCut, bakeRotation = true, bakeHeight = true, pin = true },
+            // The finisher's last palm (§7): Kneeling To Pointing, played forward to raise it and backward to lower it.
+            new Cut { name = "LastCommand", source = "Colossus_LastCommand", bakeRotation = true, bakeHeight = true, pin = true },
         };
 
         private static AnimationClip MakeP2Cut(Cut cut)
@@ -329,7 +333,8 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "ToppleHold", parameter = "Topple", motion = cuts["ToppleHold"], chained = true },
                 new EnemyRig.State { name = "ToppleUp", parameter = "Topple", motion = cuts["Topple"], speed = -1f, chained = true, exitBlend = 0.25f },
                 new EnemyRig.State { name = "Roar", motion = cuts["Roar"], exitBlend = 0.3f },
-                new EnemyRig.State { name = "Fallen", motion = cuts["Fallen"], final = true });
+                new EnemyRig.State { name = "Fallen", motion = cuts["Fallen"], final = true },
+                new EnemyRig.State { name = "LastCommand", parameter = "Fallen", motion = cuts["LastCommand"], chained = true });
 
             foreach (ChildAnimatorState child in controller.layers[0].stateMachine.states)
             {
@@ -338,7 +343,7 @@ namespace Kneel.EditorTools
                 switch (s.name)
                 {
                     case "Cleave": case "Sweep": case "Grasp": case "Hammerfall": case "Leap": case "Command": case "Gather": case "ThreadLash":
-                    case "Recoil": case "ToppleDown": case "ToppleUp": case "Fallen":
+                    case "Recoil": case "ToppleDown": case "ToppleUp": case "Fallen": case "LastCommand":
                         param = "MoveSpeed"; break;
                     case "Move": case "Circle": param = "MoveRate"; break;
                 }
@@ -350,8 +355,8 @@ namespace Kneel.EditorTools
                     s.speedParameter = param;
                 }
 
-                // The Great Command is cast with the claw (left), the sword arm planted.
-                s.mirror = s.name == "Command";
+                // The Great Command and the last palm are the claw's (left), the sword arm planted.
+                s.mirror = s.name == "Command" || s.name == "LastCommand";
             }
 
             EditorUtility.SetDirty(controller);
@@ -375,6 +380,7 @@ namespace Kneel.EditorTools
                 colossus.flexLength = cuts["Rise"].length;
                 colossus.gatherLength = cuts["Gather"].length;
                 colossus.recoilLength = cuts["Recoil"].length;
+                colossus.lastCommandLength = LastCommandPeak;
                 colossus.walkClipSpeed = walk;
                 PrefabUtility.SaveAsPrefabAsset(root, P2Prefab);
             }
@@ -419,12 +425,51 @@ namespace Kneel.EditorTools
             unmaking.smokeMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Levels/L1/Materials/FX/L1_FX_Smoke.mat");
             unmaking.emberMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Levels/L1/Materials/FX/L1_FX_Ember.mat");
             unmaking.crackMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + "Hall/Materials/M_HallCrack.mat");
+            unmaking.ringCrackMaterial = AssetDatabase.LoadAssetAtPath<Material>(RadialCrackMaterial);
+            unmaking.ringCrackMap = AssetDatabase.LoadAssetAtPath<Texture2D>(RadialCracks);
             boss.unmaking = unmaking;
             EditorUtility.SetDirty(boss);
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
             return "placed " + p2.name + " and the Unmaking; saved " + scene.path;
+        }
+
+        // The ending's pieces in the open L5 scene: the finisher and the score on the "TheMaster" root, and the rest at Shrine
+        // C (the Last Shrine, outside the grand doors; Kael comes back here after it's been rested at). Saves the scene.
+        [MenuItem("Kneel/Enemies/The Master/Place Finisher, Music and Shrine C in L5")]
+        public static void PlaceEndingInL5Menu() => Debug.Log(PlaceEndingInL5());
+
+        public static string PlaceEndingInL5()
+        {
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (scene.path != L5Scene)
+                return "open L5_ThroneRoom first (active: " + scene.path + ")";
+
+            GameObject root = GameObject.Find("TheMaster");
+            var boss = root.GetComponent<MasterBoss>();
+            var finisher = Ensure<MasterFinisher>(root);
+            finisher.font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/Kneel/UI/Fonts/CormorantGaramond-SemiBold SDF.asset");
+            finisher.ashMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Levels/L1/Materials/FX/L1_FX_Smoke.mat");
+            finisher.emberMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Levels/L1/Materials/FX/L1_FX_Ember.mat");
+            boss.finisher = finisher;
+            boss.music = Ensure<MusicDirector>(root);
+            EditorUtility.SetDirty(boss);
+
+            GameObject shrine = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).Select(t => t.gameObject).FirstOrDefault(g => g.name == "ShrineC_LastShrine");
+            string shrineLog = "no ShrineC_LastShrine";
+            if (shrine != null)
+            {
+                var rest = Ensure<ShrineRest>(shrine);
+                rest.flag = "L5.ShrineC";
+                rest.respawnFacing = Vector3.forward;
+                EditorUtility.SetDirty(rest);
+                shrineLog = "rest at " + shrine.transform.position.ToString("F1") + ", Kael back at " + rest.RespawnPoint.ToString("F1");
+            }
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+            return "finisher and music on " + root.name + "; " + shrineLog + "; saved " + scene.path;
         }
 
         // Kael's knockdown (PlayerCombat's Knockdown state): KnockdownFall and KnockdownUp on the FullBody layer, at the

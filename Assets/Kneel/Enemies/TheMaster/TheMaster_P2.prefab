@@ -8321,6 +8321,7 @@ MonoBehaviour:
   toppleDown: 1.1
   flexLength: 4.666667
   gatherLength: 3.2500002
+  lastCommandLength: 1.6
   recoilLength: 1.3666668
   mask: {fileID: 7145227849379422403}
   smokeMaterial: {fileID: 2100000, guid: da4017ca5a103a64fa0361ce4471d272, type: 2}

@@ -81,9 +81,19 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
         if (shadow != null)
             shadowSize = shadow.transform.localScale.x;
         clearance = GetComponent<Kneel.FightClearance>();
+        wave = FindAnyObjectByType<DarknessWave>();
         if (winch != null)
             winch.Struck += _ => Trigger();
     }
+
+    // The hanging light, through the darkness wave (it dims this light too, and has to restore the right brightness).
+    private void SetLight(float intensity, float range)
+    {
+        hangingLight.range = range;
+        hangingLight.intensity = intensity * (wave != null ? wave.Rebase(hangingLight, intensity) : 1f);
+    }
+
+    private DarknessWave wave;
 
     private void OnEnable() => All.Add(this);
 
@@ -167,8 +177,7 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
         {
             float height = Mathf.Max(transform.position.y - floorY, 1f);
             float rest = Mathf.Max(restPosition.y - floorY, 1f);
-            hangingLight.intensity = Mathf.Max(landedLight, restIntensity * height * height / (rest * rest));
-            hangingLight.range = Mathf.Max(landedRange, restRange * height / rest);
+            SetLight(Mathf.Max(landedLight, restIntensity * height * height / (rest * rest)), Mathf.Max(landedRange, restRange * height / rest));
         }
 
         if (shadow != null)
@@ -220,8 +229,7 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
 
         if (hangingLight != null)
         {
-            hangingLight.intensity = landedLight;
-            hangingLight.range = landedRange;
+            SetLight(landedLight, landedRange);
         }
 
         FloorFire.Circle(at, reach * 0.8f, burnTime);
@@ -255,8 +263,7 @@ public class ChandelierDrop : MonoBehaviour, Kneel.Hazards.ILevelResettable
             wreckCarve.enabled = false;
         if (hangingLight != null)
         {
-            hangingLight.intensity = restIntensity;
-            hangingLight.range = restRange;
+            SetLight(restIntensity, restRange);
         }
 
         if (clearance != null)

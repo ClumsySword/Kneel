@@ -903,7 +903,9 @@ namespace Kneel.EditorTools
             // Off the line before its fire catches up with the head (the fire is its own lesson).
             PlaceAbsolute(playerRoot.position + colossus.transform.right * 1.6f, colossus.transform.position - playerRoot.position);
             yield return 2f;
-            var hits = p2Blows.Skip(before).ToList();
+            // Only the Lash's own: its threads land after the move itself has ended, and he may start his next meanwhile.
+            string[] otherMoves = Enum.GetNames(typeof(AshColossus.MoveKind)).Where(n => n != "ThreadLash").ToArray();
+            var hits = p2Blows.Skip(before).Where(h => otherMoves.Contains(h.state) == false).ToList();
             Check("one hits, once: " + S2.lashDamage, hits.Count == 1 && Mathf.Abs(hits[0].amount - S2.lashDamage) < 0.5f, string.Join(", ", hits.Select(h => h.amount.ToString("F0"))));
             yield return P2WaitMoveEnds();
         }
