@@ -455,6 +455,8 @@ public class DebugTuningOverlay : MonoBehaviour
         s.commandCooldown = Slider("Command cooldown", s.commandCooldown, 2f, 30f);
         s.threadsTell = Slider("Threads tell", s.threadsTell, 0.3f, 2f);
         s.threadSpeed = Slider("Thread speed", s.threadSpeed, 3f, 20f);
+        s.threadsLock = Slider("Threads lane lock", s.threadsLock, 0f, 1f);
+        s.lashLock = Slider("Lash lane lock", s.lashLock, 0f, 1f);
         s.guardMaxTime = Slider("Guard max time", s.guardMaxTime, 0.5f, 6f);
         s.thrustTell = Slider("Thrust tell", s.thrustTell, 0.3f, 2f);
         s.thrustDamage = Slider("Thrust damage", s.thrustDamage, 0f, 100f);

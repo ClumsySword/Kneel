@@ -100,6 +100,8 @@ public class MasterMoveState : EnemyState
             case MasterP1.MoveKind.Threads:
                 StartBlow("Threads", S.threadsTell, master.threadsRelease, glint: false);
                 master.bossTell?.Hiss(S.threadsTell);
+                master.bossTell?.Charge(S.threadsTell);
+                mark = SpellMark.Lanes(ThreadsOrigin(AimAtPlayer()), AimAtPlayer(), 3, S.threadFan, S.threadLength, S.threadsTell);
                 master.RaiseThreadsTell();
                 break;
             case MasterP1.MoveKind.Guard:
@@ -121,7 +123,22 @@ public class MasterMoveState : EnemyState
         master.anim.SetBool("GuardUp", false);
         master.Stop();
         master.bossTell?.StopTells();
+        if (mark != null)
+            mark.Release();
+        mark = null;
     }
+
+    // The Threads' floor mark (SpellMark): it follows him onto the player, then locks threadsLock before the release.
+    private SpellMark mark;
+
+    private Vector3 AimAtPlayer()
+    {
+        Vector3 to = master.player.position - master.transform.position;
+        to.y = 0f;
+        return to.sqrMagnitude > 0.01f ? to.normalized : master.transform.forward;
+    }
+
+    private Vector3 ThreadsOrigin(Vector3 aim) => master.transform.position + aim * 1.2f;
 
     public override void Update()
     {
@@ -177,6 +194,14 @@ public class MasterMoveState : EnemyState
         if (landed == false && elapsed < contactAt - 0.25f)
             Track();
 
+        if (mark != null && landed == false)
+        {
+            if (elapsed < contactAt - S.threadsLock)
+                mark.Aim(ThreadsOrigin(AimAtPlayer()), AimAtPlayer());
+            else
+                mark.Lock();
+        }
+
         if (landed || elapsed < contactAt)
             return;
 
@@ -204,14 +229,17 @@ public class MasterMoveState : EnemyState
                 }
                 break;
             case MasterP1.MoveKind.Threads:
-                Vector3 to = master.player.position - master.transform.position;
-                to.y = 0f;
-                Vector3 forward = to.sqrMagnitude > 0.01f ? to.normalized : master.transform.forward;
+                // Down the lanes the mark drew at the lock.
+                Vector3 forward = mark != null ? mark.Forward : AimAtPlayer();
+                Vector3 from = mark != null ? mark.Origin : ThreadsOrigin(forward);
                 for (int i = -1; i <= 1; i++)
                 {
                     Vector3 direction = Quaternion.AngleAxis(i * S.threadFan, Vector3.up) * forward;
-                    ThreadLine.Launch(master, master.transform.position + forward * 1.2f, direction, S.threadSpeed, S.threadLength, S.threadWidth, S.threadDamage);
+                    ThreadLine.Launch(master, from, direction, S.threadSpeed, S.threadLength, S.threadWidth, S.threadDamage);
                 }
+                if (mark != null)
+                    mark.Release();
+                mark = null;
                 punishUntil = elapsed + 0.6f;
                 break;
         }

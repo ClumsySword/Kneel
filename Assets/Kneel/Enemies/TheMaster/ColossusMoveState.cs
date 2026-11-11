@@ -107,6 +107,8 @@ public class ColossusMoveState : EnemyState
             case AshColossus.MoveKind.Hammerfall:
                 StartBlow("Hammerfall", S.hammerTell, colossus.hammerContact);
                 colossus.bossTell?.Hum(S.hammerTell);
+                target = colossus.transform.position + colossus.transform.forward * S.hammerOut;
+                mark = SpellMark.Ring(target, colossus.transform.position, S.hammerRadius, S.hammerTell);
                 break;
             case AshColossus.MoveKind.Leap:
                 StartBlow("Leap", S.leapTell, colossus.leapLand);
@@ -125,11 +127,14 @@ public class ColossusMoveState : EnemyState
                 colossus.SetMoveSpeed(colossus.gatherLength / Mathf.Max(S.gatherTime, 0.5f));
                 colossus.anim.CrossFadeInFixedTime("Gather", 0.2f, 0, 0f);
                 colossus.bossTell?.Hum(S.gatherTime);
+                colossus.bossTell?.Charge(S.gatherTime);
                 colossus.RaiseGatherStart();
                 break;
             case AshColossus.MoveKind.ThreadLash:
                 StartBlow("ThreadLash", S.lashTell, colossus.lashRelease);
                 colossus.bossTell?.Hiss(S.lashTell);
+                colossus.bossTell?.Charge(S.lashTell);
+                mark = SpellMark.Lanes(LashOrigin(AimAtPlayer()), AimAtPlayer(), Mathf.Max(1, S.lashCount), S.lashFan, S.lashLength, S.lashTell);
                 break;
         }
     }
@@ -140,6 +145,9 @@ public class ColossusMoveState : EnemyState
         colossus.SetMoveSpeed(1f);
         colossus.StickBlade(false);
         colossus.bossTell?.StopTells();
+        if (mark != null)
+            mark.Release();
+        mark = null;
         if (shadow != null)
             Object.Destroy(shadow);
         if (airborne)
@@ -191,6 +199,18 @@ public class ColossusMoveState : EnemyState
         }
     }
 
+    // The floor mark of where this lands (SpellMark): the Lash's lanes, the Hammerfall's impact circle.
+    private SpellMark mark;
+
+    private Vector3 AimAtPlayer()
+    {
+        Vector3 to = colossus.player.position - colossus.transform.position;
+        to.y = 0f;
+        return to.sqrMagnitude > 0.01f ? to.normalized : colossus.transform.forward;
+    }
+
+    private Vector3 LashOrigin(Vector3 aim) => colossus.transform.position + aim * 1.8f;
+
     private void StartBlow(string state, float blowTell, float clipContact)
     {
         tell = blowTell;
@@ -207,6 +227,20 @@ public class ColossusMoveState : EnemyState
         {
             Track();
             target = colossus.transform.position + colossus.transform.forward * S.hammerOut;
+            if (mark != null && kind == AshColossus.MoveKind.Hammerfall)
+                mark.Aim(target, target - colossus.transform.position);
+        }
+        else if (mark != null && kind == AshColossus.MoveKind.Hammerfall)
+        {
+            mark.Lock();
+        }
+
+        if (mark != null && kind == AshColossus.MoveKind.ThreadLash && landed == false)
+        {
+            if (elapsed < contactAt - S.lashLock)
+                mark.Aim(LashOrigin(AimAtPlayer()), AimAtPlayer());
+            else
+                mark.Lock();
         }
 
         if (landed || elapsed < contactAt)
@@ -254,6 +288,9 @@ public class ColossusMoveState : EnemyState
             }
             case AshColossus.MoveKind.Hammerfall:
             {
+                if (mark != null)
+                    mark.Release();
+                mark = null;
                 if (HallActors.FlatDistance(colossus.player.position, target) <= S.hammerRadius)
                     colossus.Deal(S.hammerDamage, 50f, true, true, 0f, 0.8f, colossus.player.position - target);
                 ColossusFx.Burst(colossus, target, S.hammerRadius, 60);
@@ -291,16 +328,20 @@ public class ColossusMoveState : EnemyState
                 break;
             case AshColossus.MoveKind.ThreadLash:
             {
-                Vector3 to = colossus.player.position - at;
-                to.y = 0f;
-                Vector3 aim = to.sqrMagnitude > 0.01f ? to.normalized : forward;
+                // Down the lanes the mark drew at the lock.
+                Vector3 aim = mark != null ? mark.Forward : AimAtPlayer();
+                Vector3 from = mark != null ? mark.Origin : LashOrigin(aim);
                 int count = Mathf.Max(1, S.lashCount);
                 for (int i = 0; i < count; i++)
                 {
                     float angle = (i - (count - 1) * 0.5f) * S.lashFan;
                     Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * aim;
-                    ThreadLine.Launch(colossus, at + aim * 1.8f, direction, S.threadSpeed, S.lashLength, S.threadWidth, S.lashDamage);
+                    ThreadLine.Launch(colossus, from, direction, S.threadSpeed, S.lashLength, S.threadWidth, S.lashDamage);
                 }
+
+                if (mark != null)
+                    mark.Release();
+                mark = null;
 
                 punishUntil = elapsed + 0.6f;
                 break;

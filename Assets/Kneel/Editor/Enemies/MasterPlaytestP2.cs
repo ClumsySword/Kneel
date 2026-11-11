@@ -83,6 +83,7 @@ namespace Kneel.EditorTools
                 ("cleave", CleaveBlocked),
                 ("cleave", CleaveParries),
                 ("cleave", CleaveRoll),
+                ("cleave", P2BlowsUnlit),
                 ("sweep", SweepLands),
                 ("sweep", SweepRoll),
                 ("grasp", GraspLands),
@@ -90,6 +91,7 @@ namespace Kneel.EditorTools
                 ("grasp", GraspRoll),
                 ("hammer", HammerLands),
                 ("hammer", HammerCracks),
+                ("hammer", HammerMark),
                 ("leap", LeapLands),
                 ("leap", LeapDodged),
                 ("gcommand", GreatCommandOpen),
@@ -98,6 +100,7 @@ namespace Kneel.EditorTools
                 ("gather", GatherBashed),
                 ("gather", GatherCompletes),
                 ("lash", LashLands),
+                ("lash", LashMark),
                 ("p2armour", P2Armour),
                 ("p2perf", P2Performance),
                 ("p2half", P2Half),
@@ -679,7 +682,7 @@ namespace Kneel.EditorTools
                 {
                     float r = 5f + (i % 5) * 0.5f;
                     Vector3 p = centre + Quaternion.Euler(0f, i * 7.3f, 0f) * Vector3.forward * r;
-                    // On a crack's core, not its soft edge (the lines are thin: 2026-11-12).
+                    // On a crack's core, not its soft edge (the lines are thin: 2026-11-11).
                     bool ok = onCrack ? cracks.Covers(p, 0f, 0.75f) : ClearOfCracks(cracks, p, S2.hammerCrackMargin + 0.5f);
                     if (ok)
                         spot = p;

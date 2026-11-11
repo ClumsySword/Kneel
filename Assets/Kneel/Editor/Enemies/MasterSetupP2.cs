@@ -15,7 +15,9 @@ namespace Kneel.EditorTools
     {
         public const string P2Prefab = Folder + "TheMaster_P2.prefab";
         private const string P2Controller = Clips + "AC_Colossus.controller";
-        private const string ColossusSword = Folder + "Weapons/SM_ColossusSword.fbx";
+        // The cross-guard Emberfracture Blade, scaled up to the 4.2 m his blows were measured with (see MasterSword).
+        private const string ColossusSword = Folder + "Weapons/SM_EmberfractureBlade.fbx";
+        public const float ColossusSwordLength = 4.2f;
         private const string P2Cuts = Clips + "CutsP2/";
 
         // His sword fist: the same grip as P1's, on a bigger hand.
@@ -176,6 +178,8 @@ namespace Kneel.EditorTools
                 Transform socket = FistSocket(animator);
                 GameObject sword = EnemyRig.Equip(socket, ColossusSword);
                 Mesh swordMesh = sword.GetComponentInChildren<MeshFilter>().sharedMesh;
+                float swordScale = ColossusSwordLength / swordMesh.bounds.size.y;
+                sword.transform.localScale = Vector3.one * swordScale;
                 Transform tip = sword.transform.Find("SwordTip");
                 if (tip == null)
                 {
@@ -183,7 +187,7 @@ namespace Kneel.EditorTools
                     tip.SetParent(sword.transform, false);
                 }
 
-                tip.localPosition = new Vector3(0f, swordMesh.bounds.max.y - 0.08f, 0f);
+                tip.localPosition = new Vector3(0f, swordMesh.bounds.max.y - 0.08f / swordScale, 0f);
                 colossus.swordTip = tip;
                 tell.swordTip = tip;
                 BuildFistAsh(socket, k);
@@ -210,7 +214,7 @@ namespace Kneel.EditorTools
                 L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P2Prefab);
                 return string.Format("{0}: humanScale {1:F2}, sword {2:F2} m, grip at {3} in the hand, agent '{4}' ({5})",
-                    P2Prefab, animator.humanScale, swordMesh.bounds.size.y, socket.localPosition.ToString("F2"), ColossusAgent, agent.agentTypeID);
+                    P2Prefab, animator.humanScale, swordMesh.bounds.size.y * swordScale, socket.localPosition.ToString("F2"), ColossusAgent, agent.agentTypeID);
             }
             finally
             {

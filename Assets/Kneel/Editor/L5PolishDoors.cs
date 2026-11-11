@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Kneel.EditorTools
 {
-    // The doors (owner, 2026-11-12): "It should only be one gate with the two doors (split) opening. They should fit the
+    // The doors (owner, 2026-11-11): "It should only be one gate with the two doors (split) opening. They should fit the
     // openings perfectly." Each portal held two of Synty's castle doors side by side, and each of those is itself a
     // frame with two leaves: two gates in one arch. Now one gate per arch: two leaves cut to the opening L5Level.Portal
     // builds (8.4 m wide, straight jambs to 6.6 m, a semicircular head of radius 4.2 m to 10.8 m), hinged at the jambs.

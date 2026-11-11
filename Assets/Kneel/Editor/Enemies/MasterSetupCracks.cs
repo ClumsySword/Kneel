@@ -8,7 +8,7 @@ namespace Kneel.EditorTools
 {
     // The throne hall's lava cracks (owner, 2026-11-10, with a reference of glowing branching cracks on black): the
     // crack textures (red: the crack, a crisp hot core with a one-pixel soft edge and a faint, narrow glow; no discs where
-    // cracks meet or start (owner, 2026-11-12: "remove the circles", clean lines, not fuzz); green: the
+    // cracks meet or start (owner, 2026-11-11: "remove the circles", clean lines, not fuzz); green: the
     // order it spreads in, 0 at its seed to 1 at its tips), their Kneel/LavaCrack materials, and the hall's panels and the
     // Colossus wired to them. Safe to rerun.
     public static partial class MasterSetup

@@ -1582,7 +1582,7 @@ namespace Kneel.EditorTools
             vignette.intensity.Override(0.42f);
             vignette.smoothness.Override(0.45f);
             var bloom = Get<Bloom>();
-            // Owner, 2026-11-12: small, distinct light sources, never a blob of glow (L5Polish.Glow).
+            // Owner, 2026-11-11: small, distinct light sources, never a blob of glow (L5Polish.Glow).
             bloom.threshold.Override(L5Polish.BloomThreshold);
             bloom.intensity.Override(L5Polish.BloomIntensity);
             bloom.scatter.Override(L5Polish.BloomScatter);
@@ -1696,7 +1696,7 @@ namespace Kneel.EditorTools
         // never fills the screen with glow as the player walks under it.
         private static void Halo(Transform parent, Vector3 local, float size, float strength = 1f)
         {
-            // Owner, 2026-11-12: no halo sprites round the fixtures (they read as blobs of glow; L5Polish.Glow removed
+            // Owner, 2026-11-11: no halo sprites round the fixtures (they read as blobs of glow; L5Polish.Glow removed
             // them from the scene). Kept as a no-op so the fixture builders read as before.
         }
 

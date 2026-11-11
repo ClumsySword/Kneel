@@ -77,7 +77,7 @@ public class ThreadLine : MonoBehaviour
         if (shader != null)
         {
             // Several threads leave him from one spot, and additive lines add up there: hot enough to read, no hotter.
-            // Ember lines, as the floor's lava cracks (owner, 2026-11-12: clean, never fuzz; L5 grades at +1.45 stops, so
+            // Ember lines, as the floor's lava cracks (owner, 2026-11-11: clean, never fuzz; L5 grades at +1.45 stops, so
             // anything brighter than this reads white).
             t.material = Additive(shader, new Color(1f, 0.34f, 0.07f) * 0.8f);
             t.glowMaterial = Additive(shader, new Color(1f, 0.22f, 0.04f) * 0.12f);

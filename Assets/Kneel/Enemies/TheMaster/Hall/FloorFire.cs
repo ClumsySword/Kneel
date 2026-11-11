@@ -209,7 +209,7 @@ public class FirePatch
         patch.root.name = "FirePatch";
         patch.root.SetActive(true);
         // The oil fire's soft glow sprite read as a blob of light from the gameplay camera: the flames and the light
-        // carry the fire here (owner, 2026-11-12: small, distinct light sources).
+        // carry the fire here (owner, 2026-11-11: small, distinct light sources).
         foreach (ParticleSystemRenderer r in patch.root.GetComponentsInChildren<ParticleSystemRenderer>(true))
         {
             if (r.sharedMaterial != null && r.sharedMaterial.name.Contains("Glow"))

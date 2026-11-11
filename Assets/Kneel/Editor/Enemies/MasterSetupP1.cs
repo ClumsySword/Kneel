@@ -15,7 +15,11 @@ namespace Kneel.EditorTools
         public const string P1Prefab = Folder + "TheMaster_P1.prefab";
         public const string SettingsPath = Folder + "MasterSettings.asset";
         private const string P1Controller = Clips + "AC_MasterP1.controller";
-        private const string MasterSword = Folder + "Weapons/SM_MasterSword.fbx";
+        // The Master wields the spiked Molten Obsidian Blade (colossus_sword.zip) and the Colossus the cross-guard
+        // Emberfracture Blade (master_sword.zip), whatever the zips are called (owner, 2026-11-11). Each blade is scaled to
+        // the length its phase's reaches and contacts were measured with: 3.12 m here, 4.2 m on the Colossus.
+        private const string MasterSword = Folder + "Weapons/SM_ObsidianBlade.fbx";
+        public const float MasterSwordLength = 3.12f;
         private const string Cuts = Clips + "Cuts/";
 
         // Fist around the sword's grip: the bend at each finger joint, and the thumb's swing across the palm and bend.
@@ -106,9 +110,11 @@ namespace Kneel.EditorTools
                 Transform socket = EnemyRig.SwordSocket(animator, HumanBodyBones.RightHand, 12f, "Socket_SwordHand", 0.035f * k, 0.03f * k);
                 GameObject sword = EnemyRig.Equip(socket, MasterSword);
                 Mesh swordMesh = sword.GetComponentInChildren<MeshFilter>().sharedMesh;
+                float swordScale = MasterSwordLength / swordMesh.bounds.size.y;
+                sword.transform.localScale = Vector3.one * swordScale;
                 var tip = new GameObject("SwordTip").transform;
                 tip.SetParent(sword.transform, false);
-                tip.localPosition = new Vector3(0f, swordMesh.bounds.max.y - 0.05f, 0f);
+                tip.localPosition = new Vector3(0f, swordMesh.bounds.max.y - 0.05f / swordScale, 0f);
                 master.swordTip = tip;
                 tell.swordTip = tip;
 

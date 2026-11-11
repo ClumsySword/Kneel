@@ -84,6 +84,9 @@ public class MasterSettings : ScriptableObject
 
     [Header("Threads: three ember lines")]
     public float threadsTell = 0.8f;
+    // The lanes' floor mark (SpellMark) follows the player until this long before the release, then holds: the threads
+    // run down the lanes it drew. Shorter is harder.
+    public float threadsLock = 0.3f;
     public float threadSpeed = 9f;
     public float threadLength = 18f;
     public float threadWidth = 1f;
@@ -236,6 +239,8 @@ public class MasterSettings : ScriptableObject
 
     [Header("Thread Lash")]
     public float lashTell = 1f;
+    // As threadsLock, for the Lash's five lanes.
+    public float lashLock = 0.3f;
     public int lashCount = 5;
     public float lashFan = 12f;
     public float lashLength = 24f;

@@ -1,14 +1,15 @@
 using UnityEngine;
 using UnityEngine.Audio;
 
-// The Master's tells, one grammar for both phases (The Master.md §1): a white glint up his ember cracks and a high
-// bell = parry; an ember-red left hand and an inhaled drone = roll; no glint = move. The palm light is the Command's
-// (a real shadow-casting light: what its shadow covers is safe). All VFX are built at runtime; sounds are slots that
-// MasterSetup fills with the placeholder clips (TheMaster/Audio), on the SFX mixer group.
+// The Master's tells, one grammar for both phases (The Master.md §1). Blows carry no light (owner, 2026-11-11: "instead
+// of glows on attacks"): the pose and the sound tell them, a rasp and a high bell = parry, an inhaled drone = roll.
+// Spells charge in his cracks instead: from the first frame of a spell's tell, the ember cracks of whichever body he's
+// in brighten until it lands, then settle (Charge). Where a spell lands is drawn on the floor (SpellMark). The palm
+// light is the Command's (a real shadow-casting light: what its shadow covers is safe); it lights the hall, not him.
+// Sounds are slots that MasterSetup fills with the placeholder clips (TheMaster/Audio), on the SFX mixer group.
 public class BossTell : MonoBehaviour
 {
     private static readonly int GlintColorId = Shader.PropertyToID("_KneelGlintColor");
-    private static readonly int GlintBandId = Shader.PropertyToID("_KneelGlintBand");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
     [Header("Rig")]
@@ -19,15 +20,17 @@ public class BossTell : MonoBehaviour
     public float bodyHeight = 4.2f;
 
     [Header("Look")]
-    public Color glintColor = new Color(1f, 0.95f, 0.85f);
-    public float glintStrength = 7f;
     public Color emberColor = new Color(1f, 0.32f, 0.08f);
-    public float emberLightIntensity = 8f;
     public Color palmColor = new Color(1f, 0.55f, 0.25f);
     public float palmLightIntensity = 60f;
     public float palmLightRange = 40f;
     // The cracks' resting glow (the material's emission intensity); darkness and phase scale it (EmberScale).
     public float crackGlow = 2.5f;
+    // A spell's charge: the cracks climb to crackGlow x chargePeak by the moment it lands, with a slow pulse that
+    // quickens as it nears, hold a beat, then settle over chargeFade.
+    public float chargePeak = 2.2f;
+    public float chargePulse = 0.08f;
+    public float chargeFade = 0.6f;
 
     [Header("Sounds (placeholders)")]
     public AudioClip rasp;
@@ -42,22 +45,20 @@ public class BossTell : MonoBehaviour
     // Multiplies the crack glow and every tell (1 normal; the darkness wave raises it so darkness never hides a tell).
     public float EmberScale { get; set; } = 1f;
 
-    // The darkness wave makes his glints and embers brighter (§8: the dark never hides a tell).
+    // The darkness wave makes his cracks brighter (§8: the dark never hides a tell).
     public static float DarkBoost = 1f;
 
     private AudioSource source;
     private AudioSource loop;
-    private Light emberLight;
     private Light palmLight;
-    private Light tipLight;
-    private ParticleSystem emberSparks;
     private Renderer[] bodyRenderers;
     private MaterialPropertyBlock block;
 
-    private float glintStart = -1f, glintLength;
-    private float emberUntil = -1f;
     private float palmStart = -1f, palmLength;
-    private float tipFlash;
+    private float chargeStart = -1f, chargeLength, chargeEnd = -1f, chargeFrom = 1f;
+
+    // The cracks' current charge (1 at rest, chargePeak as a spell lands), for the playtest.
+    public float ChargeLevel { get; private set; } = 1f;
 
     public Vector3 PalmLightPosition => palmLight != null ? palmLight.transform.position : transform.position + Vector3.up * bodyHeight;
 
@@ -83,11 +84,8 @@ public class BossTell : MonoBehaviour
         bodyRenderers = GetComponentsInChildren<SkinnedMeshRenderer>();
         block = new MaterialPropertyBlock();
 
-        emberLight = MakeLight("EmberHandLight", leftHand, emberColor, 3.5f, false);
         palmLight = MakeLight("PalmLight", palmLightAnchor != null ? palmLightAnchor : leftHand, palmColor, palmLightRange, true);
         palmLight.transform.localPosition = Vector3.zero;
-        tipLight = MakeLight("GlintTipLight", swordTip, Color.white, 4f, false);
-        emberSparks = MakeSparks(leftHand);
     }
 
     private void OnDisable() => Shader.SetGlobalVector(GlintColorId, Vector4.zero);
@@ -101,7 +99,8 @@ public class BossTell : MonoBehaviour
         light.color = color;
         light.range = range;
         light.intensity = 0f;
-        HallActors.LightBosses(light);
+        // The hall and Kael only (the Default layer, a code light's own): at his palm it would burn a hot patch into
+        // his own arm and chest, and his body's only light is his cracks.
         // Only the Command's palm light casts shadows, and only while it's lit (the L5 atlas lesson: one at a time).
         light.shadows = LightShadows.None;
         light.enabled = false;
@@ -114,59 +113,28 @@ public class BossTell : MonoBehaviour
         return light;
     }
 
-    private ParticleSystem MakeSparks(Transform parent)
-    {
-        var go = new GameObject("EmberHandSparks");
-        go.transform.SetParent(parent != null ? parent : transform, false);
-        var ps = go.AddComponent<ParticleSystem>();
-        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        var main = ps.main;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1.2f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.1f);
-        main.startColor = new ParticleSystem.MinMaxGradient(emberColor * 2f, new Color(1f, 0.6f, 0.2f) * 2f);
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 120;
-        main.gravityModifier = -0.15f;
-        var emission = ps.emission;
-        emission.rateOverTime = 0f;
-        var shape = ps.shape;
-        shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 0.15f;
-        var renderer = go.GetComponent<ParticleSystemRenderer>();
-        Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-        if (shader != null)
-        {
-            var material = new Material(shader);
-            material.SetColor("_BaseColor", Color.white);
-            renderer.sharedMaterial = material;
-        }
-
-        return ps;
-    }
-
     // --- Tells ---
 
-    // Parry: a white-hot band runs up his cracks over the tell and the blade flashes as it ends. Rasp, then the bell.
+    // Parry: the steel rasp, then the high bell. No light: the raised blade is the tell.
     public void Glint(float duration)
     {
-        glintStart = Time.time;
-        glintLength = Mathf.Max(duration, 0.1f);
         Play(rasp, 0.7f);
         Play(bell, 0.9f);
     }
 
-    // Roll: the left hand goes ember-red with sparks, and an inhaled drone rises.
-    public void Ember(float duration)
+    // Roll: an inhaled drone rises under the wind-up.
+    public void Ember(float duration) => Loop(drone, duration);
+
+    // A spell's charge: his cracks brighten from now until it lands `duration` from now, then settle.
+    public void Charge(float duration)
     {
-        emberUntil = Time.time + duration + 0.15f;
-        Loop(drone, duration);
-        var emission = emberSparks.emission;
-        emission.rateOverTime = 70f;
-        emberSparks.Play();
+        chargeStart = Time.time;
+        chargeLength = Mathf.Max(duration, 0.1f);
+        chargeEnd = -1f;
     }
 
-    // The Command: ember light swells in the palm and lights the hall (hard shadows), a deep drone under it.
+    // The Command: ember light swells in the palm and lights the hall (hard shadows), a deep drone under it. It's lit
+    // from the first frame, so the safe shadows are drawn the whole tell, and the cracks charge with it.
     public void Palm(float duration)
     {
         palmStart = Time.time;
@@ -174,6 +142,7 @@ public class BossTell : MonoBehaviour
         palmLight.enabled = true;
         palmLight.shadows = LightShadows.Hard;
         Loop(deepDrone, duration);
+        Charge(duration);
     }
 
     // Threads: a hiss as the hand flicks.
@@ -188,7 +157,8 @@ public class BossTell : MonoBehaviour
     public void Deflect()
     {
         Play(deflect, 1f);
-        tipFlash = 1f;
+        if (swordTip != null)
+            HitSpark.Spawn(swordTip.position, Vector3.up, new Color(1f, 0.85f, 0.5f), 14);
     }
 
     public void GuardSpark(Vector3 point)
@@ -213,61 +183,71 @@ public class BossTell : MonoBehaviour
 
     public void StopTells()
     {
-        glintStart = -1f;
-        emberUntil = -1f;
         palmStart = -1f;
         palmLight.enabled = false;
         palmLight.shadows = LightShadows.None;
         loop.Stop();
-        var emission = emberSparks.emission;
-        emission.rateOverTime = 0f;
+        // A charge cut short (a broken Gather, a stagger) settles from wherever it got to.
+        if (chargeStart >= 0f)
+            SettleCharge();
         Shader.SetGlobalVector(GlintColorId, Vector4.zero);
+    }
+
+    private void SettleCharge()
+    {
+        chargeFrom = ChargeLevel;
+        chargeStart = -1f;
+        chargeEnd = Time.time;
+    }
+
+    private float Charged()
+    {
+        if (chargeStart >= 0f)
+        {
+            float elapsed = Time.time - chargeStart;
+            if (elapsed >= chargeLength)
+            {
+                // Landed: hold the peak a beat, then settle.
+                if (elapsed - chargeLength >= 0.12f)
+                {
+                    chargeFrom = chargePeak;
+                    chargeStart = -1f;
+                    chargeEnd = Time.time;
+                }
+                return chargePeak;
+            }
+
+            // Eased in, so the climb reads as building toward the release; a pulse that quickens as it nears.
+            float t = elapsed / chargeLength;
+            float k = t * t * (3f - 2f * t);
+            float pulse = 1f + chargePulse * k * Mathf.Sin(elapsed * Mathf.Lerp(6f, 22f, t));
+            return Mathf.Lerp(1f, chargePeak, k) * pulse;
+        }
+
+        if (chargeEnd >= 0f)
+        {
+            float t = (Time.time - chargeEnd) / Mathf.Max(chargeFade, 0.05f);
+            if (t >= 1f)
+            {
+                chargeEnd = -1f;
+                return 1f;
+            }
+
+            return Mathf.Lerp(chargeFrom, 1f, t * t * (3f - 2f * t));
+        }
+
+        return 1f;
     }
 
     private void Update()
     {
         float scale = EmberScale * DarkBoost;
 
-        // Glint band: from his feet to his crown across the tell, strongest as it nears the top.
-        if (glintStart >= 0f)
-        {
-            float t = (Time.time - glintStart) / glintLength;
-            if (t >= 1f)
-            {
-                glintStart = -1f;
-                tipFlash = 1f;
-                Shader.SetGlobalVector(GlintColorId, Vector4.zero);
-            }
-            else
-            {
-                float baseY = transform.position.y;
-                float height = baseY + Mathf.Lerp(0.2f, bodyHeight, t);
-                Shader.SetGlobalVector(GlintBandId, new Vector4(height, bodyHeight * 0.12f, 0f, 0f));
-                Color c = glintColor;
-                Shader.SetGlobalVector(GlintColorId, new Vector4(c.r, c.g, c.b, glintStrength * scale * Mathf.SmoothStep(0.3f, 1f, t + 0.3f)));
-            }
-        }
-
-        // Blade flash at the end of a glint (and on a deflect).
-        tipFlash = Mathf.MoveTowards(tipFlash, 0f, Time.deltaTime * 6f);
-        tipLight.enabled = tipFlash > 0f;
-        tipLight.intensity = tipFlash * 12f * scale;
-
-        // Ember hand.
-        bool ember = Time.time < emberUntil;
-        emberLight.enabled = ember;
-        emberLight.intensity = ember ? emberLightIntensity * scale * (0.8f + 0.2f * Mathf.Sin(Time.time * 30f)) : 0f;
-        if (ember == false && emberSparks.isEmitting)
-        {
-            var emission = emberSparks.emission;
-            emission.rateOverTime = 0f;
-        }
-
-        // Palm light swells over the Command's tell.
+        // Palm light: lit from the start of the Command's tell (the shadows are readable throughout), swelling to full.
         if (palmStart >= 0f)
         {
             float t = Mathf.Clamp01((Time.time - palmStart) / palmLength);
-            palmLight.intensity = palmLightIntensity * scale * t * t;
+            palmLight.intensity = palmLightIntensity * scale * Mathf.Lerp(0.3f, 1f, t * t);
             if (Time.time - palmStart > palmLength + 0.25f)
             {
                 palmStart = -1f;
@@ -276,8 +256,9 @@ public class BossTell : MonoBehaviour
             }
         }
 
-        // The cracks' resting glow, brighter while a tell is up.
-        float glow = crackGlow * scale * (ember || palmStart >= 0f ? 1.6f : 1f);
+        // The cracks: their resting glow, climbing while a spell charges.
+        ChargeLevel = Charged();
+        float glow = crackGlow * scale * ChargeLevel;
         foreach (Renderer r in bodyRenderers)
         {
             r.GetPropertyBlock(block);

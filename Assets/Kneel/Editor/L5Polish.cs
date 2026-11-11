@@ -8,7 +8,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace Kneel.EditorTools
 {
-    // The L5 throne room's art polish (owner, 2026-11-12), applied to the scene in place (L5Level's Build Scene is never
+    // The L5 throne room's art polish (owner, 2026-11-11), applied to the scene in place (L5Level's Build Scene is never
     // rerun over the hand-tuned scene). Each pass is safe to rerun.
     // - Glow: "candles should have distinct small light sources, never a giant blob of glow"; the bosses' light only
     //   from their ember cracks, clean, not fuzz. A tight bloom, no halo sprites or fire glow sprites, matte boss

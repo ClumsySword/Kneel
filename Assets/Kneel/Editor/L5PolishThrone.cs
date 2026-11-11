@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Kneel.EditorTools
 {
-    // The throne and the wall behind it (owner, 2026-11-12: "the backwall of the throne room looks unfinished. The chair
+    // The throne and the wall behind it (owner, 2026-11-11: "the backwall of the throne room looks unfinished. The chair
     // looks cheap and the wall behind it is plain. Please make these look premium within the scope of the art style
     // (low poly) synty.").
     // - The throne is fitted to the Master as he really sits (his seated clip sampled on his rig at the throne seat):
