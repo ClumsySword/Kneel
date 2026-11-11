@@ -109,6 +109,9 @@ namespace Kneel.EditorTools
                 Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
                 float k = animator.humanScale / Mathf.Max(hand.lossyScale.x, 1e-4f);
                 Transform socket = EnemyRig.SwordSocket(animator, HumanBodyBones.RightHand, 12f, "Socket_SwordHand", 0.035f * k, 0.03f * k);
+                // Onto the centre of the tunnel his fist leaves (owner, 2026-11-11: "check that they hold the sword
+                // correctly"): set from the knuckles alone, the handle ran over the outside of his curled fingers.
+                FistGrip.At(animator, model, HumanBodyBones.RightHand, FingerCurl, ThumbCurl, socket, 1f, out _);
                 GameObject sword = EnemyRig.Equip(socket, MasterSword);
                 Mesh swordMesh = sword.GetComponentInChildren<MeshFilter>().sharedMesh;
                 float swordScale = MasterSwordLength / swordMesh.bounds.size.y;
