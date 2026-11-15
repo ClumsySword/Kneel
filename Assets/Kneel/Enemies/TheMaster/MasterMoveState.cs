@@ -89,7 +89,7 @@ public class MasterMoveState : EnemyState
                 master.bossTell?.Palm(commandTell);
                 master.RaiseCommandTell(commandTell);
                 // The circle the fire will strike: it follows Kael until commandLock before the strike.
-                ring = EmberRing.Spawn(S.emberMaterial, master.player.position, S.commandRadius);
+                ring = EmberRing.Spawn(S.emberMaterial, master.player.position, master.transform.position, S.commandRadius, commandTell);
                 break;
             case MasterP1.MoveKind.Threads:
                 StartBlow("Threads", S.threadsTell, master.threadsRelease, glint: false);

@@ -86,7 +86,7 @@ public class FireRain : MonoBehaviour
             at = owner.player.position;
         else
             at = RandomPoint();
-        drops.Add(new Drop { at = at, lands = Time.time + S.rainTell, ring = EmberRing.Spawn(S.emberMaterial, at, S.rainRadius) });
+        drops.Add(new Drop { at = at, lands = Time.time + S.rainTell, ring = EmberRing.Spawn(S.emberMaterial, at, owner.transform.position, S.rainRadius, S.rainTell) });
     }
 
     // Somewhere on the arena floor, clear of him and of the strikes already marked.

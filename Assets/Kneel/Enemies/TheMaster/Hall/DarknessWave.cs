@@ -111,6 +111,19 @@ public class DarknessWave : MonoBehaviour, Kneel.Hazards.ILevelResettable
         hold = seconds > 0f ? seconds : holdTime;
     }
 
+    // Dark until  (game time), then the hall relights as usual: the Gather's (owner, 2026-11-15: the hall always
+    // goes dark while he gathers, and lights up again after). A wave already under way is held rather than restarted.
+    public void HoldUntil(float time)
+    {
+        if (started < 0f)
+        {
+            Begin(Mathf.Max(0.1f, time - Time.time - waveTime - fadeEach));
+            return;
+        }
+
+        hold = Mathf.Max(hold, time - started - waveTime - fadeEach);
+    }
+
     private void Update()
     {
         if (started < 0f)

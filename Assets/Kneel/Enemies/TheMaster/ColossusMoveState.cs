@@ -12,7 +12,7 @@ using UnityEngine;
 // - Leap: a shadow follows the player and locks; he lands in it.
 // - Great Command (mask light): the whole hall, cover only; a kneel, then an escapable Hammerfall.
 // - Gather (owner, 2026-11-15): down on one knee, untouchable, while fire rains on the arena (FireRain) and the threads
-//   gather into him; then he rises, healed 8%, and the hall goes dark.
+//   gather into him, the hall dark (the director); then he rises, healed 8%, and the hall lights up again.
 // - Thread Lash: five burning lines fanned at the player.
 public class ColossusMoveState : EnemyState
 {
@@ -126,7 +126,7 @@ public class ColossusMoveState : EnemyState
                 colossus.bossTell?.Palm(commandTell);
                 colossus.RaiseCommandTell(commandTell);
                 // As the Master's Command (owner, 2026-11-15): a circle follows Kael, locks, and fire strikes it.
-                ring = EmberRing.Spawn(S.emberMaterial, colossus.player.position, S.greatCommandRadius);
+                ring = EmberRing.Spawn(S.emberMaterial, colossus.player.position, colossus.transform.position, S.greatCommandRadius, commandTell);
                 break;
             case AshColossus.MoveKind.Gather:
                 // Owner, 2026-11-15: he goes down to one knee and stays there, untouchable, while fire rains on the

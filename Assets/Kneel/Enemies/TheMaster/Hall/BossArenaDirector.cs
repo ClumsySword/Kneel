@@ -10,7 +10,7 @@ using UnityEngine;
 //   0.5 s of one (MasterP1.HazardImpactNear).
 // - The statues bow at every Command.
 // - Phase 2 (§6, §8): at his 50% roar the four statues topple inward and the ash storm starts; a Gather thickens the
-//   storm and pulls threads into him, and if it completes the hall goes dark; a darkness wave also comes every
+//   storm, pulls threads into him and holds the hall dark until he rises; a darkness wave also comes every
 //   35-45 s (never during a Great Command); the panel under a Hammerfall gives way 3 s after it; a second Cleave on
 //   the same panel cracks it.
 public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
@@ -72,6 +72,8 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
             colossus.OnGatherStart += () =>
             {
                 ashStorm?.Thicken(colossus.settings.gatherTime);
+                // Dark through the whole Gather; the hall relights as he rises (his get-up is its last 1.3 s).
+                darkness?.HoldUntil(Time.time + colossus.settings.gatherTime - 1.3f);
                 // Owner, 2026-11-15: more threads join him as it goes on, a batch every gatherThreadEvery seconds.
                 StartCoroutine(GatherThreads(colossus));
             };
@@ -79,7 +81,6 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
             colossus.OnGatherComplete += () =>
             {
                 ReleaseGatherThreads();
-                darkness?.Begin();
                 nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
             };
             colossus.OnHammerfall += at =>

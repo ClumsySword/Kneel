@@ -849,6 +849,8 @@ namespace Kneel.EditorTools
             storm?.Begin();
             yield return StartP2(AshColossus.MoveKind.Gather, 10f);
             yield return 5f;
+            var dark = UnityEngine.Object.FindAnyObjectByType<DarknessWave>();
+            Check("the hall is dark while he gathers", dark != null && dark.Darkness > 0.9f, dark != null ? dark.Darkness.ToString("F2") : "no wave");
             Check("the storm widens to 3 R while he gathers", storm != null && storm.Width >= storm.gatherBand - 0.5f, storm != null ? storm.Width.ToString("F1") + " m" : "no storm");
             Shot("P2_Gather");
             yield return (Func<bool>)(() => P2Move == null || P2Move.Landed);
@@ -856,7 +858,8 @@ namespace Kneel.EditorTools
             float healed = colossus.health.Current - before;
             Check("he heals " + (S2.gatherHeal * 100f) + "%", Mathf.Abs(healed - colossus.health.Max * S2.gatherHeal) < 1f, healed.ToString("F1"));
             var darkness = UnityEngine.Object.FindAnyObjectByType<DarknessWave>();
-            Check("and the hall goes dark", darkness != null && darkness.Active, "");
+            yield return 2.5f;
+            Check("and the hall lights up again as he rises", darkness != null && darkness.Darkness < 0.05f, darkness != null ? darkness.Darkness.ToString("F2") : "no wave");
             storm?.Stop();
             yield return P2WaitMoveEnds();
         }
