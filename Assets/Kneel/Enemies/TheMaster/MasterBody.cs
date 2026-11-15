@@ -21,6 +21,9 @@ public abstract class MasterBody : Enemy, IHallBoss
     // Set by MasterBoss; the arena's hazard director can veto a blow that would land on top of a hazard (§8 pacing).
     public static System.Func<float, bool> HazardImpactNear;
 
+    // For the dev tool (MasterDevTool): between moves he waits, and only starts the one it asks for.
+    public static bool DevHold;
+
     // Hits pass through him (the intro, the beats, the transition, the fall).
     public bool Untouchable { get; set; }
 

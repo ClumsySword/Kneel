@@ -122,7 +122,7 @@ public class ColossusCircleState : EnemyState
         if (to.sqrMagnitude > 0.01f)
             colossus.transform.rotation = Quaternion.RotateTowards(colossus.transform.rotation, Quaternion.LookRotation(to), TurnRate * Time.deltaTime);
 
-        if (colossus.Engaged && colossus.Untouchable == false && Time.time >= until)
+        if (colossus.Engaged && colossus.Untouchable == false && Time.time >= until && MasterBody.DevHold == false)
             colossus.BeginNextMove();
     }
 }

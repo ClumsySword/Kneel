@@ -260,7 +260,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnStrikePressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true || IsRestricted == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || MasterDevTool.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -299,7 +299,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnHeavyPressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true || IsRestricted == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || MasterDevTool.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -893,10 +893,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         animator.CrossFadeInFixedTime(IsBlocking ? "Block" : "ArmedIdle", 0.12f, upperBodyLayer);
     }
 
+    // For dev tools (MasterDevTool): nothing lands on the player at all, as if they weren't there.
+    [System.NonSerialized]
+    public bool devPassThrough;
+
     public void TakeHit(DamageInfo info)
     {
         bool rolling = State == CombatState.Dodging;
-        if (IsShielded == true || (IsInvulnerable == true && (info.ignoresRoll == false || rolling == false)) || IsDead == true)
+        if (devPassThrough == true || IsShielded == true || (IsInvulnerable == true && (info.ignoresRoll == false || rolling == false)) || IsDead == true)
         {
             return;
         }

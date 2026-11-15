@@ -17,6 +17,10 @@ public class Health : MonoBehaviour
 
     private float lastDamageTime = -999f;
 
+    // For dev tools: damage still lands (and its reactions play) but never takes the last point.
+    [NonSerialized]
+    public bool cannotDie;
+
     public float Current { get; private set; }
 
     public float Max => maxHealth;
@@ -46,7 +50,7 @@ public class Health : MonoBehaviour
             return;
         }
 
-        Current = Mathf.Max(0f, Current - amount);
+        Current = Mathf.Max(cannotDie ? 1f : 0f, Current - amount);
         lastDamageTime = Time.time;
 
         OnDamaged?.Invoke(amount);

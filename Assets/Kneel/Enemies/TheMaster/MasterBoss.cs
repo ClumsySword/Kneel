@@ -88,6 +88,7 @@ public class MasterBoss : MonoBehaviour
         ForceShortIntro = false;
         ForceSkippableUnmaking = false;
         MasterBody.HazardImpactNear = null;
+        MasterBody.DevHold = false;
         MasterP1.ForceNext = null;
         AshColossus.ForceNext = null;
         BossTell.DarkBoost = 1f;
@@ -342,6 +343,21 @@ public class MasterBoss : MonoBehaviour
         player?.ReleaseShield();
         playerCamera?.ClearOverride(0.01f);
     }
+
+    // For the dev tool: Phase 1 at once from wherever the fight is (the seal up, him at the dais foot, the bar filling),
+    // with no intro.
+    public void DevStartFight()
+    {
+        Seat();
+        Current = Beat.Intro;
+        seal?.Kindle();
+        master.agent.enabled = true;
+        master.StandAt(daisFoot.position, daisFoot.rotation);
+        StartCoroutine(FillAndEngage());
+    }
+
+    // For the dev tool: Phase 2 is over (the finisher starts).
+    public void EndPhase2() => colossus.HazardHit(colossus.health.Current + 1f, 0f);
 
     // For the playtest: Phase 1 is over, now (as if the last blow had landed).
     public void EndPhase1() => master.HazardHit(master.health.Current + 1f, 0f);

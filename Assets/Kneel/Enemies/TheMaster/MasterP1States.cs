@@ -196,7 +196,7 @@ public class MasterCircleState : EnemyState
         if (to.sqrMagnitude > 0.01f)
             master.transform.rotation = Quaternion.RotateTowards(master.transform.rotation, Quaternion.LookRotation(to), TurnRate * Time.deltaTime);
 
-        if (master.Engaged && master.Untouchable == false && Time.time >= until)
+        if (master.Engaged && master.Untouchable == false && Time.time >= until && MasterBody.DevHold == false)
             master.BeginNextMove();
     }
 }

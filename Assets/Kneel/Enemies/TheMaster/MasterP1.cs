@@ -339,6 +339,17 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         stateMachine.ChangeState(circleState);
     }
 
+    // For the dev tool: the 50% beat now (his health taken to half if it's above), even if it has played already.
+    public void DevHalfBeat()
+    {
+        if (health.Fraction > 0.5f)
+            health.ApplyDamage(health.Current - health.Max * 0.5f);
+        halfReached = false;
+        TryHalfBeat();
+    }
+
+    public bool InCircle => stateMachine.currentState == circleState;
+
     private bool TryHalfBeat()
     {
         if (halfReached || health.Fraction > 0.5f || IsDead)
