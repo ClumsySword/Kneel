@@ -11,7 +11,7 @@ using UnityEngine;
 // Regal Guard. A parry drives him to one knee (critical window), except on Sentence's first two sweeps (deflected).
 public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
 {
-    public enum MoveKind { Decree, Sentence, Seize, Command, Threads, Guard }
+    public enum MoveKind { Decree, Sentence, Command, Threads, Guard }
 
     private static readonly int LeftArmRestId = Animator.StringToHash("LeftArmRest");
 
@@ -20,13 +20,14 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
     // front of him). The move states play each clip at whatever speed puts that moment at the end of its tell.
     public float decreeContact = 0.75f;
     public float[] sentenceContacts = { 0.4f, 0.4f, 0.4f };
-    public float seizeContact = 1f;
     public float commandRelease = 1f;
     public float threadsRelease = 0.8f;
     public float thrustContact = 0.9f;
     public float pommelContact = 1.2f;
-    // The stagger clip's length (Large Hit Reaction), fitted to each stagger's window.
+    // The parried reel's clip (Large Hit Reaction), and the stagger's kneel down and back up.
     public float staggerLength = 1.37f;
+    public float kneelDownLength = 1.6f;
+    public float kneelUpLength = 2f;
 
     // Raised when a beat starts, for the hall and the Ash hooks (§9): Command tell (seconds), Threads tell, the 50% beat.
     public event System.Action<float> OnCommandTell;
@@ -41,7 +42,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
     public MasterCircleState circleState { get; private set; }
     public MasterMoveState decreeState { get; private set; }
     public MasterMoveState sentenceState { get; private set; }
-    public MasterMoveState seizeState { get; private set; }
     public MasterMoveState commandState { get; private set; }
     public MasterMoveState threadsState { get; private set; }
     public MasterMoveState guardState { get; private set; }
@@ -56,7 +56,7 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
     public bool IsStaggered => stateMachine.currentState == parriedState || stateMachine.currentState == staggerState;
 
     // The opening is fixed; then the picker takes over (§4).
-    private static readonly MoveKind[] Opening = { MoveKind.Decree, MoveKind.Command, MoveKind.Sentence, MoveKind.Seize };
+    private static readonly MoveKind[] Opening = { MoveKind.Decree, MoveKind.Command, MoveKind.Sentence };
     private int openingIndex;
     private readonly List<MoveKind> history = new List<MoveKind>();
     private readonly Dictionary<MoveKind, float> readyAt = new Dictionary<MoveKind, float>();
@@ -79,7 +79,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         circleState = new MasterCircleState(this, stateMachine, "Circle");
         decreeState = new MasterMoveState(this, stateMachine, "Decree", MoveKind.Decree);
         sentenceState = new MasterMoveState(this, stateMachine, "Sentence", MoveKind.Sentence);
-        seizeState = new MasterMoveState(this, stateMachine, "Seize", MoveKind.Seize);
         commandState = new MasterMoveState(this, stateMachine, "Command", MoveKind.Command);
         threadsState = new MasterMoveState(this, stateMachine, "Threads", MoveKind.Threads);
         guardState = new MasterMoveState(this, stateMachine, "Guard", MoveKind.Guard);
@@ -96,6 +95,7 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         ApplySettings();
         health.SetMax(settings.maxHealth, true);
         stateMachine.Initialize(seatedState);
+        grip = SwordGrip.On(this);
     }
 
     protected override void Update()
@@ -103,7 +103,19 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         ApplySettings();
         base.Update();
         stateMachine.currentState.Update();
+        // The Regal Guard's crossed blade is a two-handed block: the sword is held upright in front of him instead.
+        if (grip != null)
+        {
+            grip.Mode = SwordGrip.Hold.Upright;
+            grip.Weight = stateMachine.currentState is MasterMoveState m && m.Kind == MoveKind.Guard && m.Thrusting == false ? 1f : 0f;
+        }
     }
+
+    private SwordGrip grip;
+
+    // The stagger meter under the bar: how full it is (0-1), and while staggered, the share of the window left (else -1).
+    public float StaggerMeter => 1f - poise.Fraction;
+    public float StaggerWindowLeft => stateMachine.currentState == staggerState ? staggerState.Left : -1f;
 
     private void ApplySettings()
     {
@@ -171,9 +183,9 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         float distance = PlayerDistance();
         var weights = new List<(MoveKind kind, float weight)>();
         if (distance < settings.bandNear)
-            weights.AddRange(new[] { (MoveKind.Sentence, 35f), (MoveKind.Decree, 25f), (MoveKind.Seize, 25f), (MoveKind.Guard, 15f) });
+            weights.AddRange(new[] { (MoveKind.Sentence, 45f), (MoveKind.Decree, 35f), (MoveKind.Guard, 20f) });
         else if (distance < settings.bandMid)
-            weights.AddRange(new[] { (MoveKind.Seize, 30f), (MoveKind.Decree, 25f), (MoveKind.Guard, 25f), (MoveKind.Command, 20f) });
+            weights.AddRange(new[] { (MoveKind.Decree, 35f), (MoveKind.Guard, 35f), (MoveKind.Command, 30f) });
         else
             weights.AddRange(new[] { (MoveKind.Command, 40f), (MoveKind.Threads, halfReached ? 120f : 60f) });
 
@@ -213,7 +225,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         {
             case MoveKind.Decree: return settings.decreeReach - 0.6f;
             case MoveKind.Sentence: return settings.sentenceReach - 0.8f;
-            case MoveKind.Seize: return settings.seizeLunge;
             case MoveKind.Guard: return settings.bandMid;
             case MoveKind.Command: return settings.bandFar;
             default: return settings.bandFar;
@@ -226,7 +237,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         {
             case MoveKind.Decree: return decreeState;
             case MoveKind.Sentence: return sentenceState;
-            case MoveKind.Seize: return seizeState;
             case MoveKind.Command: return commandState;
             case MoveKind.Threads: return threadsState;
             default: return guardState;
@@ -276,7 +286,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         {
             case MoveKind.Decree: return settings.decreeTell;
             case MoveKind.Sentence: return settings.sentenceTell1;
-            case MoveKind.Seize: return settings.seizeTell;
             case MoveKind.Command: return firstCommandDone ? settings.commandTell : settings.commandTellFirst;
             case MoveKind.Threads: return settings.threadsTell;
             default: return -1f;
@@ -307,7 +316,6 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         {
             case MoveKind.Command: readyAt[kind] = Time.time + settings.commandCooldown; break;
             case MoveKind.Guard: readyAt[kind] = Time.time + settings.guardCooldown; break;
-            case MoveKind.Seize: readyAt[kind] = Time.time + settings.seizeCooldown; break;
             case MoveKind.Threads: readyAt[kind] = Time.time + (halfReached ? settings.threadsCooldownLate : settings.threadsCooldown); break;
         }
 
@@ -390,8 +398,11 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         }
 
         bool armoured = move != null && move.Armoured;
+        // Owner, 2026-11-15: the player's blows only take his health while he's staggered; the rest fill his stagger meter.
+        bool open = stateMachine.currentState == staggerState;
         float amount = armoured ? info.amount * settings.windupDamageMultiplier : info.amount;
-        health.ApplyDamage(amount);
+        if (open || info.isEnvironmental)
+            health.ApplyDamage(amount);
         if (info.isEnvironmental == false)
             Flash();
 
@@ -409,7 +420,7 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
         if (IsStaggered || stateMachine.currentState == pommelState)
             return;
 
-        bool broke = poise.ApplyDamage(info.poiseDamage);
+        bool broke = poise.ApplyDamage(armoured ? info.poiseDamage * settings.windupDamageMultiplier : info.poiseDamage);
         if (move != null)
         {
             // In a move: the blow carries on. A break waits for it to end (§1).
@@ -453,6 +464,15 @@ public class MasterP1 : MasterBody, IDamageable, IParryable, IStaggerable
     {
         if (IsDead || Untouchable)
             return;
+
+        // Every parry fills the stagger meter; a full meter drops him to his knee at once.
+        bool broke = IsStaggered == false && poise.ApplyDamage(settings.parryPoise);
+        if (broke)
+        {
+            bossTell?.Kneel();
+            staggerState.Begin(settings.poiseStaggerTime);
+            return;
+        }
 
         if (stateMachine.currentState is MasterMoveState move && move.OnParried())
             return;

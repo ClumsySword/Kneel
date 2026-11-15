@@ -120,6 +120,8 @@ public class ColossusMoveState : EnemyState
                 StartBlow("Command", commandTell, colossus.commandRelease);
                 colossus.bossTell?.Palm(commandTell);
                 colossus.RaiseCommandTell(commandTell);
+                // As the Master's Command (owner, 2026-11-15): a circle follows Kael, locks, and fire strikes it.
+                mark = SpellMark.Ring(colossus.player.position, colossus.transform.position, S.greatCommandRadius, commandTell, bold: 2.4f);
                 break;
             case AshColossus.MoveKind.Gather:
                 tell = S.gatherTime;
@@ -143,7 +145,6 @@ public class ColossusMoveState : EnemyState
     {
         base.Exit();
         colossus.SetMoveSpeed(1f);
-        colossus.StickBlade(false);
         colossus.bossTell?.StopTells();
         if (mark != null)
             mark.Release();
@@ -183,13 +184,6 @@ public class ColossusMoveState : EnemyState
             case AshColossus.MoveKind.Leap: UpdateLeap(); break;
             case AshColossus.MoveKind.Gather: UpdateGather(); break;
             default: UpdateSingle(); break;
-        }
-
-        if (kind == AshColossus.MoveKind.Cleave && landed && colossus.BladeStuck && elapsed >= punishUntil - 0.45f)
-        {
-            colossus.StickBlade(false);
-            colossus.SetMoveSpeed(1.6f);
-            ColossusFx.Burst(colossus, colossus.swordTip.position, 0.8f, 20);
         }
 
         if (landed && elapsed >= punishUntil && finished == false)
@@ -243,6 +237,19 @@ public class ColossusMoveState : EnemyState
                 mark.Lock();
         }
 
+        if (mark != null && kind == AshColossus.MoveKind.GreatCommand && landed == false)
+        {
+            if (elapsed < contactAt - S.greatCommandLock)
+            {
+                mark.Aim(colossus.player.position, colossus.player.position - colossus.transform.position);
+            }
+            else if (mark.Locked == false)
+            {
+                mark.Lock();
+                FireStrike.Begin(mark.Origin, S.greatCommandRadius, S.greatCommandLock);
+            }
+        }
+
         if (landed || elapsed < contactAt)
             return;
 
@@ -259,10 +266,8 @@ public class ColossusMoveState : EnemyState
                 ColossusFx.Burst(colossus, blade, 1.2f, 30);
                 Shake(0.25f);
                 colossus.RaiseCleave(blade);
+                // The follow-through plays out (owner, 2026-11-15: no more dragging the blade out of the floor).
                 punishUntil = elapsed + S.cleavePunish;
-                // The blade bites into the floor and he holds there, hauling at it, until it tears free.
-                colossus.SetMoveSpeed(0.03f);
-                colossus.StickBlade(true);
                 break;
             }
             case AshColossus.MoveKind.Sweep:
@@ -314,9 +319,13 @@ public class ColossusMoveState : EnemyState
             }
             case AshColossus.MoveKind.GreatCommand:
                 colossus.bossTell?.Bell();
-                if (CommandReaches())
+                Vector3 struck = mark != null ? mark.Origin : colossus.player.position;
+                if (mark != null)
+                    mark.Release();
+                mark = null;
+                if (HallActors.FlatDistance(colossus.player.position, struck) <= S.greatCommandRadius + 0.3f)
                 {
-                    colossus.Deal(S.greatCommandDamage, 0f, true, true, S.greatCommandKneel, 0f, colossus.player.position - at, ignoresRoll: true);
+                    colossus.Deal(S.greatCommandDamage, 0f, true, true, S.greatCommandKneel, 0f, colossus.player.position - struck);
                     followupHit = Time.time;
                     followupAt = Time.time + S.greatCommandKneel + S.greatCommandFollowupGap - S.hammerTell;
                     followupFar = colossus.PlayerDistance() > colossus.StartRange(AshColossus.MoveKind.Hammerfall);
@@ -347,15 +356,6 @@ public class ColossusMoveState : EnemyState
                 break;
             }
         }
-    }
-
-    // The Great Command's line of sight (§6, decided): a ray from the mask's light to Kael's chest, anywhere in the
-    // hall. What the drawn shadow covers is exactly what's safe.
-    private bool CommandReaches()
-    {
-        Vector3 from = colossus.bossTell != null ? colossus.bossTell.PalmLightPosition : colossus.transform.position + Vector3.up * 5f;
-        Vector3 chest = colossus.player.position + Vector3.up * 1.2f;
-        return BossTell.LineOfSight(from, chest, colossus.transform, colossus.player);
     }
 
     // --- Grasp: the claw lunges along a locked line and closes ---
@@ -443,6 +443,8 @@ public class ColossusMoveState : EnemyState
         if (HallActors.FlatDistance(colossus.player.position, target) <= S.leapRadius)
             colossus.Deal(S.leapDamage, 50f, true, true, 0f, 0.8f, colossus.player.position - target);
         ColossusFx.Burst(colossus, target, S.leapRadius, 60);
+        // The floor cracks under him for a moment (owner, 2026-11-15).
+        GroundCracks.Spawn(LandingPoint(), S.leapRadius * 0.85f, 9, 0.9f);
         Shake(0.5f);
         if (shadow != null)
             Object.Destroy(shadow);

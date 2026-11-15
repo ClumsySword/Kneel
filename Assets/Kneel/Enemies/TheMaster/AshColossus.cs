@@ -133,6 +133,7 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
         base.Start();
         ApplySettings();
         health.SetMax(settings.p2MaxHealth, true);
+        grip = SwordGrip.On(this);
         Untouchable = true;
         if (stateMachine.currentState == null)
         {
@@ -152,7 +153,21 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
         ApplySettings();
         base.Update();
         stateMachine.currentState.Update();
+        // His Mutant clips flap an open claw at the wrist; the sword hand is held straight to the forearm instead, except
+        // in the Cleave (a sword clip of its own).
+        if (grip != null)
+        {
+            grip.Mode = SwordGrip.Hold.Forearm;
+            grip.Weight = Present && stateMachine.currentState != cleaveState ? 1f : 0f;
+        }
     }
+
+    private SwordGrip grip;
+
+    // The stagger meter under the bar: how near his poise is to breaking (0-1), and while toppled, the share of the
+    // window left (else -1).
+    public float StaggerMeter => 1f - poise.Fraction;
+    public float StaggerWindowLeft => stateMachine.currentState == toppleState ? toppleState.Left : -1f;
 
     private void ApplySettings()
     {
@@ -565,34 +580,4 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
     public void RaiseCleave(Vector3 at) => OnCleave?.Invoke(at);
 
     public void Heal(float fraction) => health.Heal(health.Max * fraction);
-
-    // --- The Cleave's blade in the floor ---
-
-    // While set, the sword is turned about his fist so its tip sinks into the floor ahead of him (§6: "the blade sticks
-    // in the floor"). The Decree clip's follow-through carries the blade under him, so the stuck blade is posed here.
-    private bool bladeStuck;
-    private float bladeWeight;
-
-    public void StickBlade(bool stuck) => bladeStuck = stuck;
-
-    public bool BladeStuck => bladeStuck;
-
-    private void LateUpdate()
-    {
-        bladeWeight = Mathf.MoveTowards(bladeWeight, bladeStuck ? 1f : 0f, Time.deltaTime * (bladeStuck ? 12f : 4f));
-        if (bladeWeight <= 0f || swordTip == null || BodyVisible == false)
-            return;
-
-        Transform sword = swordTip.parent;
-        Vector3 grip = sword.position;
-        float length = Vector3.Distance(grip, swordTip.position);
-        float floor = transform.position.y - 0.35f;
-        float drop = Mathf.Max(0.1f, grip.y - floor);
-        Vector3 ahead = transform.forward;
-        float reach = drop < length ? Mathf.Sqrt(length * length - drop * drop) : 0f;
-        Vector3 into = new Vector3(grip.x, floor, grip.z) + ahead * reach;
-        Vector3 want = (into - grip).normalized;
-        Quaternion turn = Quaternion.FromToRotation(swordTip.position - grip, want);
-        sword.rotation = Quaternion.Slerp(Quaternion.identity, turn, bladeWeight) * sword.rotation;
-    }
 }

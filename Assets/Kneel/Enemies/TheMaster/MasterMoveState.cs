@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// One of the Master's six Phase 1 moves (The Master.md §4). Each has its own animator bool and plays its clip at the
+// One of the Master's five Phase 1 moves (the Seize was cut, owner 2026-11-15) (The Master.md §4). Each has its own animator bool and plays its clip at the
 // speed that lands its contact at the end of its tell, so tells are tuned live in MasterSettings. Until a blow lands
 // he is armoured (hits do half damage, no flinch); he tracks the player until he commits.
 public class MasterMoveState : EnemyState
@@ -19,10 +19,6 @@ public class MasterMoveState : EnemyState
     private int swing;
     private float swingStart;
     private bool cancelled;
-
-    // Seize: the lunge's locked line and how far along it he is.
-    private Vector3 line;
-    private float lunged;
 
     // Command: a follow-up Decree is due at this time (after the player rises); out of its reach, he strides in.
     private float followupAt = -1f;
@@ -76,7 +72,7 @@ public class MasterMoveState : EnemyState
         punishUntil = float.MaxValue;
         swing = 0;
         swingStart = 0f;
-        lunged = 0f;
+        clipEndSet = false;
         master.SetLeftArmRest(kind == MasterP1.MoveKind.Decree || kind == MasterP1.MoveKind.Sentence);
 
         switch (kind)
@@ -87,15 +83,13 @@ public class MasterMoveState : EnemyState
             case MasterP1.MoveKind.Sentence:
                 StartSweep(0);
                 break;
-            case MasterP1.MoveKind.Seize:
-                StartBlow("Seize", S.seizeTell, master.seizeContact, glint: false);
-                master.bossTell?.Ember(S.seizeTell);
-                break;
             case MasterP1.MoveKind.Command:
                 float commandTell = master.CommandTell();
                 StartBlow("Command", commandTell, master.commandRelease, glint: false);
                 master.bossTell?.Palm(commandTell);
                 master.RaiseCommandTell(commandTell);
+                // The circle the fire will strike: it follows Kael until commandLock before the strike.
+                mark = SpellMark.Ring(master.player.position, master.transform.position, S.commandRadius, commandTell, bold: 1.8f);
                 break;
             case MasterP1.MoveKind.Threads:
                 StartBlow("Threads", S.threadsTell, master.threadsRelease, glint: false);
@@ -166,7 +160,6 @@ public class MasterMoveState : EnemyState
         {
             case MasterP1.MoveKind.Sentence: UpdateSentence(); break;
             case MasterP1.MoveKind.Guard: UpdateGuard(); break;
-            case MasterP1.MoveKind.Seize: UpdateSeize(); break;
             default: UpdateSingle(); break;
         }
 
@@ -196,10 +189,22 @@ public class MasterMoveState : EnemyState
 
         if (mark != null && landed == false)
         {
-            if (elapsed < contactAt - S.threadsLock)
-                mark.Aim(ThreadsOrigin(AimAtPlayer()), AimAtPlayer());
-            else
+            bool command = kind == MasterP1.MoveKind.Command;
+            float lockBefore = command ? S.commandLock : S.threadsLock;
+            if (elapsed < contactAt - lockBefore)
+            {
+                if (command)
+                    mark.Aim(master.player.position, master.player.position - master.transform.position);
+                else
+                    mark.Aim(ThreadsOrigin(AimAtPlayer()), AimAtPlayer());
+            }
+            else if (mark.Locked == false)
+            {
                 mark.Lock();
+                // The fire starts falling onto the locked circle.
+                if (command)
+                    FireStrike.Begin(mark.Origin, S.commandRadius, lockBefore);
+            }
         }
 
         if (landed || elapsed < contactAt)
@@ -214,10 +219,15 @@ public class MasterMoveState : EnemyState
                 punishUntil = elapsed + S.decreePunish;
                 break;
             case MasterP1.MoveKind.Command:
-                if (CommandReaches())
+                Vector3 struck = mark != null ? mark.Origin : master.player.position;
+                if (mark != null)
+                    mark.Release();
+                mark = null;
+                if (HallActors.FlatDistance(master.player.position, struck) <= S.commandRadius + 0.3f)
                 {
                     master.bossTell?.Bell();
-                    master.Deal(S.commandDamage, 0f, true, true, S.commandKneel, 0f, master.player.position - master.transform.position, ignoresRoll: true);
+                    // Unblockable and unparryable; a roll's i-frames get through it (the last-moment answer).
+                    master.Deal(S.commandDamage, 0f, true, true, S.commandKneel, 0f, master.player.position - struck);
                     followupHit = Time.time;
                     followupAt = Time.time + S.commandKneel + S.commandFollowupGap - S.decreeTell;
                     followupFar = master.PlayerDistance() > master.StartRange(MasterP1.MoveKind.Decree);
@@ -243,20 +253,6 @@ public class MasterMoveState : EnemyState
                 punishUntil = elapsed + 0.6f;
                 break;
         }
-    }
-
-    // The Command's line of sight (§6, decided): a ray from the palm light to Kael's chest, inside his front cone.
-    // What the drawn shadow covers is exactly what's safe.
-    private bool CommandReaches()
-    {
-        Vector3 to = master.player.position - master.transform.position;
-        to.y = 0f;
-        if (Vector3.Angle(master.transform.forward, to) > S.commandCone * 0.5f)
-            return false;
-
-        Vector3 from = master.bossTell != null ? master.bossTell.PalmLightPosition : master.transform.position + Vector3.up * 4f;
-        Vector3 chest = master.player.position + Vector3.up * 1.2f;
-        return BossTell.LineOfSight(from, chest, master.transform, master.player);
     }
 
     // --- Sentence: three sweeps, each its own glint; the third holds at the top ---
@@ -295,23 +291,36 @@ public class MasterMoveState : EnemyState
                 }
                 else
                 {
-                    punishUntil = elapsed + S.sentencePunish;
+                    // Until the follow-through has played out (set below, once the animator reports the clip).
+                    punishUntil = elapsed + 1.5f;
                 }
             }
             return;
+        }
+
+        if (clipEndSet == false && (swing == 2 || cancelled) && nextSweepAt < 0f)
+        {
+            AnimatorStateInfo info = master.anim.GetCurrentAnimatorStateInfo(0);
+            if (master.anim.IsInTransition(0) == false && (info.IsName("Sentence3") || info.IsName("Sentence2")))
+            {
+                clipEndSet = true;
+                float left = Mathf.Max(0f, 1f - info.normalizedTime) * info.length;
+                punishUntil = elapsed + left + S.sentencePunish;
+            }
         }
 
         if (nextSweepAt >= 0f && elapsed >= nextSweepAt)
         {
             nextSweepAt = -1f;
             if (cancelled)
-                punishUntil = elapsed + S.sentencePunish;
+                punishUntil = elapsed + 1.5f;
             else
                 StartSweep(swing + 1);
         }
     }
 
     private float nextSweepAt = -1f;
+    private bool clipEndSet;
 
     // A parry on a glint. True when the move handles it itself (Sentence's first two sweeps are only deflected; a parry
     // on the second cancels the third); false lets MasterP1 drive him to one knee.
@@ -334,52 +343,6 @@ public class MasterMoveState : EnemyState
         }
 
         return false;
-    }
-
-    // --- Seize: an ember-handed lunge and grab ---
-
-    private void UpdateSeize()
-    {
-        float lockAt = contactAt - S.seizeLock;
-        float lungeAt = contactAt - S.seizeLungeTime;
-
-        if (landed == false && elapsed < lockAt)
-        {
-            Track();
-            line = master.transform.forward;
-        }
-
-        if (landed == false && elapsed >= lungeAt && lunged < S.seizeLunge)
-        {
-            // The lunge: a fast burst along the locked line, stopping at a player still standing in it.
-            float t = Mathf.Clamp01((elapsed - lungeAt) / Mathf.Max(S.seizeLungeTime, 0.05f));
-            float target = S.seizeLunge * (1f - (1f - t) * (1f - t));
-            Vector3 toPlayer = master.player.position - master.transform.position;
-            toPlayer.y = 0f;
-            if (Vector3.Dot(toPlayer, line) > 0f && Vector3.Dot(toPlayer, line) < 1.4f && (toPlayer - line * Vector3.Dot(toPlayer, line)).magnitude < 1f)
-                target = lunged;
-            if (master.agent.enabled && master.agent.isOnNavMesh)
-                master.agent.Move(line * (target - lunged));
-            lunged = target;
-        }
-
-        if (landed || elapsed < contactAt)
-            return;
-
-        landed = true;
-        master.SetMoveSpeed(1f);
-        Vector3 hand = master.transform.position + master.transform.forward * 1.4f;
-        Vector3 offset = master.player.position - hand;
-        offset.y = 0f;
-        if (offset.magnitude <= S.seizeGrabRadius)
-        {
-            // Jerked about 1 m toward him, then slammed to his knees (decided: no paired animation).
-            PlayerCombat combat = master.PlayerCombat;
-            float shove = combat != null ? Mathf.Max(combat.Settings.impactShove, 0.01f) : 1f;
-            master.Deal(S.seizeDamage, 0f, true, true, S.seizeKneel, 1f / shove, master.transform.position - master.player.position);
-        }
-
-        punishUntil = elapsed + S.seizePunish;
     }
 
     // --- Regal Guard: walk in behind the crossed blade, then the thrust ---

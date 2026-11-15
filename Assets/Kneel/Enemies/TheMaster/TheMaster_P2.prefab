@@ -8308,7 +8308,7 @@ MonoBehaviour:
   bossTell: {fileID: 6406201586033433270}
   swordTip: {fileID: 3885458267612147941}
   palm: {fileID: 439934958008107219}
-  walkClipSpeed: 1.8
+  walkClipSpeed: 3.2
   cleaveContact: 0.615
   sweepContact: 1.3
   graspContact: 0.7

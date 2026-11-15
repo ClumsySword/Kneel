@@ -6,7 +6,9 @@ using UnityEngine.AI;
 // The transition, the Unmaking (The Master.md §5, 10 s, both invulnerable). MasterBoss runs it when Phase 1 ends.
 //
 //  0.0  he's down on one knee (MasterFallenState). The camera drops to a low, close frame on him.
-//  0.5  he turns the sword on himself (MasterStabPose): an ember burst and a jolt at the contact.
+//  0.3  the sword falls from his hand to the floor beside him (owner, 2026-11-15: the stab's sword moved wrongly).
+//  0.7  something inside him starts to crack: jolts rack his body (Convulse), each an ember burst from his chest, back
+//       or shoulders, coming faster, then easing as the threads take him.
 //  1.5  the threads go taut: ~60 ember lines from the dead outside into his back (ThreadPull), on the summon clip.
 //  2.5  the first darkness wave (the hall's DarknessWave), until 8.5.
 //  3.0  every brazier still standing goes over, the banners catch fire (visual only).
@@ -44,7 +46,8 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
     public Vector3 RisePoint { get; private set; }
 
     private float began;
-    private MasterStabPose stab;
+    private Convulse convulse;
+    private Transform droppedSword;
     private Transform swordParent;
     private Vector3 swordLocalPosition;
     private Quaternion swordLocalRotation;
@@ -74,10 +77,16 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
         player.Restrict(s.unmakingTime, 1f, allowHeal: true);
         Vector3 knelt = master.transform.position;
 
-        // The low, close frame on him (tilted up about 10 degrees), held through the stab and the threads.
+        // The low, close frame on him (tilted up about 10 degrees), held through the jolts and the threads.
         bool lowShot = true;
         StartCoroutine(LowShot(cam, master.transform, () => lowShot));
 
+        // The jolts (seconds from the start), and how hard each is.
+        float[] jolts = { 0.7f, 1.0f, 1.22f, 1.55f, 1.78f, 2.05f, 2.3f, 2.7f, 3.1f, 3.6f };
+        int jolt = 0;
+        float swordFall = -1f;
+        Vector3 swordFrom = Vector3.zero, swordTo = Vector3.zero;
+        Quaternion swordFromRot = Quaternion.identity, swordToRot = Quaternion.identity;
         bool stabbed = false, lodged = false, dark = false, fell = false, vortex = false, gone = false, risen = false, pulled = false, split = false, relit = false;
         ParticleSystem storm = null;
         while (Time.time - began < s.unmakingTime)
@@ -95,7 +104,7 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
                     t = 7.5f;
                     if (dark == false) { dark = true; darkness?.Begin(1f); }
                     if (fell == false) { fell = true; DropTheHall(master.transform.position, s); }
-                    if (gone == false) { gone = true; HideMaster(master); }
+                    if (gone == false) { gone = true; HideMaster(master); convulse?.Stop(); if (droppedSword != null) droppedSword.gameObject.SetActive(false); }
                     if (risen == false) { risen = true; RisePoint = Raise(colossus, knelt, s, 0.5f); }
                     vortex = true;
                     threads?.Release();
@@ -104,33 +113,59 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
                 }
             }
 
-            if (stabbed == false && t >= 0.5f)
+            if (stabbed == false && t >= 0.3f)
             {
+                // The sword slips out of his hand and falls flat on the floor beside him.
                 stabbed = true;
-                stab = master.GetComponent<MasterStabPose>() ?? master.gameObject.AddComponent<MasterStabPose>();
+                master.bossTell?.StopTells();
                 Transform sword = master.swordTip.parent;
+                droppedSword = sword;
                 swordParent = sword.parent;
                 swordLocalPosition = sword.localPosition;
                 swordLocalRotation = sword.localRotation;
-                stab.Init(master.anim, master.swordTip);
-                stab.Drive(0.35f);
-                master.bossTell?.StopTells();
+                sword.SetParent(null, true);
+                swordFrom = sword.position;
+                swordFromRot = sword.rotation;
+                Vector3 flat = Quaternion.AngleAxis(Random.Range(-25f, 25f), Vector3.up) * master.transform.forward;
+                swordTo = master.transform.position + master.transform.right * 1.3f + master.transform.forward * 0.4f + Vector3.up * 0.06f;
+                swordToRot = Quaternion.LookRotation(Vector3.up, flat);
+                swordFall = Time.time;
+                convulse = Convulse.On(master.anim);
             }
 
-            if (lodged == false && t >= 0.85f)
+            if (swordFall >= 0f && droppedSword != null)
             {
-                lodged = true;
-                // The blade goes in: the cracks blaze, embers burst from his chest.
-                Transform chest = master.anim.GetBoneTransform(HumanBodyBones.UpperChest) ?? master.anim.GetBoneTransform(HumanBodyBones.Chest);
-                Burst(chest.position, 0.6f, 70);
-                if (master.bossTell != null) master.bossTell.EmberScale = 2.5f;
-                cam?.AddShake(0.35f, 0.5f);
+                // Falling (gravity's ease-in), a small bounce as it lands.
+                float f = Mathf.Clamp01((Time.time - swordFall) / 0.45f);
+                float bounce = f >= 1f ? Mathf.Max(0f, Mathf.Sin(Mathf.Clamp01((Time.time - swordFall - 0.45f) / 0.25f) * Mathf.PI)) * 0.08f : 0f;
+                droppedSword.SetPositionAndRotation(Vector3.Lerp(swordFrom, swordTo, f * f) + Vector3.up * bounce, Quaternion.Slerp(swordFromRot, swordToRot, Mathf.SmoothStep(0f, 1f, f)));
+                if (f >= 1f && Time.time - swordFall > 0.75f)
+                    swordFall = -1f;
             }
+
+            while (jolt < jolts.Length && t >= jolts[jolt])
+            {
+                // Something inside him cracks: a jolt through his body, embers bursting out of him somewhere new.
+                float strength = jolt < 6 ? 9f + jolt * 1.5f : 13f - (jolt - 6) * 2f;
+                convulse?.Kick(strength);
+                HumanBodyBones[] from = { HumanBodyBones.UpperChest, HumanBodyBones.Chest, HumanBodyBones.LeftShoulder, HumanBodyBones.RightShoulder, HumanBodyBones.Spine, HumanBodyBones.Neck };
+                Transform bone = master.anim.GetBoneTransform(from[Random.Range(0, from.Length)]) ?? master.transform;
+                Vector3 outward = (bone.position - master.transform.position - Vector3.up * bone.position.y + Vector3.up * master.transform.position.y).normalized;
+                Burst(bone.position + outward * 0.25f, 0.35f, jolt < 6 ? 28 : 18);
+                if (master.bossTell != null) master.bossTell.EmberScale = 2.6f;
+                cam?.AddShake(0.12f + strength * 0.008f, 0.25f);
+                jolt++;
+            }
+
+            if (master.bossTell != null && master.bossTell.EmberScale > 1.4f)
+                master.bossTell.EmberScale = Mathf.MoveTowards(master.bossTell.EmberScale, 1.4f, Time.deltaTime * 4f);
+
+            if (lodged == false && t >= 0.7f)
+                lodged = true;
 
             if (pulled == false && t >= 1.5f)
             {
                 pulled = true;
-                stab?.Lodge();
                 master.anim.CrossFadeInFixedTime("Summon", 0.4f, 0, 0f);
                 Transform back = master.anim.GetBoneTransform(HumanBodyBones.Chest) ?? master.transform;
                 threads = ThreadPull.Begin(back, Vector3.zero, Mathf.Max(8, s.threadRibbons), 2.5f, 2.6f, 0.75f);
@@ -167,6 +202,10 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
                 gone = true;
                 threads?.Release(0.6f);
                 HideMaster(master);
+                convulse?.Stop();
+                // The vortex takes the fallen sword with him.
+                if (droppedSword != null)
+                    droppedSword.gameObject.SetActive(false);
             }
 
             if (risen == false && t >= 5.5f)
@@ -520,17 +559,19 @@ public class Unmaking : MonoBehaviour, Kneel.Hazards.ILevelResettable
     {
         StopAllCoroutines();
         Running = false;
-        if (stab != null)
+        if (droppedSword != null && swordParent != null)
         {
-            Transform sword = stab.GetComponent<MasterP1>()?.swordTip?.parent;
-            if (sword != null && swordParent != null)
-            {
-                sword.SetParent(swordParent, false);
-                sword.SetLocalPositionAndRotation(swordLocalPosition, swordLocalRotation);
-            }
+            droppedSword.gameObject.SetActive(true);
+            droppedSword.SetParent(swordParent, false);
+            droppedSword.SetLocalPositionAndRotation(swordLocalPosition, swordLocalRotation);
+        }
 
-            Destroy(stab);
-            stab = null;
+        droppedSword = null;
+        if (convulse != null)
+        {
+            convulse.Stop();
+            Destroy(convulse);
+            convulse = null;
         }
 
         foreach (GameObject go in spawned)

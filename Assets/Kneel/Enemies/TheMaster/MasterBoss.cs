@@ -184,6 +184,17 @@ public class MasterBoss : MonoBehaviour
 
     private void Update()
     {
+        // The stagger meter under the bar follows whichever body is fighting.
+        if (Bar != null)
+        {
+            if (Current == Beat.Phase1)
+                Bar.SetStagger(master.StaggerMeter, master.StaggerWindowLeft);
+            else if (Current == Beat.Phase2 && colossus != null)
+                Bar.SetStagger(colossus.StaggerMeter, colossus.StaggerWindowLeft);
+            else
+                Bar.SetStagger(0f, -1f);
+        }
+
         if (player == null)
             return;
 

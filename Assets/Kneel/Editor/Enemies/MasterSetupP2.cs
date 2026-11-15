@@ -335,7 +335,8 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "ThreadLash", motion = cuts["ThreadLash"] },
                 new EnemyRig.State { name = "Recoil", motion = cuts["Recoil"], exitBlend = 0.2f },
                 new EnemyRig.State { name = "ToppleDown", parameter = "Topple", motion = cuts["Topple"] },
-                new EnemyRig.State { name = "ToppleHold", parameter = "Topple", motion = cuts["ToppleHold"], chained = true },
+                // Held still (owner, 2026-11-15: it shook violently): the cut is a 0.05 s slice, and played it looped.
+                new EnemyRig.State { name = "ToppleHold", parameter = "Topple", motion = cuts["ToppleHold"], chained = true, speed = 0f },
                 new EnemyRig.State { name = "ToppleUp", parameter = "Topple", motion = cuts["Topple"], speed = -1f, chained = true, exitBlend = 0.25f },
                 new EnemyRig.State { name = "Roar", motion = cuts["Roar"], exitBlend = 0.3f },
                 new EnemyRig.State { name = "Fallen", motion = cuts["Fallen"], final = true },

@@ -22,8 +22,9 @@ MonoBehaviour:
   pauseMin: 1
   pauseMax: 2
   windupDamageMultiplier: 0.5
-  parryKneelTime: 2
-  poiseStaggerTime: 1.5
+  parryKneelTime: 0.9
+  parryPoise: 34
+  poiseStaggerTime: 3.2
   hazardStaggerTime: 2
   flinchCooldown: 2.5
   bandNear: 4.5
@@ -32,7 +33,6 @@ MonoBehaviour:
   threadsMinRange: 12
   commandCooldown: 14
   guardCooldown: 10
-  seizeCooldown: 5
   threadsCooldown: 6
   threadsCooldownLate: 4
   decreeTell: 0.8
@@ -46,28 +46,24 @@ MonoBehaviour:
   sentenceDamage: 30
   sentenceReach: 5
   sentenceArc: 150
-  sentencePunish: 1.5
-  seizeTell: 0.9
-  seizeLock: 0.3
-  seizeLunge: 6
-  seizeLungeTime: 0.25
-  seizeGrabRadius: 1.6
-  seizeDamage: 55
-  seizeKneel: 1.5
-  seizePunish: 1.5
+  sentencePunish: 0.2
   commandTell: 2.5
   commandTellFirst: 3
   commandDamage: 25
   commandKneel: 1.5
-  commandCone: 160
+  commandRadius: 1.8
+  commandLock: 0.3
   commandPunish: 1.5
   commandFollowupGap: 0.35
   threadsTell: 0.8
+  threadsLock: 0.3
   threadSpeed: 9
   threadLength: 18
   threadWidth: 1
   threadFan: 12
   threadDamage: 20
+  threadFireWidth: 0.5
+  threadFireTime: 3.5
   guardMaxTime: 3
   guardArc: 60
   guardTurnRate: 90
@@ -92,13 +88,12 @@ MonoBehaviour:
   colossusClearance: 3.5
   colossusMaxOffset: 4
   ringPush: 9
-  chandelierShove: 3
   threadRibbons: 60
   p2MaxHealth: 650
   p2MaxPoise: 160
   p2PoiseRegenDelay: 3
   p2PoiseRegenRate: 15
-  p2WalkSpeed: 1.8
+  p2WalkSpeed: 3.2
   p2TurnSpeed: 3.5
   p2PauseMin: 0.8
   p2PauseMax: 1.5
@@ -120,7 +115,7 @@ MonoBehaviour:
   cleaveStart: 1.5
   cleaveLength: 5
   cleaveWidth: 1.5
-  cleavePunish: 1.8
+  cleavePunish: 1.2
   sweepTell: 1.1
   sweepDamage: 40
   sweepReach: 6
@@ -158,6 +153,8 @@ MonoBehaviour:
   greatCommandTellAgain: 3
   greatCommandDamage: 30
   greatCommandKneel: 2
+  greatCommandRadius: 2.4
+  greatCommandLock: 0.3
   greatCommandPunish: 2
   greatCommandFollowupGap: 0.35
   gatherTime: 4
@@ -166,6 +163,7 @@ MonoBehaviour:
   gatherHeavyWeight: 2
   gatherBreakBashes: 2
   lashTell: 1
+  lashLock: 0.3
   lashCount: 5
   lashFan: 12
   lashLength: 24

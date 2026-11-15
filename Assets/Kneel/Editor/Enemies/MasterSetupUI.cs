@@ -109,6 +109,42 @@ namespace Kneel.EditorTools
             sparksSo.FindProperty("drift").floatValue = 12f;
             sparksSo.ApplyModifiedPropertiesWithoutUndo();
 
+            // The stagger meter, under the bar: a short gold bar between hairlines, filling out from the centre.
+            const float meterWidth = 440f;
+            const float meterHeight = 5f;
+            RectTransform meter = UiRect("Stagger", panel, new Vector2(0.5f, 0.5f), new Vector2(0f, -45f), new Vector2(meterWidth, meterHeight));
+            CanvasGroup meterGroup = meter.gameObject.AddComponent<CanvasGroup>();
+            meterGroup.blocksRaycasts = false;
+            meterGroup.interactable = false;
+            foreach (float y in new[] { 5.5f, -5.5f })
+                UiImage(y > 0f ? "HairlineTop" : "HairlineBottom", meter, radial, Alpha(MenuEmber, 0.4f), new Vector2(0f, y), new Vector2(meterWidth + 70f, 1f));
+            UiImage("Back", meter, null, Hex(0x140808, 0.92f), Vector2.zero, new Vector2(meterWidth, meterHeight));
+            var meterTrail = new Image[2];
+            var meterFill = new Image[2];
+            var meterHot = new Image[2];
+            for (int i = 0; i < 2; i++)
+            {
+                float side = i == 0 ? -1f : 1f;
+                Image Half(string name, Sprite sprite, Color colour)
+                {
+                    Image image = UiImage(name + (i == 0 ? "Left" : "Right"), meter, sprite, colour, new Vector2(side * meterWidth * 0.25f, 0f), new Vector2(meterWidth * 0.5f, meterHeight));
+                    image.type = Image.Type.Filled;
+                    image.fillMethod = Image.FillMethod.Horizontal;
+                    image.fillOrigin = (int)(i == 0 ? Image.OriginHorizontal.Right : Image.OriginHorizontal.Left);
+                    image.fillAmount = 0f;
+                    return image;
+                }
+
+                meterTrail[i] = Half("Trail", fillSprite, Alpha(MenuBright, 0.32f));
+                meterFill[i] = Half("Fill", fillSprite, Hex(0xD9A441));
+                meterHot[i] = Half("Hot", fillSprite, new Color(1f, 0.85f, 0.6f, 0f));
+                meterHot[i].material = additive;
+                Diamond(i == 0 ? "CapLeft" : "CapRight", meter, new Vector2(side * (meterWidth * 0.5f + 9f), 0f), 6f, MenuEmber);
+            }
+
+            // A hairline notch at the centre, where it fills from.
+            UiImage("Notch", meter, null, Alpha(MenuBright, 0.55f), Vector2.zero, new Vector2(1.5f, meterHeight + 5f));
+
             var view = root.AddComponent<BossHealthBar>();
             var so = new SerializedObject(view);
             so.FindProperty("group").objectReferenceValue = group;
@@ -120,6 +156,14 @@ namespace Kneel.EditorTools
             so.FindProperty("edge").objectReferenceValue = edge;
             so.FindProperty("edgeSparks").objectReferenceValue = sparks;
             so.FindProperty("width").floatValue = width;
+            so.FindProperty("staggerGroup").objectReferenceValue = meterGroup;
+            foreach ((string field, Image[] images) in new[] { ("staggerFill", meterFill), ("staggerTrail", meterTrail), ("staggerHot", meterHot) })
+            {
+                SerializedProperty list = so.FindProperty(field);
+                list.arraySize = images.Length;
+                for (int i = 0; i < images.Length; i++)
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = images[i];
+            }
             SerializedProperty flicker = so.FindProperty("flicker");
             Image[] flickering = { seam, edgeGlow };
             flicker.arraySize = flickering.Length;

@@ -201,8 +201,8 @@ public class MasterCircleState : EnemyState
     }
 }
 
-// Parried: knocked reeling for the riposte window (every hit critical, §4). Owner, 2026-11-10: he never kneels to it;
-// it's the stagger (Large Hit Reaction), slowed to fill the window, then he recovers his stance.
+// Parried: knocked reeling for a moment (owner, 2026-11-15: quick, not slow motion, and not a damage window: the parry
+// fills his stagger meter instead). The first, sharp part of Large Hit Reaction, then he recovers his stance.
 public class MasterParriedState : EnemyState
 {
     private readonly MasterP1 master;
@@ -230,18 +230,17 @@ public class MasterParriedState : EnemyState
         master.SetLeftArmRest(true);
         master.bossTell?.StopTells();
         master.bossTell?.Kneel();
-        master.SetMoveSpeed(StaggerSpeed(master, duration - 0.35f));
+        master.SetMoveSpeed(ReelSpeed);
         master.anim.CrossFadeInFixedTime("ParriedStagger", 0.05f, 0, 0f);
     }
 
-    // The stagger clip fitted to `seconds`, never slower than 0.65x (slower reads as slow motion).
-    public static float StaggerSpeed(MasterP1 master, float seconds) =>
-        Mathf.Max(0.65f, master.staggerLength / Mathf.Max(seconds, 0.1f));
+    // A touch faster than the clip: a jolt, never slow motion.
+    private const float ReelSpeed = 1.25f;
 
     public override void Update()
     {
         elapsedTime += Time.deltaTime;
-        if (phase == 0 && elapsedTime >= Mathf.Min(duration - 0.35f, master.staggerLength / StaggerSpeed(master, duration - 0.35f)))
+        if (phase == 0 && elapsedTime >= Mathf.Min(duration - 0.3f, master.staggerLength / ReelSpeed))
         {
             // Back into his stance for the last moment of the window.
             phase = 1;
@@ -263,11 +262,21 @@ public class MasterParriedState : EnemyState
     private float elapsedTime;
 }
 
-// Off balance (a poise break, a broken guard, a hazard): hits on him are critical.
+// Staggered (his stagger meter full, a broken guard, a hazard): down on one knee (owner, 2026-11-15). The only time the
+// player's blows take his health, and every one is critical. Standing To Kneeling Down (quick), Kneeling On One Knee
+// Idle, then Standing Up From A Kneeling Position at the end.
 public class MasterStaggerState : EnemyState
 {
     private readonly MasterP1 master;
     private float duration;
+    private float t;
+    private int phase;
+
+    private const float DownTime = 0.45f;
+    private const float UpTime = 0.8f;
+
+    // The share of the window still to come (1 at the start, 0 as he's back on his feet).
+    public float Left => duration > 0f ? Mathf.Clamp01(1f - t / duration) : 0f;
 
     public MasterStaggerState(Enemy enemyBase, EnemyStateMachine stateMachine, string animBoolName)
         : base(enemyBase, stateMachine, animBoolName) { master = enemyBase as MasterP1; }
@@ -284,25 +293,43 @@ public class MasterStaggerState : EnemyState
     public override void Enter()
     {
         base.Enter();
-        stateTimer = duration;
+        t = 0f;
+        phase = 0;
+        duration = Mathf.Max(duration, DownTime + UpTime + 0.2f);
         master.Stop();
         master.SetLeftArmRest(true);
         master.bossTell?.StopTells();
-        master.poise.Reset();
-        master.SetMoveSpeed(MasterParriedState.StaggerSpeed(master, duration - 0.3f));
-        master.anim.CrossFadeInFixedTime("Stagger", 0.06f, 0, 0f);
+        master.SetMoveSpeed(master.kneelDownLength / DownTime);
+        master.anim.CrossFadeInFixedTime("StaggerDown", 0.06f, 0, 0f);
     }
 
     public override void Exit()
     {
         base.Exit();
         master.SetMoveSpeed(1f);
+        // The meter starts empty again once he's up.
+        master.poise.Reset();
     }
 
     public override void Update()
     {
         base.Update();
-        if (stateTimer <= 0f)
+        t += Time.deltaTime;
+        if (phase == 0 && t >= DownTime)
+        {
+            phase = 1;
+            master.SetMoveSpeed(1f);
+            master.anim.CrossFadeInFixedTime("StaggerKneel", 0.12f, 0, 0f);
+        }
+
+        if (phase == 1 && t >= duration - UpTime)
+        {
+            phase = 2;
+            master.SetMoveSpeed(master.kneelUpLength / UpTime);
+            master.anim.CrossFadeInFixedTime("StaggerUp", 0.15f, 0, 0f);
+        }
+
+        if (t >= duration)
             master.MoveFinished();
     }
 }

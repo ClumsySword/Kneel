@@ -10,12 +10,16 @@ using UnityEngine;
 // metres, sometimes forking again. Only the main line hurts (once), snaps winches and leaves the floor fire (§8): the
 // forks are thinner and dimmer, so the answer stays "step between the lines" (a fork from the next line could
 // otherwise reach into the gap).
+// Owner, 2026-11-15: the fire it leaves is smaller and goes out sooner (MasterSettings.threadFireWidth/Time), and the
+// dark scorch follows the cracks themselves: every crack, forks too, has a thin soot outline under its ember, and both
+// stay while the fire burns, the ember cooling, then fade out together.
 public class ThreadLine : MonoBehaviour
 {
     private class Crack
     {
         public LineRenderer core;
         public LineRenderer glow;
+        public LineRenderer scorch;
         public readonly List<Vector3> points = new List<Vector3>();
         public Vector3 origin;
         public Vector3 direction;
@@ -40,6 +44,8 @@ public class ThreadLine : MonoBehaviour
     private float width;
     private float damage;
     private float fade = -1f;
+    private float burnt = -1f;
+    private float burnTime = 3.5f;
     private bool hit;
     private Material material;
     private Material glowMaterial;
@@ -81,7 +87,9 @@ public class ThreadLine : MonoBehaviour
         }
 
         t.cracks.Add(t.NewCrack(t.origin, t.direction, length, width, 0));
-        t.fire = FloorFire.Line(t.origin, t.origin, width, 8f);
+        MasterSettings s = owner.settings;
+        t.burnTime = s != null ? s.threadFireTime : 3.5f;
+        t.fire = FloorFire.Line(t.origin, t.origin, width * (s != null ? s.threadFireWidth : 0.5f), t.burnTime, scorch: false, size: 0.4f, rate: 0.45f);
         t.fireGeneration = t.fire != null ? t.fire.Generation : 0;
         return t;
     }
@@ -105,6 +113,8 @@ public class ThreadLine : MonoBehaviour
     private Crack NewCrack(Vector3 from, Vector3 dir, float len, float w, int depth)
     {
         var crack = new Crack { origin = from, direction = dir.normalized, length = len, width = w, depth = depth };
+        // A rim of soot about 5 cm each side of the ember.
+        crack.scorch = Line("Scorch", w * (depth == 0 ? 0.32f : 0.24f) + 0.1f, EmberLines.Scorch(0.8f));
         crack.core = Line("Crack", w * (depth == 0 ? 0.32f : 0.24f), material);
         crack.glow = Line("Glow", w * (depth == 0 ? 0.7f : 0.5f), glowMaterial);
         crack.points.Add(from);
@@ -138,15 +148,21 @@ public class ThreadLine : MonoBehaviour
     {
         if (fade >= 0f)
         {
+            // Drawn: it burns while its fire does, the ember cooling to a dull line in its soot, then both fade.
             fade += Time.deltaTime;
-            float k = Mathf.Clamp01(1f - fade / 0.6f);
+            float cool = Mathf.Clamp01(fade / 0.5f);
+            float left = Mathf.Clamp01((burnTime - fade) / 0.8f);
             foreach (Crack crack in cracks)
             {
-                crack.core.widthMultiplier = crack.width * (crack.depth == 0 ? 0.32f : 0.24f) * k;
-                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 0.7f : 0.5f) * k;
+                float core = crack.width * (crack.depth == 0 ? 0.32f : 0.24f);
+                crack.core.widthMultiplier = core * Mathf.Lerp(1f, 0.55f, cool) * Mathf.Lerp(0.4f, 1f, left);
+                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 0.7f : 0.5f) * (1f - cool);
+                var tint = new Color(1f, 1f, 1f, Mathf.Lerp(1f, 0.55f, cool) * left);
+                crack.core.startColor = crack.core.endColor = tint;
+                crack.scorch.startColor = crack.scorch.endColor = new Color(1f, 1f, 1f, left);
             }
 
-            if (fade >= 0.6f)
+            if (fade >= burnTime)
                 Destroy(gameObject);
             return;
         }
@@ -210,14 +226,17 @@ public class ThreadLine : MonoBehaviour
         int count = crack.points.Count + 1;
         crack.core.positionCount = count;
         crack.glow.positionCount = count;
+        crack.scorch.positionCount = count;
         for (int i = 0; i < crack.points.Count; i++)
         {
             crack.core.SetPosition(i, crack.points[i]);
             crack.glow.SetPosition(i, crack.points[i] + Vector3.down * 0.01f);
+            crack.scorch.SetPosition(i, crack.points[i] + Vector3.down * 0.015f);
         }
 
         crack.core.SetPosition(count - 1, head);
         crack.glow.SetPosition(count - 1, head + Vector3.down * 0.01f);
+        crack.scorch.SetPosition(count - 1, head + Vector3.down * 0.015f);
     }
 
     // The player under this frame's stretch of a crack's head: hurt once for the whole thread.

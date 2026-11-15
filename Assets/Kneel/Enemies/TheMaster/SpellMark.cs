@@ -40,6 +40,8 @@ public class SpellMark : MonoBehaviour
     private float duration;
     private float lockTime = -1f;
     private float fadeTime = -1f;
+    // The Command's circle is drawn bolder (wider, brighter while it follows): it's the whole cue.
+    private float bold = 1f;
 
     public bool Locked => lockTime >= 0f;
 
@@ -69,9 +71,10 @@ public class SpellMark : MonoBehaviour
     }
 
     // The impact circle of `radius` round `centre`, closing from the side facing `from` (him) to the far side.
-    public static SpellMark Ring(Vector3 centre, Vector3 from, float radius, float duration)
+    public static SpellMark Ring(Vector3 centre, Vector3 from, float radius, float duration, float bold = 1f)
     {
         SpellMark mark = Create("SpellMark_Ring", duration);
+        mark.bold = bold;
         mark.ring = true;
         mark.radius = radius;
         var random = new System.Random(Random.Range(int.MinValue, int.MaxValue));
@@ -187,8 +190,8 @@ public class SpellMark : MonoBehaviour
         float p = Mathf.Clamp01((Time.time - startTime) / duration);
         float open = 1f - (1f - p) * (1f - p);
         float locked = Locked ? Mathf.Clamp01((Time.time - lockTime) / 0.08f) : 0f;
-        float alpha = Mathf.Lerp(FaintAlpha, LockedAlpha, locked) * fade;
-        float width = Mathf.Lerp(FaintWidth, LockedWidth, locked);
+        float alpha = Mathf.Lerp(Mathf.Min(FaintAlpha * bold, LockedAlpha), LockedAlpha, locked) * fade;
+        float width = Mathf.Lerp(FaintWidth, LockedWidth, locked) * bold;
         var colour = new Color(1f, 1f, 1f, alpha);
         Vector3 side = Vector3.Cross(Vector3.up, forward);
 

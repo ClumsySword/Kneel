@@ -21,12 +21,16 @@ public class MasterSettings : ScriptableObject
     public float pauseMax = 2f;
 
     [Header("Phase 1: reactions")]
-    // Hits landing during an armoured wind-up do this share of their damage, and never flinch him (§1).
+    // Owner, 2026-11-15: the player's blows only take his health while he's staggered (down on one knee). Outside it they
+    // fill his stagger meter (his poise, shown under the bar) instead. Hazards still burn and crush him as before.
+    // Hits landing during an armoured wind-up do this share of their damage (to his poise), and never flinch him (§1).
     public float windupDamageMultiplier = 0.5f;
-    // A parry drives him to one knee for this long; every hit in it is critical.
-    public float parryKneelTime = 2f;
-    // Poise break: a stagger in which hits crit (never during a wind-up: it waits for the blow to end).
-    public float poiseStaggerTime = 1.5f;
+    // A parry knocks him reeling for this long (quick: not a damage window), and fills this much of the stagger meter.
+    public float parryKneelTime = 0.9f;
+    public float parryPoise = 34f;
+    // The stagger (the meter full, a broken guard): down on one knee for this long. Every hit in it is critical, and
+    // it's the only time the player's blows take his health. Never during a wind-up: it waits for the blow to end.
+    public float poiseStaggerTime = 3.2f;
     // A hazard breaks his wind-up (the braziers set their own stagger; this is the default).
     public float hazardStaggerTime = 2f;
     // A hit outside any move makes him flinch, at most this often.
@@ -41,7 +45,6 @@ public class MasterSettings : ScriptableObject
     public float threadsMinRange = 12f;
     public float commandCooldown = 14f;
     public float guardCooldown = 10f;
-    public float seizeCooldown = 5f;
     public float threadsCooldown = 6f;
     public float threadsCooldownLate = 4f;
 
@@ -59,25 +62,18 @@ public class MasterSettings : ScriptableObject
     public float sentenceDamage = 30f;
     public float sentenceReach = 4f;
     public float sentenceArc = 150f;
-    public float sentencePunish = 1.5f;
+    // After the third sweep's follow-through has played out (owner, 2026-11-15: he held its last pose too long).
+    public float sentencePunish = 0.2f;
 
-    [Header("Seize: grab (ember)")]
-    public float seizeTell = 0.9f;
-    // Direction locks this long before he lunges.
-    public float seizeLock = 0.3f;
-    public float seizeLunge = 6f;
-    public float seizeLungeTime = 0.25f;
-    public float seizeGrabRadius = 1.6f;
-    public float seizeDamage = 55f;
-    public float seizeKneel = 1.5f;
-    public float seizePunish = 1.5f;
-
-    [Header("Command: 'Kneel' (palm light)")]
+    [Header("Command: 'Kneel' (a strike of fire from above)")]
+    // Owner, 2026-11-15: a circle of cracks follows Kael through the tell and locks commandLock before the strike, so
+    // only a roll at the last moment gets out of it. Inside it: commandDamage and a forced kneel.
     public float commandTell = 2.5f;
     public float commandTellFirst = 3f;
     public float commandDamage = 25f;
     public float commandKneel = 1.5f;
-    public float commandCone = 160f;
+    public float commandRadius = 1.8f;
+    public float commandLock = 0.3f;
     public float commandPunish = 1.5f;
     // The Decree that follows lands this long after the player can move again, so it's always escapable.
     public float commandFollowupGap = 0.35f;
@@ -92,6 +88,10 @@ public class MasterSettings : ScriptableObject
     public float threadWidth = 1f;
     public float threadFan = 12f;
     public float threadDamage = 20f;
+    // The fire a thread (or a Lash line) leaves: this share of its width, burning this long (owner, 2026-11-15: smaller,
+    // and gone sooner).
+    public float threadFireWidth = 0.5f;
+    public float threadFireTime = 3.5f;
 
     [Header("Regal Guard + Thrust (glint)")]
     public float guardMaxTime = 3f;
@@ -135,7 +135,8 @@ public class MasterSettings : ScriptableObject
     public float p2MaxPoise = 160f;
     public float p2PoiseRegenDelay = 3f;
     public float p2PoiseRegenRate = 15f;
-    public float p2WalkSpeed = 1.8f;
+    // Owner, 2026-11-15: 1.8 read as slow motion (his walk clip covers 4.85 m/s on him: 1.8 played it at 0.37x; 3.2 is 0.66x).
+    public float p2WalkSpeed = 3.2f;
     public float p2TurnSpeed = 3.5f;
     public float p2PauseMin = 0.8f;
     public float p2PauseMax = 1.5f;
@@ -167,7 +168,8 @@ public class MasterSettings : ScriptableObject
     public float cleaveStart = 1.5f;
     public float cleaveLength = 5f;
     public float cleaveWidth = 1.5f;
-    public float cleavePunish = 1.8f;
+    // He no longer drags the blade out of the floor (owner, 2026-11-15); the follow-through plays out, then this.
+    public float cleavePunish = 1.2f;
 
     [Header("Reaping Sweep (ember)")]
     public float sweepTell = 1.1f;
@@ -218,11 +220,13 @@ public class MasterSettings : ScriptableObject
     public float leapDamage = 50f;
     public float leapPunish = 2f;
 
-    [Header("Great Command (mask light)")]
+    [Header("Great Command (a strike of fire from above, as the Command)")]
     public float greatCommandTell = 3.5f;
     public float greatCommandTellAgain = 3f;
     public float greatCommandDamage = 30f;
     public float greatCommandKneel = 2f;
+    public float greatCommandRadius = 2.4f;
+    public float greatCommandLock = 0.3f;
     public float greatCommandPunish = 2f;
     // The Hammerfall that follows lands this long after the player can move again.
     public float greatCommandFollowupGap = 0.35f;

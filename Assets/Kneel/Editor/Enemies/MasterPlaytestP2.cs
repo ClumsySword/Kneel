@@ -95,7 +95,7 @@ namespace Kneel.EditorTools
                 ("leap", LeapLands),
                 ("leap", LeapDodged),
                 ("gcommand", GreatCommandOpen),
-                ("gcommand", GreatCommandCover),
+                ("gcommand", GreatCommandRolled),
                 ("gather", GatherBroken),
                 ("gather", GatherBashed),
                 ("gather", GatherCompletes),
@@ -149,7 +149,7 @@ namespace Kneel.EditorTools
             }
 
             yield return (Func<bool>)(() => unmaking.Elapsed >= 0.95f);
-            Check("he turns the sword on himself (0.5 s)", master.GetComponent<MasterStabPose>() != null, "");
+            Check("the sword has fallen from his hand (0.3 s)", master.swordTip.parent.parent == null || master.swordTip.parent.gameObject.activeInHierarchy == false, "");
             Shot("Unmaking_1stab");
             yield return (Func<bool>)(() => unmaking.Elapsed >= 2.2f);
             Check("the threads go taut (1.5 s)", UnityEngine.Object.FindAnyObjectByType<ThreadPull>() != null, UnityEngine.Object.FindObjectsByType<LineRenderer>(FindObjectsSortMode.None).Count(l => l.name == "Thread" && l.enabled) + " threads drawn");
@@ -377,14 +377,8 @@ namespace Kneel.EditorTools
                 // The Decree's chop comes down across his front from his right: at contact the tip is on its way past.
                 Check("Cleave: the blade is coming down across his front", Mathf.Abs(cleave.tipAngle) <= 85f, "tip " + cleave.tipAngle.ToString("F0") + " deg, " + cleave.tipOut.ToString("F2") + " m out, " + cleave.tipUp.ToString("F2") + " m up");
             }
-            Check("the blade sticks in the floor", colossus.BladeStuck, "");
             yield return 0.3f;
-            Shot("P2_Cleave_stuck");
-            if (colossus.swordTip != null)
-                Check("its tip is down at the floor in front of him", colossus.swordTip.position.y < colossus.transform.position.y + 0.6f && Vector3.Dot(colossus.swordTip.position - colossus.transform.position, colossus.transform.forward) > 2f, (colossus.swordTip.position - colossus.transform.position).ToString("F1"));
-            float stuck = Time.time;
-            yield return (Func<bool>)(() => colossus.BladeStuck == false);
-            Check("stuck about " + S2.cleavePunish + " s", Mathf.Abs(Time.time - stuck - (S2.cleavePunish - 0.45f - 0.35f)) < 0.3f, (Time.time - stuck + 0.35f).ToString("F2") + " s from contact");
+            Shot("P2_Cleave_after");
             yield return P2WaitMoveEnds();
 
             // Out of the line: 3 m to his side.
@@ -787,22 +781,20 @@ namespace Kneel.EditorTools
             yield return P2WaitMoveEnds();
         }
 
-        private static IEnumerator GreatCommandCover()
+        // Owner, 2026-11-15: the circle follows the player and locks late; only a roll at the lock clears it.
+        private static IEnumerator GreatCommandRolled()
         {
-            Note("--- Great Command against the pillar stump at (39, 438)");
-            yield return ResetP2(new Vector3(44f, 9f, 452f));
+            Note("--- Great Command, rolled at the lock");
+            yield return ResetP2(P2Centre);
+            yield return StartP2(AshColossus.MoveKind.GreatCommand, 10f);
             int before = p2Blows.Count;
-            PlaceAbsolute(new Vector3(39f, 9f, 434.5f), Vector3.forward);
-            colossus.transform.rotation = Quaternion.LookRotation(Flat(playerRoot.position - colossus.transform.position));
-            AshColossus.ForceNext = AshColossus.MoveKind.GreatCommand;
-            colossus.circleState.Hold(0f);
-            yield return (Func<bool>)(() => P2Move != null);
-            PlaceAbsolute(new Vector3(39f, 9f, 434.5f), Vector3.forward);
+            yield return (Func<bool>)(() => P2Move == null || P2Move.SinceStart >= P2Move.Tell - S2.greatCommandLock);
+            yield return Roll(colossus.transform.right);
             yield return (Func<bool>)(() => P2Move == null || P2Move.Landed);
             yield return 0.1f;
-            Vector3 from = colossus.bossTell.PalmLightPosition;
-            Check("in the stump's shadow: no hit", p2Blows.Count == before, "mask light at " + from.ToString("F1") + ", line of sight " + BossTell.LineOfSight(from, playerRoot.position + Vector3.up * 1.2f, colossus.transform, playerRoot));
-            Shot("P2_Command_cover");
+            playerMove = Vector3.zero;
+            Check("a roll at the lock clears the circle (" + S2.greatCommandRadius + " m)", p2Blows.Count == before && combat.IsKneeling == false, (p2Blows.Count - before) + " hits");
+            Shot("P2_Command_rolled");
             yield return P2WaitMoveEnds();
         }
 

@@ -82,7 +82,8 @@ namespace Kneel.EditorTools
             Check("a step out of the locked lane: no hit", blows.Count == before, (blows.Count - before) + " hits");
             Check("the threads ran down the marked lanes", ThreadsAlong(locked), "locked aim " + locked.ToString("F2"));
             Check("the cracks settle", master.bossTell.ChargeLevel < 1.05f, "x" + master.bossTell.ChargeLevel.ToString("F2"));
-            Check("the mark is gone", FindMark() == null, FindMark() == null ? "gone" : "still there");
+            // This move's own mark (his next move may already have drawn its own: the Command's ring).
+            Check("the mark is gone", mark == null, mark == null ? "gone" : "still there");
             yield return WaitMoveEnds();
             yield return FarCamera(false);
         }
@@ -162,7 +163,7 @@ namespace Kneel.EditorTools
             });
             Check("a blow, not a spell: the cracks stay at rest", charge < 1.01f, "x" + charge.ToString("F2"));
             yield return 0.5f;
-            Check("the mark is gone once it lands", FindMark() == null, FindMark() == null ? "gone" : "still there");
+            Check("the mark is gone once it lands", mark == null, mark == null ? "gone" : "still there");
             yield return P2WaitMoveEnds();
         }
     }

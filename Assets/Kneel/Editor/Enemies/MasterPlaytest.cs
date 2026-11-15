@@ -305,15 +305,12 @@ namespace Kneel.EditorTools
                 ("sentence", () => SentenceParry(0)),
                 ("sentence", () => SentenceParry(1)),
                 ("sentence", () => SentenceParry(2)),
-                ("seize", SeizeLands),
-                ("seize", () => SeizeThroughGuard(false)),
-                ("seize", () => SeizeThroughGuard(true)),
-                ("seize", SeizeRoll),
                 ("command", CommandNear),
                 ("command", CommandFar),
-                ("command", CommandCover),
-                ("command", CommandBehind),
-                ("command", CommandRoll),
+                ("command", CommandWalk),
+                ("command", () => CommandRoll(false)),
+                ("command", () => CommandRoll(true)),
+                ("stagger", StaggerMeter),
                 ("threads", ThreadsLand),
                 ("threads", ThreadsRoll),
                 ("threads", ThreadsMark),
@@ -413,8 +410,8 @@ namespace Kneel.EditorTools
             playerHealth.OnDamaged += damageListener;
 
             Note("fighting " + master.name + " in " + master.gameObject.scene.name + ", agent " + UnityEngine.AI.NavMesh.GetSettingsNameFromID(master.agent.agentTypeID) + ", camera yaw " + Camera.main.transform.eulerAngles.y.ToString("F0"));
-            Note("tells: Decree " + S.decreeTell + ", Sentence " + S.sentenceTell1 + "/" + S.sentenceTell2 + "/" + S.sentenceTell3 + ", Seize " + S.seizeTell + ", Command " + S.commandTellFirst + " then " + S.commandTell + ", Threads " + S.threadsTell + ", Thrust " + S.thrustTell);
-            Note("reaches: Decree " + S.decreeReach + ", Sentence " + S.sentenceReach + ", Thrust " + S.thrustReach + " m; contacts (clip s): Decree " + master.decreeContact + ", Sentence " + string.Join("/", master.sentenceContacts) + ", Seize " + master.seizeContact + ", Command " + master.commandRelease + ", Threads " + master.threadsRelease + ", Thrust " + master.thrustContact);
+            Note("tells: Decree " + S.decreeTell + ", Sentence " + S.sentenceTell1 + "/" + S.sentenceTell2 + "/" + S.sentenceTell3 + ", Command " + S.commandTellFirst + " then " + S.commandTell + ", Threads " + S.threadsTell + ", Thrust " + S.thrustTell);
+            Note("reaches: Decree " + S.decreeReach + ", Sentence " + S.sentenceReach + ", Thrust " + S.thrustReach + " m; contacts (clip s): Decree " + master.decreeContact + ", Sentence " + string.Join("/", master.sentenceContacts) + ", Command " + master.commandRelease + ", Threads " + master.threadsRelease + ", Thrust " + master.thrustContact);
         }
 
         private static MasterSettings S => master.settings;
@@ -544,7 +541,7 @@ namespace Kneel.EditorTools
             MasterMoveState last = null;
             float kneelEnd = -1f;
             float followupLanded = -1f;
-            while (Now - start < 40f && seen.Count < 5)
+            while (Now - start < 40f && seen.Count < 4)
             {
                 if (Move != null && Move != last)
                 {
@@ -568,7 +565,7 @@ namespace Kneel.EditorTools
                 yield return 0.02f;
             }
 
-            Check("Decree, Command, its follow-up Decree, Sentence, Seize", string.Join(" ", seen) == "Decree Command Decree Sentence Seize", string.Join(" ", seen));
+            Check("Decree, Command, its follow-up Decree, Sentence", string.Join(" ", seen) == "Decree Command Decree Sentence", string.Join(" ", seen));
             if (followupLanded > 0f)
                 Check("the follow-up lands after the player can move", followupLanded - kneelEnd > 0.1f && followupLanded - kneelEnd < 1f, (followupLanded - kneelEnd).ToString("F2") + " s after the kneel");
             else
@@ -662,13 +659,15 @@ namespace Kneel.EditorTools
             float kneeled = Time.time;
             Shot("Decree_Parried");
 
-            // A heavy pressed at once lands inside the kneel, critical.
+            // Owner, 2026-11-15: the reel isn't a damage window. A heavy in it fills the stagger meter and takes no health.
+            Check("the parry fills the stagger meter (" + S.parryPoise + ")", Mathf.Abs(master.StaggerMeter * master.poise.maxPoise - S.parryPoise) < 2f, (master.StaggerMeter * master.poise.maxPoise).ToString("F0"));
             PlaceFront(2.3f, keepFacing: true);
             float health = master.health.Current;
+            float meter = master.StaggerMeter;
             Press("OnHeavyPressed");
-            yield return (Func<bool>)(() => master.health.Current < health || State != master.parriedState);
+            yield return (Func<bool>)(() => master.StaggerMeter > meter + 0.01f || master.IsStaggered || State != master.parriedState);
             float damage = health - master.health.Current;
-            Check("a heavy while he reels is critical", Mathf.Abs(damage - 35f * 1.5f) < 1f, damage.ToString("F1") + " damage, " + (Time.time - kneeled).ToString("F2") + " s in");
+            Check("a heavy while he reels takes no health, it fills the meter", damage < 0.01f && (master.StaggerMeter > meter || master.IsStaggered), damage.ToString("F1") + " damage, meter " + meter.ToString("F2") + " -> " + master.StaggerMeter.ToString("F2") + ", " + (Time.time - kneeled).ToString("F2") + " s in");
             Shot("Decree_Riposte");
             yield return (Func<bool>)(() => State != master.parriedState);
             Check("the window lasts " + S.parryKneelTime + " s", Mathf.Abs(Time.time - kneeled - S.parryKneelTime) < 0.2f, (Time.time - kneeled).ToString("F2") + " s");
@@ -732,60 +731,6 @@ namespace Kneel.EditorTools
             }
         }
 
-        // --- Seize ---
-
-        private static IEnumerator SeizeLands()
-        {
-            Note("--- Seize, taken standing");
-            yield return ResetFight(Centre);
-            yield return Start(MasterP1.MoveKind.Seize, 4.5f);
-            float from = Distance();
-            yield return Filmstrip("Seize", S.seizeTell);
-            ReportBlow("Seize", S.seizeTell, 99f, S.seizeDamage);
-            yield return 0.1f;
-            Check("the grab kneels the player", combat.IsKneeling, combat.State.ToString());
-            Note("  he lunged from " + from.ToString("F1") + " m; the player ends " + Distance().ToString("F1") + " m from him");
-            yield return WaitMoveEnds();
-        }
-
-        private static IEnumerator SeizeThroughGuard(bool parry)
-        {
-            Note("--- Seize into a " + (parry ? "parry" : "held block"));
-            yield return ResetFight(Centre);
-            if (parry == false)
-            {
-                SetBlock(true);
-                yield return 0.3f;
-            }
-
-            yield return Start(MasterP1.MoveKind.Seize, 4.5f);
-            int before = blows.Count;
-            float parriesBefore = lastParry;
-            if (parry)
-                yield return ParryAt(S.seizeTell);
-            yield return (Func<bool>)(() => blows.Count > before || Move == null || Move.Landed);
-            yield return 0.05f;
-            SetBlock(false);
-            Check("the grab goes through the " + (parry ? "parry" : "block"), blows.Count == before + 1 && Mathf.Approximately(blows[blows.Count - 1].amount, S.seizeDamage) && lastParry == parriesBefore, blows.Count > before ? blows[blows.Count - 1].amount.ToString("F0") + " damage" : "no hit");
-            Check("and kneels the player", combat.IsKneeling, combat.State.ToString());
-            yield return WaitMoveEnds();
-        }
-
-        private static IEnumerator SeizeRoll()
-        {
-            Note("--- Seize, rolled");
-            yield return ResetFight(Centre);
-            yield return Start(MasterP1.MoveKind.Seize, 4.5f);
-            int before = blows.Count;
-            yield return (Func<bool>)(() => Move == null || Move.SinceStart >= S.seizeTell - 0.2f);
-            yield return Roll(master.transform.right);
-            yield return (Func<bool>)(() => Move == null || Move.Landed);
-            yield return 0.1f;
-            playerMove = Vector3.zero;
-            Check("a roll as he lunges clears the grab", blows.Count == before, (blows.Count - before) + " hits");
-            yield return WaitMoveEnds();
-        }
-
         // --- Command ---
 
         private static IEnumerator CommandNear()
@@ -833,62 +778,84 @@ namespace Kneel.EditorTools
             yield return WaitMoveEnds();
         }
 
-        private static IEnumerator CommandCover()
+        // The circle follows the player until the lock: walking away in the last moment doesn't clear it.
+        private static IEnumerator CommandWalk()
         {
-            Note("--- the Command against the pillar stump at (39, 438)");
-            yield return ResetFight(CoverCaster);
-            Check("he stands on his NavMesh by the pillar line", master.agent.isOnNavMesh, master.transform.position.ToString("F1"));
-            PlaceAbsolute(BehindPillar, Vector3.forward);
-            yield return 0.3f;
+            Note("--- the Command, walked out of at the lock");
+            yield return ResetFight(Centre);
+            yield return Start(MasterP1.MoveKind.Command, 6f);
             int before = blows.Count;
-            yield return Start(MasterP1.MoveKind.Command, -1f);
-            float tell = Move != null ? Move.Tell : 0f;
-            yield return (Func<bool>)(() => Move == null || Move.SinceStart > tell * 0.6f);
-            Shot("Command_Cover");
-            bool sight = BossTell.LineOfSight(master.bossTell.PalmLightPosition, playerRoot.position + Vector3.up * 1.2f, master.transform, playerRoot);
-            yield return (Func<bool>)(() => Move == null || Move.Landed);
-            Check("in the pillar's shadow: no hit", blows.Count == before && combat.IsKneeling == false, "palm at " + master.bossTell.PalmLightPosition.ToString("F1") + ", line of sight " + sight);
-            yield return WaitMoveEnds();
-
-            yield return ResetFight(CoverCaster);
-            PlaceAbsolute(BesidePillar, Vector3.forward);
-            yield return 0.3f;
-            before = blows.Count;
-            yield return Start(MasterP1.MoveKind.Command, -1f);
+            yield return (Func<bool>)(() => Move == null || Move.SinceStart >= Move.Tell - S.commandLock);
+            playerMove = master.transform.right;
             yield return (Func<bool>)(() => Move == null || Move.Landed);
             yield return 0.05f;
-            Check("3.5 m to the side, in the open: hit", blows.Count == before + 1 && combat.IsKneeling, (blows.Count - before) + " hits");
+            playerMove = Vector3.zero;
+            Check("walking out at the lock doesn't clear the circle (" + S.commandRadius + " m)", blows.Count == before + 1 && combat.IsKneeling, (blows.Count - before) + " hits");
             yield return (Func<bool>)(() => combat.IsKneeling == false);
             yield return WaitMoveEnds();
         }
 
-        private static IEnumerator CommandBehind()
+        // Owner, 2026-11-15: only a roll at the last moment gets out; a roll early is followed by the circle.
+        private static IEnumerator CommandRoll(bool early)
         {
-            Note("--- the Command with the player behind him");
-            yield return ResetFight(Centre);
-            yield return Start(MasterP1.MoveKind.Command, 4f);
-            int before = blows.Count;
-            yield return (Func<bool>)(() => Move == null || Move.SinceStart >= Move.Tell - 0.35f);
-            PlaceAbsolute(master.transform.position - master.transform.forward * 4f, master.transform.forward);
-            yield return (Func<bool>)(() => Move == null || Move.Landed);
-            Check("behind him (outside his 160 deg): no hit", blows.Count == before, (blows.Count - before) + " hits");
-            yield return WaitMoveEnds();
-        }
-
-        private static IEnumerator CommandRoll()
-        {
-            Note("--- the Command, rolled");
+            Note("--- the Command, rolled " + (early ? "1 s early" : "at the lock"));
             yield return ResetFight(Centre);
             yield return Start(MasterP1.MoveKind.Command, 6f);
             int before = blows.Count;
-            yield return (Func<bool>)(() => Move == null || Move.SinceStart >= Move.Tell - 0.2f);
+            float at = early ? 1f : S.commandLock;
+            yield return (Func<bool>)(() => Move == null || Move.SinceStart >= Move.Tell - at);
             yield return Roll(master.transform.right);
             yield return (Func<bool>)(() => Move == null || Move.Landed);
             yield return 0.05f;
             playerMove = Vector3.zero;
-            Check("a roll doesn't escape the Command (only cover does)", blows.Count == before + 1 && combat.IsKneeling, (blows.Count - before) + " hits, " + combat.State);
+            if (early)
+                Check("a roll 1 s early: the circle follows, hit", blows.Count == before + 1 && combat.IsKneeling, (blows.Count - before) + " hits, " + combat.State);
+            else
+                Check("a roll at the lock clears it", blows.Count == before && combat.IsKneeling == false, (blows.Count - before) + " hits, " + combat.State);
             yield return (Func<bool>)(() => combat.IsKneeling == false);
             yield return WaitMoveEnds();
+        }
+
+        // Owner, 2026-11-15: blows fill the stagger meter and take no health until he's staggered (down on one knee);
+        // then they do (critical), and the meter shows the window draining.
+        private static IEnumerator StaggerMeter()
+        {
+            Note("--- the stagger meter");
+            yield return ResetFight(Centre);
+            PlaceFront(2.2f);
+            float health = master.health.Current;
+            int swings = 0;
+            while (master.IsStaggered == false && swings < 30)
+            {
+                yield return Swing(false);
+                swings++;
+                if (State == master.parriedState || master.IsStaggered)
+                    break;
+            }
+
+            Check("blows before the stagger take no health", Mathf.Approximately(health, master.health.Current), (health - master.health.Current).ToString("F0") + " taken in " + swings + " swings, meter " + master.StaggerMeter.ToString("F2"));
+            Check("the meter fills to a stagger", master.IsStaggered, swings + " swings, " + State.GetType().Name);
+            if (master.IsStaggered == false)
+                yield break;
+            Shot("Stagger_Kneel");
+            float window = master.StaggerWindowLeft;
+            yield return Swing(false);
+            yield return 0.2f;
+            Check("a blow in the stagger takes health (critical)", master.health.Current < health, (health - master.health.Current).ToString("F0") + " taken");
+            Check("the meter shows the window draining", window > 0f && master.StaggerWindowLeft < window, window.ToString("F2") + " -> " + master.StaggerWindowLeft.ToString("F2"));
+            yield return (Func<bool>)(() => master.IsStaggered == false);
+            Check("the meter is empty after", master.StaggerMeter < 0.05f, master.StaggerMeter.ToString("F2"));
+            yield return WaitMoveEnds();
+        }
+
+        // A light (or heavy) from 2.2 m in front of him, once the player is ready.
+        private static IEnumerator Swing(bool heavy)
+        {
+            master.circleState.Hold(999f);
+            yield return (Func<bool>)(() => combat.State == PlayerCombat.CombatState.Armed || combat.State == PlayerCombat.CombatState.Sheathed);
+            PlaceFront(2.2f, keepFacing: true);
+            Press(heavy ? "OnHeavyPressed" : "OnStrikePressed");
+            yield return 0.75f;
         }
 
         // --- Threads ---
@@ -1059,21 +1026,23 @@ namespace Kneel.EditorTools
             yield return ResetFight(Centre);
             PlaceFront(2.3f);
             yield return 0.1f;
+            // Owner, 2026-11-15: outside a stagger his health doesn't move; the blows go into his stagger meter (poise).
             float health = master.health.Current;
+            float poise = master.poise.Current;
             Press("OnStrikePressed");
-            yield return (Func<bool>)(() => master.health.Current < health);
-            float open = health - master.health.Current;
+            yield return (Func<bool>)(() => master.poise.Current < poise);
+            float open = poise - master.poise.Current;
             yield return 0.05f;
-            Check("a light outside a move flinches him", State == master.flinchState, State.GetType().Name + ", " + open.ToString("F1") + " damage");
+            Check("a light outside a move flinches him and only fills the meter", State == master.flinchState && Mathf.Approximately(health, master.health.Current), State.GetType().Name + ", " + open.ToString("F1") + " poise, " + (health - master.health.Current).ToString("F1") + " health");
             yield return 1.2f;
 
             yield return ResetFight(Centre);
             yield return Start(MasterP1.MoveKind.Decree, 2.3f);
-            health = master.health.Current;
+            poise = master.poise.Current;
             Press("OnStrikePressed");
-            yield return (Func<bool>)(() => master.health.Current < health || Move == null || Move.Landed);
-            float armoured = health - master.health.Current;
-            Check("in the Decree's wind-up: " + (S.windupDamageMultiplier * 100f) + "% damage, no flinch", Mathf.Abs(armoured - open * S.windupDamageMultiplier) < 0.6f && Move != null && Move.Kind == MasterP1.MoveKind.Decree, armoured.ToString("F1") + " of " + open.ToString("F1") + ", " + State.GetType().Name);
+            yield return (Func<bool>)(() => master.poise.Current < poise || Move == null || Move.Landed);
+            float armoured = poise - master.poise.Current;
+            Check("in the Decree's wind-up: " + (S.windupDamageMultiplier * 100f) + "% of the meter, no flinch", Mathf.Abs(armoured - open * S.windupDamageMultiplier) < 0.6f && Move != null && Move.Kind == MasterP1.MoveKind.Decree, armoured.ToString("F1") + " of " + open.ToString("F1") + ", " + State.GetType().Name);
             yield return WaitMoveEnds();
 
             // A poise break in a move waits for the blow to end, then staggers him.
@@ -1104,12 +1073,12 @@ namespace Kneel.EditorTools
             Check("2.5 s stagger, and the Decree never lands", Mathf.Abs(Time.time - hit - 2.5f) < 0.2f && blows.Count == before, (Time.time - hit).ToString("F2") + " s, " + (blows.Count - before) + " hits");
 
             yield return ResetFight(Centre);
-            yield return Start(MasterP1.MoveKind.Seize, 4.5f);
+            yield return Start(MasterP1.MoveKind.Sentence, 3.5f);
             yield return 0.3f;
             master.HazardHit(40f, 1.5f);
             hit = Time.time;
             yield return (Func<bool>)(() => State != master.staggerState);
-            Check("a brazier (40, 1.5 s) breaks the Seize", Mathf.Abs(Time.time - hit - 1.5f) < 0.2f, (Time.time - hit).ToString("F2") + " s");
+            Check("a brazier (40, 1.5 s) breaks the Sentence", Mathf.Abs(Time.time - hit - 1.5f) < 0.2f, (Time.time - hit).ToString("F2") + " s");
         }
 
         // --- The hall (Stage 5) ---

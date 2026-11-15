@@ -232,6 +232,8 @@ public class ColossusToppleState : EnemyState
     }
 
     public float Elapsed => t;
+
+    public float Left => duration > 0f ? Mathf.Clamp01(1f - t / duration) : 0f;
 }
 
 // At half health (§6): he roars; the statues fall and the ash storm begins (the hall's director). Untouchable, ~3 s.

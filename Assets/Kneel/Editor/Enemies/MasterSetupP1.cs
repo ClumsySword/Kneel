@@ -219,7 +219,6 @@ namespace Kneel.EditorTools
         private const float SentenceEnd2 = 1.45f;
         private const float Sentence1Contact = 0.74f;
         private const float Sentence2Contact = 0.27f;
-        private const float SeizeContact = 1.2f;
         private const float CommandRelease = 0.9f;  // the palm at the top (the clip is right-handed: the state mirrors it)
         private const float ThreadsRelease = 0.6f;  // the flick (mirrored too)
         private const float ThrustContact = 0.8f;
@@ -245,7 +244,6 @@ namespace Kneel.EditorTools
             new Cut { name = "Decree", source = "Master_Decree", bakeRotation = true, pin = true },
             new Cut { name = "Sentence1", source = "Master_Sentence", start = 0f, end = SentenceCut, bakeRotation = true, pin = true },
             new Cut { name = "Sentence2", source = "Master_Sentence", start = SentenceCut, end = SentenceEnd2, bakeRotation = true, pin = true },
-            new Cut { name = "Seize", source = "Master_Seize", bakeRotation = true, pin = true },
             new Cut { name = "Command", source = "Shared_Command", bakeRotation = true, pin = true },
             new Cut { name = "Threads", source = "Master_Threads", bakeRotation = true, pin = true },
             new Cut { name = "GuardIn", source = "Master_GuardIn", bakeHeight = true, pin = true },
@@ -317,7 +315,6 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "Sentence1", parameter = "Sentence", motion = cuts["Sentence1"] },
                 new EnemyRig.State { name = "Sentence2", parameter = "Sentence", motion = cuts["Sentence2"], chained = true },
                 new EnemyRig.State { name = "Sentence3", parameter = "Sentence", motion = cuts["Sentence1"], chained = true },
-                new EnemyRig.State { name = "Seize", motion = cuts["Seize"] },
                 new EnemyRig.State { name = "Command", motion = cuts["Command"] },
                 new EnemyRig.State { name = "Threads", motion = cuts["Threads"] },
                 // The Regal Guard walks in on his real walk (the guard is an upper-body layer over it: no glide).
@@ -326,7 +323,10 @@ namespace Kneel.EditorTools
                 // Parried: the stagger, not a kneel (owner, 2026-11-10).
                 new EnemyRig.State { name = "ParriedStagger", parameter = "Parried", motion = cuts["Stagger"], exitBlend = 0.2f },
                 new EnemyRig.State { name = "ParriedRecover", parameter = "Parried", motion = circle, chained = true, exitBlend = 0.2f },
-                new EnemyRig.State { name = "Stagger", motion = cuts["Stagger"], exitBlend = 0.2f },
+                // The stagger is a drop to one knee (owner, 2026-11-15: it looked the same as the parried reel).
+                new EnemyRig.State { name = "StaggerDown", parameter = "Stagger", motion = cuts["KneelDown"] },
+                new EnemyRig.State { name = "StaggerKneel", parameter = "Stagger", motion = cuts["KneelIdle"], chained = true },
+                new EnemyRig.State { name = "StaggerUp", parameter = "Stagger", motion = cuts["KneelUp"], chained = true, exitBlend = 0.25f },
                 new EnemyRig.State { name = "Flinch", motion = cuts["Flinch"], speed = 1.2f },
                 new EnemyRig.State { name = "Pommel", motion = cuts["Pommel"], exitBlend = 0.25f },
                 new EnemyRig.State { name = "Fallen", motion = cuts["KneelDown"], speed = 1.4f, final = true });
@@ -340,8 +340,8 @@ namespace Kneel.EditorTools
                 string param = null;
                 switch (s.name)
                 {
-                    case "Decree": case "Sentence1": case "Sentence2": case "Sentence3": case "Seize": case "Command": case "Threads": case "Thrust":
-                    case "ParriedStagger": case "Stagger":
+                    case "Decree": case "Sentence1": case "Sentence2": case "Sentence3": case "Command": case "Threads": case "Thrust":
+                    case "ParriedStagger": case "StaggerDown": case "StaggerKneel": case "StaggerUp":
                         param = "MoveSpeed"; break;
                     case "Move": case "Circle": param = "MoveRate"; break;
                     case "Rise": param = "RiseSpeed"; break;
@@ -389,12 +389,13 @@ namespace Kneel.EditorTools
                 var master = root.GetComponent<MasterP1>();
                 master.decreeContact = DecreeContact;
                 master.sentenceContacts = new[] { Sentence1Contact, Sentence2Contact, Sentence1Contact };
-                master.seizeContact = SeizeContact;
                 master.commandRelease = CommandRelease;
                 master.threadsRelease = ThreadsRelease;
                 master.thrustContact = ThrustContact;
                 master.pommelContact = PommelContact;
                 master.staggerLength = cuts["Stagger"].length;
+                master.kneelDownLength = cuts["KneelDown"].length;
+                master.kneelUpLength = cuts["KneelUp"].length;
                 master.walkClipSpeed = settings.walkSpeed;   // the Move tree's full-walk speed
                 L5Polish.BossLayers(root);
                 PrefabUtility.SaveAsPrefabAsset(root, P1Prefab);

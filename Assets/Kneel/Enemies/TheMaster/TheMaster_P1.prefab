@@ -2080,12 +2080,13 @@ MonoBehaviour:
   - 0.74
   - 0.27
   - 0.74
-  seizeContact: 1.2
   commandRelease: 0.9
   threadsRelease: 0.6
   thrustContact: 0.8
   pommelContact: 1.35
   staggerLength: 1.3666668
+  kneelDownLength: 2.766667
+  kneelUpLength: 2.766667
 --- !u!114 &1595228060008625126
 MonoBehaviour:
   m_ObjectHideFlags: 0

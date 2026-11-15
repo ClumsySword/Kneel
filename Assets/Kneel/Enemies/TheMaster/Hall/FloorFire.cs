@@ -48,10 +48,11 @@ public class FloorFire : MonoBehaviour, Kneel.Hazards.ILevelResettable
             Instance = null;
     }
 
-    // A burning line, `width` wide (Threads: it grows with the thread's head through Stretch).
-    public static FirePatch Line(Vector3 a, Vector3 b, float width, float seconds)
+    // A burning line, `width` wide (Threads: it grows with the thread's head through Stretch). `scorch` false leaves out
+    // the oil fire's black puddle (the thread draws its own soot along its cracks); `size` scales the flames.
+    public static FirePatch Line(Vector3 a, Vector3 b, float width, float seconds, bool scorch = true, float size = 1f, float rate = 1f)
     {
-        return Instance != null ? Instance.Spawn(a, b, width * 0.5f, seconds, false) : null;
+        return Instance != null ? Instance.Spawn(a, b, width * 0.5f, seconds, false, scorch, size, rate) : null;
     }
 
     public static FirePatch Circle(Vector3 centre, float radius, float seconds)
@@ -72,11 +73,11 @@ public class FloorFire : MonoBehaviour, Kneel.Hazards.ILevelResettable
         return false;
     }
 
-    private FirePatch Spawn(Vector3 a, Vector3 b, float half, float seconds, bool circle)
+    private FirePatch Spawn(Vector3 a, Vector3 b, float half, float seconds, bool circle, bool scorch = true, float size = 1f, float rate = 1f)
     {
         FirePatch patch = pool.Count > 0 ? pool.Pop() : FirePatch.Build(template, transform);
         a.y = b.y = floorY;
-        patch.Begin(a, b, half, seconds, circle);
+        patch.Begin(a, b, half, seconds, circle, scorch, size, rate);
         live.Add(patch);
         Trim(patch);
         return patch;
@@ -192,6 +193,8 @@ public class FirePatch
     private ParticleSystem[] systems;
     private float[] baseRates;
     private Vector3[] baseShape;
+    private float[] baseSizes;
+    private float rateScale = 1f;
     private Transform puddle;
     private Light light;
     private float lightBase;
@@ -219,10 +222,12 @@ public class FirePatch
         patch.systems = patch.root.GetComponentsInChildren<ParticleSystem>(true);
         patch.baseRates = new float[patch.systems.Length];
         patch.baseShape = new Vector3[patch.systems.Length];
+        patch.baseSizes = new float[patch.systems.Length];
         for (int i = 0; i < patch.systems.Length; i++)
         {
             patch.baseRates[i] = patch.systems[i].emission.rateOverTimeMultiplier;
             patch.baseShape[i] = patch.systems[i].shape.scale;
+            patch.baseSizes[i] = patch.systems[i].main.startSizeMultiplier;
             ParticleSystem.MainModule main = patch.systems[i].main;
             main.playOnAwake = false;
             main.loop = true;
@@ -253,8 +258,9 @@ public class FirePatch
         return patch;
     }
 
-    public void Begin(Vector3 a, Vector3 b, float half, float seconds, bool circle)
+    public void Begin(Vector3 a, Vector3 b, float half, float seconds, bool circle, bool scorch = true, float size = 1f, float rate = 1f)
     {
+        rateScale = rate;
         Spared = null;
         Generation++;
         Circle = circle;
@@ -264,6 +270,14 @@ public class FirePatch
         Dying = false;
         nextTick.Clear();
         root.SetActive(true);
+        if (puddle != null)
+            puddle.gameObject.SetActive(scorch);
+        for (int i = 0; i < systems.Length; i++)
+        {
+            ParticleSystem.MainModule main = systems[i].main;
+            main.startSizeMultiplier = baseSizes[i] * size;
+        }
+
         A = a;
         Shape(b);
         foreach (ParticleSystem system in systems)
@@ -310,7 +324,7 @@ public class FirePatch
             }
 
             ParticleSystem.EmissionModule emission = systems[i].emission;
-            emission.rateOverTimeMultiplier = baseRates[i] * Mathf.Clamp(scale, 0.15f, 8f);
+            emission.rateOverTimeMultiplier = baseRates[i] * Mathf.Clamp(scale, 0.15f, 8f) * rateScale;
             ParticleSystem.MainModule main = systems[i].main;
             main.maxParticles = Mathf.Max(BoxRef, Mathf.CeilToInt(baseRates[i] * Mathf.Clamp(scale, 0.15f, 8f) * main.startLifetime.constantMax * 1.3f));
         }
@@ -356,7 +370,7 @@ public class FirePatch
         {
             ParticleSystem.EmissionModule emission = systems[i].emission;
             float scale = Circle ? Half * Half * 4f / (3.2f * 3.2f) : (Length + Half * 2f) * Half * 2f / (3.2f * 3.2f);
-            emission.rateOverTimeMultiplier = baseRates[i] * Mathf.Clamp(scale, 0.15f, 8f) * fade;
+            emission.rateOverTimeMultiplier = baseRates[i] * Mathf.Clamp(scale, 0.15f, 8f) * fade * rateScale;
         }
 
         if (light != null)
