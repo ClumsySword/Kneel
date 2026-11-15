@@ -17,9 +17,9 @@ public class Health : MonoBehaviour
 
     private float lastDamageTime = -999f;
 
-    // For dev tools: damage still lands (and its reactions play) but never takes the last point.
+    // For dev tools (MasterDevTool): damage takes no health (the hit and its reactions still happen).
     [NonSerialized]
-    public bool cannotDie;
+    public bool invincible;
 
     public float Current { get; private set; }
 
@@ -45,12 +45,12 @@ public class Health : MonoBehaviour
 
     public void ApplyDamage(float amount)
     {
-        if (amount <= 0f)
+        if (amount <= 0f || invincible == true)
         {
             return;
         }
 
-        Current = Mathf.Max(cannotDie ? 1f : 0f, Current - amount);
+        Current = Mathf.Max(0f, Current - amount);
         lastDamageTime = Time.time;
 
         OnDamaged?.Invoke(amount);

@@ -6,8 +6,8 @@ using UnityEngine.SceneManagement;
 
 // F2 in L5 (Editor and development builds only): the Boss Lab, for testing every move of the Master and the Ash
 // Colossus and replaying the fight's cutscenes.
-// - Kael: invisible (every renderer and light on him off, a thin ring marking his spot), and hits either pass through him, land
-//   but never take his last point (the grabs and kneels play out), or land as normal.
+// - Kael: invincible (his blows still land, so the grabs, kneels and knockdowns play out, but Kael loses no health), and
+//   optionally his blows pass straight through him instead.
 // - The boss: "Wait between moves" holds the picker, so he only starts the move asked for (MasterBody.DevHold);
 //   "Repeat" asks for it again each time he's ready. A move of the other phase starts that phase first. Time scale.
 // - Start and cutscenes reload the hall first (unless unticked), so each runs on an unbroken floor. Save flags go to a
@@ -15,8 +15,6 @@ using UnityEngine.SceneManagement;
 // Spawned by itself in any scene with a MasterBoss; nothing in the scene refers to it.
 public class MasterDevTool : MonoBehaviour
 {
-    private enum Hits { Normal, LandCantDie, PassThrough }
-
     private enum Run
     {
         None, Phase1, Phase2, Reveal, IntroFirst, IntroRetry, P1Half, UnmakingFirst, UnmakingSkippable, P2Half, Finisher,
@@ -28,9 +26,8 @@ public class MasterDevTool : MonoBehaviour
     // What the reloaded scene's tool runs, and the panel's state, carried over the reload.
     private static Run pendingRun;
     private static bool sticky;
-    private static bool invisible;
-    private static Hits hits = Hits.Normal;
-    private static bool markSpot = true;
+    private static bool invincible;
+    private static bool passThrough;
     private static bool repeat;
     private static bool reloadFirst = true;
     private static bool stayInL5 = true;
@@ -43,9 +40,8 @@ public class MasterDevTool : MonoBehaviour
     {
         pendingRun = Run.None;
         sticky = false;
-        invisible = false;
-        hits = Hits.Normal;
-        markSpot = true;
+        invincible = false;
+        passThrough = false;
         repeat = false;
         reloadFirst = true;
         stayInL5 = true;
@@ -92,18 +88,12 @@ public class MasterDevTool : MonoBehaviour
     private AshColossus.MoveKind? lastP2;
     private float readySince = -1f;
 
-    // The renderers on Kael this tool switched off (and only those come back on).
-    private readonly System.Collections.Generic.HashSet<Renderer> hidden = new System.Collections.Generic.HashSet<Renderer>();
-    private readonly System.Collections.Generic.HashSet<Light> darkened = new System.Collections.Generic.HashSet<Light>();
-    private LineRenderer ring;
-
     private void Start()
     {
         boss = FindAnyObjectByType<MasterBoss>();
         player = FindAnyObjectByType<PlayerCombat>();
         playerHealth = player != null ? player.GetComponent<Health>() : null;
         open = wasOpen;
-        BuildRing();
         if (pendingRun != Run.None)
         {
             Run run = pendingRun;
@@ -114,9 +104,8 @@ public class MasterDevTool : MonoBehaviour
 
     private void OnDestroy()
     {
-        ShowKael();
         if (player != null) player.devPassThrough = false;
-        if (playerHealth != null) playerHealth.cannotDie = false;
+        if (playerHealth != null) playerHealth.invincible = false;
         IsOpen = false;
         IsPointerOverPanel = false;
         if (Mathf.Approximately(Time.timeScale, speed) && speed != 1f)
@@ -150,13 +139,9 @@ public class MasterDevTool : MonoBehaviour
             return;
 
         // Kael.
-        player.devPassThrough = hits == Hits.PassThrough;
+        player.devPassThrough = invincible && passThrough;
         if (playerHealth != null)
-        {
-            playerHealth.cannotDie = hits == Hits.LandCantDie;
-            if (hits != Hits.Normal && playerHealth.Current > 0f)
-                playerHealth.Heal(playerHealth.Max);
-        }
+            playerHealth.invincible = invincible;
 
         // The boss.
         MasterBody.DevHold = sticky;
@@ -165,18 +150,6 @@ public class MasterDevTool : MonoBehaviour
         // Slow motion, under hit-stop and the pause menu (both set the time scale themselves).
         if (speed != 1f && Kneel.UI.PauseMenu.IsPaused == false && Mathf.Approximately(Time.timeScale, 1f))
             Time.timeScale = speed;
-    }
-
-    private void LateUpdate()
-    {
-        if (player == null)
-            return;
-        if (invisible) HideKael(); else ShowKael();
-
-        bool showRing = invisible && markSpot;
-        ring.enabled = showRing;
-        if (showRing)
-            ring.transform.position = player.transform.position + Vector3.up * 0.06f;
     }
 
     // Hands the asked-for move to whichever body is fighting, once he's standing ready between moves.
@@ -218,77 +191,6 @@ public class MasterDevTool : MonoBehaviour
     }
 
     // --- Kael ---
-
-    private void HideKael()
-    {
-        // Every frame: the body's scripts (and the equipment's sockets) may switch a renderer back on.
-        foreach (Renderer r in player.GetComponentsInChildren<Renderer>(true))
-        {
-            if (r.enabled)
-            {
-                r.enabled = false;
-                hidden.Add(r);
-            }
-        }
-
-        // His lantern's light too, or it would sit on the floor round nothing.
-        foreach (Light l in player.GetComponentsInChildren<Light>(true))
-        {
-            if (l.enabled)
-            {
-                l.enabled = false;
-                darkened.Add(l);
-            }
-        }
-    }
-
-    private void ShowKael()
-    {
-        if (hidden.Count == 0 && darkened.Count == 0)
-            return;
-        foreach (Renderer r in hidden)
-        {
-            if (r != null)
-                r.enabled = true;
-        }
-
-        foreach (Light l in darkened)
-        {
-            if (l != null)
-                l.enabled = true;
-        }
-
-        hidden.Clear();
-        darkened.Clear();
-    }
-
-    // A thin flat ring on the floor where the invisible Kael stands (what his blows are aimed at).
-    private void BuildRing()
-    {
-        var go = new GameObject("KaelSpot");
-        go.transform.SetParent(transform, false);
-        ring = go.AddComponent<LineRenderer>();
-        ring.useWorldSpace = false;
-        ring.loop = true;
-        ring.widthMultiplier = 0.035f;
-        ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        ring.receiveShadows = false;
-        ring.alignment = LineAlignment.TransformZ;
-        go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        Shader shader = Shader.Find("Sprites/Default");
-        if (shader != null)
-            ring.sharedMaterial = new Material(shader);
-        ring.startColor = ring.endColor = new Color(0.85f, 0.8f, 0.72f, 0.7f);
-        const int segments = 48;
-        ring.positionCount = segments;
-        for (int i = 0; i < segments; i++)
-        {
-            float a = i * Mathf.PI * 2f / segments;
-            ring.SetPosition(i, new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f) * 0.55f);
-        }
-
-        ring.enabled = false;
-    }
 
     private void PlaceKael(float x, float z, Vector3 facing)
     {
@@ -483,11 +385,9 @@ public class MasterDevTool : MonoBehaviour
         DrawState();
 
         Header("Kael");
-        invisible = GUILayout.Toggle(invisible, " Invisible");
-        if (invisible)
-            markSpot = GUILayout.Toggle(markSpot, " Mark his spot (a ring on the floor)");
-        GUILayout.Label("His blows on Kael:");
-        hits = (Hits)GUILayout.SelectionGrid((int)hits, new[] { "Normal", "Land, can't die", "Pass through" }, 3);
+        invincible = GUILayout.Toggle(invincible, " Invincible (his blows land but take no health)");
+        if (invincible)
+            passThrough = GUILayout.Toggle(passThrough, " ...and pass straight through him (no grabs, kneels or knockdowns)");
 
         Header("The boss");
         sticky = GUILayout.Toggle(sticky, " Wait between moves (only the ones asked for)");
