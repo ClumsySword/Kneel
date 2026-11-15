@@ -1,24 +1,26 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 // The Command's strike (owner, 2026-11-15, replacing the line-of-sight rule): fire falling from the vault like a bolt of
-// lightning onto the circle that has followed Kael through the tell. Begin it at the lock: a streak drops from high up
-// onto the locked point over `fall` seconds (the last-moment cue), then the bolt flashes, sparks fly, cracks run out
-// across the floor and a short light flares. Lines and small sparks only: no glow sprite (owner, 2026-11-11). The move
-// deals the blow itself, at the same moment.
+// lightning onto the ember ring that has followed Kael through the tell. Begin it at the lock: a streak drops from high
+// up onto the locked point over `fall` seconds (the last-moment cue), then the bolt flashes, sparks fly, a short light
+// flares, and the floor cracks open in the Hammerfall's lava-crack style, smaller (StrikeCracks). The move deals the
+// blow itself, at the same moment. Also the Gather's fire rain (FireRain).
 public class FireStrike : MonoBehaviour
 {
     private const float Height = 17f;
     private const int Segments = 26;
     private const float FlashTime = 0.22f;
-    private const float CoreWidth = 0.11f;
-    private const float FlareIntensity = 14f;
-    private const float SheathWidth = 0.32f;
     private const float FadeTime = 0.35f;
+    private const float CoreWidth = 0.11f;
+    private const float SheathWidth = 0.32f;
+    private const float FlareIntensity = 14f;
 
     private LineRenderer core;
     private LineRenderer sheath;
     private Light flare;
+    private MasterSettings settings;
     private Vector3 at;
     private Vector3 top;
     private float radius;
@@ -29,10 +31,11 @@ public class FireStrike : MonoBehaviour
     private readonly List<Vector3> path = new List<Vector3>();
     private System.Random random;
 
-    public static FireStrike Begin(Vector3 at, float radius, float fall)
+    public static FireStrike Begin(MasterSettings settings, Vector3 at, float radius, float fall)
     {
         var go = new GameObject("FireStrike");
         var strike = go.AddComponent<FireStrike>();
+        strike.settings = settings;
         strike.at = at;
         strike.radius = radius;
         strike.fall = Mathf.Max(fall, 0.05f);
@@ -100,7 +103,7 @@ public class FireStrike : MonoBehaviour
     {
         struck = Time.time;
         Jitter();
-        GroundCracks.Spawn(at, radius * 1.15f, 7, 0.9f);
+        StrikeCracks.Spawn(settings, at, radius * 1.5f, 0.12f, 0.15f, 1.1f);
         EmberLines.Sparks(at, 46, 6f);
         var go = new GameObject("Flare");
         go.transform.SetParent(transform, false);
@@ -112,7 +115,7 @@ public class FireStrike : MonoBehaviour
         flare.intensity = FlareIntensity;
         flare.shadows = LightShadows.None;
         HallActors.LightBosses(flare);
-        Object.FindAnyObjectByType<PlayerCamera>()?.AddShake(0.3f, 0.35f);
+        Object.FindAnyObjectByType<PlayerCamera>()?.AddShake(0.25f, 0.3f);
     }
 
     // The path from `from` to `to` (0 = sky, 1 = floor), widths scaled by `k`.
@@ -141,142 +144,93 @@ public class FireStrike : MonoBehaviour
     }
 }
 
-// Thin lava cracks that run out across the floor from a point, glow, and go out: the Command's strike and the
-// Colossus's Leap (owner, 2026-11-15: "small cracks in the floor that appear briefly when he lands"). Each ember
-// crack has a dark scorched outline under it, as the threads' fire does.
-public class GroundCracks : MonoBehaviour
+// The Hammerfall's lava cracks, small and quick (owner, 2026-11-15: "a small version of hammerfall (not identical)"):
+// its own crack texture (fewer, shorter cracks), turned at random, racing out over `grow`, flaring, then cooling over
+// `fade`. The Commands' strikes, the fire rain and the Leap's landing. Visual only.
+public static class StrikeCracks
 {
-    private class Crack
+    public static LavaCracks Spawn(MasterSettings settings, Vector3 at, float radius, float grow, float hold, float fade)
     {
-        public LineRenderer ember;
-        public LineRenderer scorch;
-        public readonly List<Vector3> points = new List<Vector3>();
+        if (settings == null || settings.strikeCrackMaterial == null)
+            return null;
+        LavaCracks cracks = LavaCracks.Spawn(settings.strikeCrackMaterial, settings.strikeCrackMap, at, radius, Random.Range(0f, 360f));
+        cracks.StartCoroutine(Run(cracks, grow, hold, fade));
+        return cracks;
     }
 
-    private readonly List<Crack> cracks = new List<Crack>();
-    private float started;
-    private float life;
-    private const float Grow = 0.12f;
-    private float Width;
-
-    public static GroundCracks Spawn(Vector3 at, float reach, int count, float life)
+    private static IEnumerator Run(LavaCracks cracks, float grow, float hold, float fade)
     {
-        var go = new GameObject("GroundCracks");
-        var g = go.AddComponent<GroundCracks>();
-        g.started = Time.time;
-        g.life = life;
-        g.Width = Mathf.Clamp(reach * 0.03f, 0.05f, 0.12f);
-        var random = new System.Random(Random.Range(int.MinValue, int.MaxValue));
-        float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
-        float y = at.y + 0.035f;
-        float offset = Range(0f, 360f);
-        for (int i = 0; i < count; i++)
+        float start = Time.time;
+        while (Time.time - start < grow)
         {
-            float angle = offset + i * 360f / count + Range(-18f, 18f);
-            Vector3 dir = Quaternion.AngleAxis(angle, Vector3.up) * Vector3.forward;
-            var crack = new Crack
-            {
-                scorch = EmberLines.Line(go.transform, "Scorch", EmberLines.Scorch(0.75f), g.Width * 2.4f, true),
-                ember = EmberLines.Line(go.transform, "Ember", EmberLines.Ember(1f), g.Width, true),
-            };
-            float length = reach * Range(0.55f, 1f);
-            Vector3 p = new Vector3(at.x, y, at.z) + dir * 0.25f;
-            crack.points.Add(p);
-            for (float d = 0.45f; d < length; d += Range(0.3f, 0.5f))
-            {
-                dir = Quaternion.AngleAxis(Range(-28f, 28f), Vector3.up) * dir;
-                p += dir * 0.4f;
-                crack.points.Add(p);
-            }
-
-            g.cracks.Add(crack);
+            float t = (Time.time - start) / grow;
+            cracks.Reveal = 1.05f * (1f - (1f - t) * (1f - t));
+            cracks.Intensity = Mathf.Lerp(1.5f, LavaCracks.BurstIntensity, t);
+            yield return null;
         }
 
-        return g;
-    }
-
-    private void Update()
-    {
-        float t = Time.time - started;
-        if (t >= life)
+        cracks.Reveal = 1.05f;
+        cracks.Intensity = LavaCracks.BurstIntensity;
+        yield return new WaitForSeconds(hold);
+        start = Time.time;
+        while (Time.time - start < fade)
         {
-            Destroy(gameObject);
-            return;
+            float t = (Time.time - start) / fade;
+            cracks.Intensity = Mathf.Lerp(LavaCracks.BurstIntensity, 0f, Mathf.Sqrt(t));
+            yield return null;
         }
 
-        float grown = Mathf.Clamp01(t / Grow);
-        // Bright at once, cooling over the second half.
-        float heat = t < life * 0.4f ? 1f : 1f - (t - life * 0.4f) / (life * 0.6f);
-        foreach (Crack crack in cracks)
-        {
-            int count = Mathf.Max(2, Mathf.CeilToInt(crack.points.Count * grown));
-            crack.ember.positionCount = count;
-            crack.scorch.positionCount = count;
-            for (int i = 0; i < count; i++)
-            {
-                crack.ember.SetPosition(i, crack.points[i] + Vector3.up * 0.005f);
-                crack.scorch.SetPosition(i, crack.points[i]);
-            }
-
-            crack.ember.widthMultiplier = Width * heat;
-            crack.scorch.startColor = crack.scorch.endColor = new Color(1f, 1f, 1f, Mathf.Clamp01(heat * 1.4f));
-        }
+        Object.Destroy(cracks.gameObject);
     }
 }
 
-// The ember-line look the Master's spells share (the threads, the marks, the strike): additive ember lines, dark
-// scorch lines under them, and small sparks. Materials are cached and shared.
+// The ember-line look the Master's spells share (the threads, the strike's bolt): additive ember lines and small sparks.
+// Materials are cached and shared.
 public static class EmberLines
 {
     private static readonly Dictionary<int, Material> embers = new Dictionary<int, Material>();
-    private static readonly Dictionary<int, Material> scorches = new Dictionary<int, Material>();
     private static Material spark;
+
+    // The Hammerfall cracks' colours (MasterSetup.CrackMaterial): the ember and the hotter core.
+    public static readonly Color CrackColour = new Color(1f, 0.22f, 0.03f);
+    public static readonly Color CrackHot = new Color(1f, 0.42f, 0.1f);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         embers.Clear();
-        scorches.Clear();
         spark = null;
     }
 
     private static Shader Particles => Shader.Find("Universal Render Pipeline/Particles/Unlit");
 
     // The threads' ember (1 = as bright as a thread's core).
-    public static Material Ember(float brightness)
+    public static Material Ember(float brightness) => Additive(new Color(1f, 0.34f, 0.07f) * 0.8f * brightness);
+
+    // An additive line in `colour` (cached by colour).
+    public static Material Additive(Color colour)
     {
-        int key = Mathf.RoundToInt(brightness * 100f);
+        int key = (Mathf.RoundToInt(colour.r * 255f) << 16) ^ (Mathf.RoundToInt(colour.g * 255f) << 8) ^ Mathf.RoundToInt(colour.b * 255f);
         if (embers.TryGetValue(key, out Material m) && m != null)
             return m;
-        m = Make(true, new Color(1f, 0.34f, 0.07f) * 0.8f * brightness);
+        m = Make(colour);
         embers[key] = m;
         return m;
     }
 
-    // Soot: an alpha-blended near-black, for the outline round a burning crack.
-    public static Material Scorch(float alpha)
-    {
-        int key = Mathf.RoundToInt(alpha * 100f);
-        if (scorches.TryGetValue(key, out Material m) && m != null)
-            return m;
-        m = Make(false, new Color(0.035f, 0.02f, 0.015f, alpha));
-        scorches[key] = m;
-        return m;
-    }
-
-    private static Material Make(bool additive, Color colour)
+    private static Material Make(Color colour)
     {
         Shader shader = Particles;
         if (shader == null)
             return null;
         var m = new Material(shader);
         m.SetFloat("_Surface", 1f);
-        m.SetFloat("_Blend", additive ? 2f : 0f);
+        m.SetFloat("_Blend", 2f);
         m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        m.SetInt("_DstBlend", (int)(additive ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
+        m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
         m.SetInt("_ZWrite", 0);
-        m.renderQueue = additive ? 3001 : 3000;
+        m.renderQueue = 3001;
         m.SetColor("_BaseColor", colour);
         return m;
     }
@@ -332,7 +286,7 @@ public static class EmberLines
         renderer.lengthScale = 1.5f;
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         if (spark == null)
-            spark = Make(true, new Color(1f, 0.55f, 0.2f));
+            spark = Make(new Color(1f, 0.55f, 0.2f));
         renderer.sharedMaterial = spark;
         ps.Play();
     }

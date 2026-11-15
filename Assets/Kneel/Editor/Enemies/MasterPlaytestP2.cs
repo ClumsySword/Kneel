@@ -96,8 +96,7 @@ namespace Kneel.EditorTools
                 ("leap", LeapDodged),
                 ("gcommand", GreatCommandOpen),
                 ("gcommand", GreatCommandRolled),
-                ("gather", GatherBroken),
-                ("gather", GatherBashed),
+                ("gather", GatherRain),
                 ("gather", GatherCompletes),
                 ("lash", LashLands),
                 ("lash", LashMark),
@@ -800,9 +799,10 @@ namespace Kneel.EditorTools
 
         // --- Gather ---
 
-        private static IEnumerator GatherBroken()
+        // Owner, 2026-11-15: he kneels, untouchable, while fire rains on the arena (FireRain); the player only dodges.
+        private static IEnumerator GatherRain()
         {
-            Note("--- the Gather, broken by heavies");
+            Note("--- the Gather: the kneel and the fire rain");
             yield return ResetP2(P2Centre);
             colossus.health.ApplyDamage(colossus.health.Max * 0.3f);
             AshColossus.ForceNext = null;
@@ -817,44 +817,25 @@ namespace Kneel.EditorTools
             Check("above 75%, never", above.Contains(AshColossus.MoveKind.Gather) == false, "");
             colossus.health.ApplyDamage(colossus.health.Max * 0.3f);
 
-            yield return StartP2(AshColossus.MoveKind.Gather, 2.8f);
-            Filmstrip2("Gather");
-            yield return 0.6f;
+            yield return StartP2(AshColossus.MoveKind.Gather, 6f);
+            yield return 1.5f;
+            Check("he kneels through it", colossus.anim.GetCurrentAnimatorStateInfo(0).IsName("GatherKneel"), "");
             float health = colossus.health.Current;
+            P2PlaceFront(2.8f, keepFacing: true);
             Press("OnHeavyPressed");
-            yield return (Func<bool>)(() => colossus.health.Current < health || P2Move == null);
-            Note("  one heavy: " + (health - colossus.health.Current).ToString("F1") + " damage (35 raw, x0.5 in the channel), counted " + (P2Move != null ? P2Move.GatherDamage.ToString("F0") : "-") + " toward the break, " + P2State.GetType().Name);
-            if (P2State != colossus.toppleState)
+            yield return 0.9f;
+            Check("he's untouchable while he gathers", Mathf.Approximately(health, colossus.health.Current) && P2Move != null, (health - colossus.health.Current).ToString("F1") + " damage");
+            Shot("P2_Gather_rain");
+            FireRain rain = P2Move != null ? P2Move.Rain : null;
+            int landed = 0, hits = 0;
+            while (P2Move != null && P2Move.Kind == AshColossus.MoveKind.Gather && P2Move.Landed == false)
             {
-                yield return (Func<bool>)(() => combat.State == PlayerCombat.CombatState.Armed);
-                Press("OnHeavyPressed");
-                yield return (Func<bool>)(() => P2State == colossus.toppleState || P2Move == null);
+                if (rain != null) { landed = rain.Landed; hits = rain.Hits; }
+                yield return 0.1f;
             }
 
-            Check("heavies break it into a Topple", P2State == colossus.toppleState, P2State.GetType().Name);
-            Check("and it heals nothing", colossus.health.Fraction < 0.71f, (colossus.health.Fraction * 100f).ToString("F0") + "%");
-            yield return P2WaitMoveEnds();
-        }
-
-        private static IEnumerator GatherBashed()
-        {
-            Note("--- the Gather, broken by two bashes");
-            yield return ResetP2(P2Centre);
-            colossus.health.ApplyDamage(colossus.health.Max * 0.3f);
-            yield return StartP2(AshColossus.MoveKind.Gather, 2.6f);
-            yield return 0.5f;
-            for (int i = 0; i < 2 && P2State != colossus.toppleState; i++)
-            {
-                P2PlaceFront(2.4f, keepFacing: true);
-                SetBlock(true);
-                yield return 0.15f;
-                Press("OnStrikePressed");
-                yield return 0.7f;
-                SetBlock(false);
-                yield return (Func<bool>)(() => combat.State == PlayerCombat.CombatState.Armed);
-            }
-
-            Check("two bashes on the claw topple him", P2State == colossus.toppleState, P2State.GetType().Name);
+            Check("fire rains on the arena (at least 12 strikes)", landed >= 12, landed + " strikes, " + hits + " on the player");
+            Check("some of it is aimed at the player", hits > 0, hits + " hits on a player standing still");
             yield return P2WaitMoveEnds();
         }
 
@@ -867,7 +848,7 @@ namespace Kneel.EditorTools
             var storm = UnityEngine.Object.FindAnyObjectByType<AshStorm>();
             storm?.Begin();
             yield return StartP2(AshColossus.MoveKind.Gather, 10f);
-            yield return 2.5f;
+            yield return 5f;
             Check("the storm widens to 3 R while he gathers", storm != null && storm.Width >= storm.gatherBand - 0.5f, storm != null ? storm.Width.ToString("F1") + " m" : "no storm");
             Shot("P2_Gather");
             yield return (Func<bool>)(() => P2Move == null || P2Move.Landed);

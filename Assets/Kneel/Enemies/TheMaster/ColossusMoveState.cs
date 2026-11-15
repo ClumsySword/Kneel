@@ -11,8 +11,8 @@ using UnityEngine;
 //   way 3 s later.
 // - Leap: a shadow follows the player and locks; he lands in it.
 // - Great Command (mask light): the whole hall, cover only; a kneel, then an escapable Hammerfall.
-// - Gather: a 4 s channel; breaks into a Topple under 60 raw damage or two bashes; completed, he heals and the hall
-//   goes dark.
+// - Gather (owner, 2026-11-15): down on one knee, untouchable, while fire rains on the arena (FireRain) and the threads
+//   gather into him; then he rises, healed 8%, and the hall goes dark.
 // - Thread Lash: five burning lines fanned at the player.
 public class ColossusMoveState : EnemyState
 {
@@ -43,9 +43,14 @@ public class ColossusMoveState : EnemyState
     private float followupHit;
     private bool followupFar;
 
-    // Gather: what the player has done to the claw.
-    private float gatherDamage;
-    private int gatherBashes;
+    // Gather: the fire rain while he kneels, and its phases (down, kneeling, up).
+    private FireRain rain;
+    private int gatherPhase;
+    private const float GatherDown = 0.8f;
+    private const float GatherUp = 1.3f;
+
+    // The Commands' ember ring.
+    private EmberRing ring;
 
     public ColossusMoveState(Enemy enemyBase, EnemyStateMachine stateMachine, string animBoolName, AshColossus.MoveKind kind)
         : base(enemyBase, stateMachine, animBoolName)
@@ -56,7 +61,7 @@ public class ColossusMoveState : EnemyState
 
     public AshColossus.MoveKind Kind => kind;
 
-    // Before the blow lands (the whole Gather): hits do windupDamageMultiplier and never stop him.
+    // Before the blow lands: hits do windupDamageMultiplier and never stop him (the Gather is untouchable).
     public bool Armoured => landed == false;
 
     public float Tell => tell;
@@ -70,8 +75,8 @@ public class ColossusMoveState : EnemyState
     // When the current blow lands (game time), or -1.
     public float LandsAt => landed || finished || followupAt >= 0f || kind == AshColossus.MoveKind.Gather ? -1f : Time.time + (contactAt - elapsed);
 
-    // The Gather's damage so far, for the playtest.
-    public float GatherDamage => gatherDamage;
+    // The Gather's rain (null outside it), for the playtest.
+    public FireRain Rain => rain;
 
     private MasterSettings S => colossus.settings;
 
@@ -86,8 +91,7 @@ public class ColossusMoveState : EnemyState
         punishUntil = float.MaxValue;
         lunged = 0f;
         airborne = false;
-        gatherDamage = 0f;
-        gatherBashes = 0;
+        gatherPhase = 0;
         target = colossus.player.position;
 
         switch (kind)
@@ -102,6 +106,7 @@ public class ColossusMoveState : EnemyState
                 break;
             case AshColossus.MoveKind.Grasp:
                 StartBlow("Grasp", S.graspTell, colossus.graspContact);
+                colossus.anim.SetBool("SwordArmRest", true);
                 colossus.bossTell?.Ember(S.graspTell);
                 break;
             case AshColossus.MoveKind.Hammerfall:
@@ -121,12 +126,15 @@ public class ColossusMoveState : EnemyState
                 colossus.bossTell?.Palm(commandTell);
                 colossus.RaiseCommandTell(commandTell);
                 // As the Master's Command (owner, 2026-11-15): a circle follows Kael, locks, and fire strikes it.
-                mark = SpellMark.Ring(colossus.player.position, colossus.transform.position, S.greatCommandRadius, commandTell, bold: 2.4f);
+                ring = EmberRing.Spawn(S.emberMaterial, colossus.player.position, S.greatCommandRadius);
                 break;
             case AshColossus.MoveKind.Gather:
+                // Owner, 2026-11-15: he goes down to one knee and stays there, untouchable, while fire rains on the
+                // arena and the threads gather into him; then he rises, healed.
                 tell = S.gatherTime;
                 contactAt = S.gatherTime;
-                colossus.SetMoveSpeed(colossus.gatherLength / Mathf.Max(S.gatherTime, 0.5f));
+                colossus.Untouchable = true;
+                colossus.SetMoveSpeed(colossus.kneelDownLength / GatherDown);
                 colossus.anim.CrossFadeInFixedTime("Gather", 0.2f, 0, 0f);
                 colossus.bossTell?.Hum(S.gatherTime);
                 colossus.bossTell?.Charge(S.gatherTime);
@@ -146,9 +154,18 @@ public class ColossusMoveState : EnemyState
         base.Exit();
         colossus.SetMoveSpeed(1f);
         colossus.bossTell?.StopTells();
+        colossus.anim.SetBool("SwordArmRest", false);
         if (mark != null)
             mark.Release();
         mark = null;
+        if (ring != null)
+            ring.Release();
+        ring = null;
+        if (rain != null)
+            rain.Stop();
+        rain = null;
+        if (kind == AshColossus.MoveKind.Gather && colossus.IsDead == false)
+            colossus.Untouchable = false;
         if (shadow != null)
             Object.Destroy(shadow);
         if (airborne)
@@ -237,16 +254,16 @@ public class ColossusMoveState : EnemyState
                 mark.Lock();
         }
 
-        if (mark != null && kind == AshColossus.MoveKind.GreatCommand && landed == false)
+        if (ring != null && landed == false)
         {
             if (elapsed < contactAt - S.greatCommandLock)
             {
-                mark.Aim(colossus.player.position, colossus.player.position - colossus.transform.position);
+                ring.Aim(colossus.player.position);
             }
-            else if (mark.Locked == false)
+            else if (ring.Locked == false)
             {
-                mark.Lock();
-                FireStrike.Begin(mark.Origin, S.greatCommandRadius, S.greatCommandLock);
+                ring.Lock();
+                FireStrike.Begin(S, ring.Origin, S.greatCommandRadius, S.greatCommandLock);
             }
         }
 
@@ -319,10 +336,10 @@ public class ColossusMoveState : EnemyState
             }
             case AshColossus.MoveKind.GreatCommand:
                 colossus.bossTell?.Bell();
-                Vector3 struck = mark != null ? mark.Origin : colossus.player.position;
-                if (mark != null)
-                    mark.Release();
-                mark = null;
+                Vector3 struck = ring != null ? ring.Origin : colossus.player.position;
+                if (ring != null)
+                    ring.Release();
+                ring = null;
                 if (HallActors.FlatDistance(colossus.player.position, struck) <= S.greatCommandRadius + 0.3f)
                 {
                     colossus.Deal(S.greatCommandDamage, 0f, true, true, S.greatCommandKneel, 0f, colossus.player.position - struck);
@@ -373,10 +390,11 @@ public class ColossusMoveState : EnemyState
 
         if (landed == false && elapsed >= lungeAt)
         {
-            // Lunges as far as it takes to put the claw on the player at the lock, at most graspLunge.
+            // Lunges as far as it takes to put the claw on the player at the lock, at most graspLunge, eased over the
+            // reach so his step carries it.
             float want = Mathf.Clamp(Vector3.Dot(colossus.player.position - colossus.transform.position, line) - S.graspHandOut, 0f, S.graspLunge);
             float t = Mathf.Clamp01((elapsed - lungeAt) / Mathf.Max(S.graspLungeTime, 0.05f));
-            float goal = Mathf.Min(want, S.graspLunge) * (1f - (1f - t) * (1f - t));
+            float goal = Mathf.Min(want, S.graspLunge) * Mathf.SmoothStep(0f, 1f, t);
             if (goal > lunged && colossus.agent.enabled && colossus.agent.isOnNavMesh)
                 colossus.agent.Move(line * (goal - lunged));
             lunged = Mathf.Max(lunged, goal);
@@ -443,8 +461,8 @@ public class ColossusMoveState : EnemyState
         if (HallActors.FlatDistance(colossus.player.position, target) <= S.leapRadius)
             colossus.Deal(S.leapDamage, 50f, true, true, 0f, 0.8f, colossus.player.position - target);
         ColossusFx.Burst(colossus, target, S.leapRadius, 60);
-        // The floor cracks under him for a moment (owner, 2026-11-15).
-        GroundCracks.Spawn(LandingPoint(), S.leapRadius * 0.85f, 9, 0.9f);
+        // The floor cracks under him for a moment (owner, 2026-11-15), in the Hammerfall's style.
+        StrikeCracks.Spawn(S, LandingPoint(), S.leapRadius * 0.75f, 0.1f, 0.1f, 0.8f);
         Shake(0.5f);
         if (shadow != null)
             Object.Destroy(shadow);
@@ -467,29 +485,34 @@ public class ColossusMoveState : EnemyState
         colossus.agent.Warp(at);
     }
 
-    // --- Gather: the claw in the floor, the threads pulling; break it or he heals and the hall goes dark ---
+    // --- Gather: down on one knee, fire raining on the arena, the threads gathering into him; then up, healed ---
 
     private void UpdateGather()
     {
+        if (gatherPhase == 0 && elapsed >= GatherDown)
+        {
+            gatherPhase = 1;
+            colossus.SetMoveSpeed(1f);
+            colossus.anim.CrossFadeInFixedTime("GatherKneel", 0.2f, 0, 0f);
+            rain = FireRain.Begin(colossus, Mathf.Max(0.5f, S.gatherTime - GatherDown - GatherUp - S.rainTell));
+        }
+
+        if (gatherPhase == 1 && elapsed >= contactAt - GatherUp)
+        {
+            gatherPhase = 2;
+            colossus.SetMoveSpeed(colossus.kneelUpLength / GatherUp);
+            colossus.anim.CrossFadeInFixedTime("GatherUp", 0.25f, 0, 0f);
+        }
+
         if (landed || elapsed < contactAt)
             return;
 
         landed = true;
         colossus.SetMoveSpeed(1f);
+        colossus.Untouchable = false;
         colossus.Heal(S.gatherHeal);
         colossus.RaiseGatherComplete();
-        punishUntil = elapsed + 0.6f;
-    }
-
-    // A hit on the Gather: true once it's broken (raw damage with heavies weighted, or bashes on the claw).
-    public bool CountGatherHit(float weighted, bool bash)
-    {
-        if (landed)
-            return false;
-        gatherDamage += weighted;
-        if (bash)
-            gatherBashes++;
-        return gatherDamage >= S.gatherBreakDamage || gatherBashes >= S.gatherBreakBashes;
+        punishUntil = elapsed + 0.4f;
     }
 
     private void Track()

@@ -11,15 +11,15 @@ using UnityEngine;
 // forks are thinner and dimmer, so the answer stays "step between the lines" (a fork from the next line could
 // otherwise reach into the gap).
 // Owner, 2026-11-15: the fire it leaves is smaller and goes out sooner (MasterSettings.threadFireWidth/Time), and the
-// dark scorch follows the cracks themselves: every crack, forks too, has a thin soot outline under its ember, and both
-// stay while the fire burns, the ember cooling, then fade out together.
+// cracks are drawn in the Hammerfall's lava-crack style (no dark outline): a crisp hot core inside the ember line, a
+// faint narrow glow, in the Hammerfall's colours. They stay while the fire burns, cooling, then fade.
 public class ThreadLine : MonoBehaviour
 {
     private class Crack
     {
         public LineRenderer core;
         public LineRenderer glow;
-        public LineRenderer scorch;
+        public LineRenderer hot;
         public readonly List<Vector3> points = new List<Vector3>();
         public Vector3 origin;
         public Vector3 direction;
@@ -49,6 +49,7 @@ public class ThreadLine : MonoBehaviour
     private bool hit;
     private Material material;
     private Material glowMaterial;
+    private Material hotMaterial;
     private readonly List<Crack> cracks = new List<Crack>();
     private System.Random random;
 
@@ -82,8 +83,10 @@ public class ThreadLine : MonoBehaviour
             // Several threads leave him from one spot, and additive lines add up there: hot enough to read, no hotter.
             // Ember lines, as the floor's lava cracks (owner, 2026-11-11: clean, never fuzz; L5 grades at +1.45 stops, so
             // anything brighter than this reads white).
-            t.material = Additive(shader, new Color(1f, 0.34f, 0.07f) * 0.8f);
-            t.glowMaterial = Additive(shader, new Color(1f, 0.22f, 0.04f) * 0.12f);
+            // The Hammerfall cracks' colours (EmberLines.CrackColour / CrackHot): the ember, its hot core, a faint glow.
+            t.material = Additive(shader, EmberLines.CrackColour * 0.8f);
+            t.hotMaterial = Additive(shader, EmberLines.CrackHot * 0.95f);
+            t.glowMaterial = Additive(shader, EmberLines.CrackColour * 0.09f);
         }
 
         t.cracks.Add(t.NewCrack(t.origin, t.direction, length, width, 0));
@@ -114,9 +117,9 @@ public class ThreadLine : MonoBehaviour
     {
         var crack = new Crack { origin = from, direction = dir.normalized, length = len, width = w, depth = depth };
         // A rim of soot about 5 cm each side of the ember.
-        crack.scorch = Line("Scorch", w * (depth == 0 ? 0.32f : 0.24f) + 0.1f, EmberLines.Scorch(0.8f));
-        crack.core = Line("Crack", w * (depth == 0 ? 0.32f : 0.24f), material);
-        crack.glow = Line("Glow", w * (depth == 0 ? 0.7f : 0.5f), glowMaterial);
+        crack.glow = Line("Glow", w * (depth == 0 ? 0.55f : 0.4f), glowMaterial);
+        crack.core = Line("Crack", w * (depth == 0 ? 0.26f : 0.2f), material);
+        crack.hot = Line("Hot", w * (depth == 0 ? 0.1f : 0.07f), hotMaterial);
         crack.points.Add(from);
         crack.nextPoint = PointSpacing;
         // The first fork comes 1.5-4 m in (the main line), a side crack's own (rarer) fork 1-2 m in.
@@ -154,12 +157,13 @@ public class ThreadLine : MonoBehaviour
             float left = Mathf.Clamp01((burnTime - fade) / 0.8f);
             foreach (Crack crack in cracks)
             {
-                float core = crack.width * (crack.depth == 0 ? 0.32f : 0.24f);
-                crack.core.widthMultiplier = core * Mathf.Lerp(1f, 0.55f, cool) * Mathf.Lerp(0.4f, 1f, left);
-                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 0.7f : 0.5f) * (1f - cool);
+                float core = crack.width * (crack.depth == 0 ? 0.26f : 0.2f);
+                crack.core.widthMultiplier = core * Mathf.Lerp(1f, 0.6f, cool) * Mathf.Lerp(0.4f, 1f, left);
+                crack.hot.widthMultiplier = crack.width * (crack.depth == 0 ? 0.1f : 0.07f) * (1f - cool * 0.7f) * left;
+                crack.glow.widthMultiplier = crack.width * (crack.depth == 0 ? 0.55f : 0.4f) * Mathf.Lerp(1f, 0.6f, cool) * left;
                 var tint = new Color(1f, 1f, 1f, Mathf.Lerp(1f, 0.55f, cool) * left);
                 crack.core.startColor = crack.core.endColor = tint;
-                crack.scorch.startColor = crack.scorch.endColor = new Color(1f, 1f, 1f, left);
+                crack.hot.startColor = crack.hot.endColor = tint;
             }
 
             if (fade >= burnTime)
@@ -226,17 +230,17 @@ public class ThreadLine : MonoBehaviour
         int count = crack.points.Count + 1;
         crack.core.positionCount = count;
         crack.glow.positionCount = count;
-        crack.scorch.positionCount = count;
+        crack.hot.positionCount = count;
         for (int i = 0; i < crack.points.Count; i++)
         {
             crack.core.SetPosition(i, crack.points[i]);
             crack.glow.SetPosition(i, crack.points[i] + Vector3.down * 0.01f);
-            crack.scorch.SetPosition(i, crack.points[i] + Vector3.down * 0.015f);
+            crack.hot.SetPosition(i, crack.points[i] + Vector3.up * 0.005f);
         }
 
         crack.core.SetPosition(count - 1, head);
         crack.glow.SetPosition(count - 1, head + Vector3.down * 0.01f);
-        crack.scorch.SetPosition(count - 1, head + Vector3.down * 0.015f);
+        crack.hot.SetPosition(count - 1, head + Vector3.up * 0.005f);
     }
 
     // The player under this frame's stretch of a crack's head: hurt once for the whole thread.
@@ -259,5 +263,6 @@ public class ThreadLine : MonoBehaviour
     {
         if (material != null) Destroy(material);
         if (glowMaterial != null) Destroy(glowMaterial);
+        if (hotMaterial != null) Destroy(hotMaterial);
     }
 }

@@ -46,6 +46,8 @@ namespace Kneel.EditorTools
         private static readonly Cut[] P2CutTable =
         {
             new Cut { name = "Idle", source = "Colossus_Idle" },
+            // The sword arm held at his side, as in his idle (the SwordArmRest layer, over the Grasp).
+            new Cut { name = "SwordArmRest", source = "Colossus_Idle", start = 0f, end = 0.05f },
             new Cut { name = "Walk", source = "Colossus_Walk" },
             new Cut { name = "Rise", source = "Colossus_Flex", bakeHeight = true, pin = true },
             new Cut { name = "Roar", source = "Colossus_Roar", bakeHeight = true, pin = true },
@@ -54,11 +56,18 @@ namespace Kneel.EditorTools
             // 2026-11-10). The Decree is a one-handed overhead chop from the same rig: the same blow, grown huge.
             new Cut { name = "Cleave", source = "Master_Decree", bakeRotation = true, pin = true },
             new Cut { name = "Sweep", source = "Colossus_Sweep", bakeRotation = true, bakeHeight = true, pin = true },
-            new Cut { name = "Grasp", source = "Colossus_Grasp", bakeRotation = true, bakeHeight = true, pin = true },
+            // Cut after the pull-in (owner, 2026-11-15: "make sure the anim is clean"): past 1.8 s the clip turns him right
+            // round to slam behind him, and he snapped back to face forward as the move ended. Played mirrored, so the
+            // claw grabs and the sword arm stays back.
+            new Cut { name = "Grasp", source = "Colossus_Grasp", start = 0f, end = 1.8f, bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "Hammerfall", source = "Colossus_Hammerfall", bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "Leap", source = "Colossus_Leap", bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "Command", source = "Shared_Command", bakeRotation = true, pin = true },
             new Cut { name = "Gather", source = "Colossus_Gather", bakeRotation = true, bakeHeight = true, pin = true },
+            // The Gather's kneel and the get-ups (owner, 2026-11-15), the Master's kneeling clips on his rig.
+            new Cut { name = "KneelDown", source = "Shared_KneelDown", bakeHeight = true, pin = true },
+            new Cut { name = "KneelIdle", source = "Master_KneelIdle", bakeHeight = true, pin = true },
+            new Cut { name = "KneelUp", source = "Master_KneelUp", bakeHeight = true, pin = true },
             new Cut { name = "ThreadLash", source = "Colossus_ThreadLash", bakeRotation = true, bakeHeight = true, pin = true },
             new Cut { name = "Recoil", source = "Shared_Stagger", bakeRotation = true, pin = true },
             new Cut { name = "Topple", source = "Colossus_Topple", start = ToppleStart, end = ToppleCut, bakeRotation = true, bakeHeight = true, pin = true },
@@ -331,13 +340,16 @@ namespace Kneel.EditorTools
                 new EnemyRig.State { name = "Hammerfall", motion = cuts["Hammerfall"] },
                 new EnemyRig.State { name = "Leap", motion = cuts["Leap"] },
                 new EnemyRig.State { name = "Command", motion = cuts["Command"] },
-                new EnemyRig.State { name = "Gather", motion = cuts["Gather"] },
+                new EnemyRig.State { name = "Gather", motion = cuts["KneelDown"] },
+                new EnemyRig.State { name = "GatherKneel", parameter = "Gather", motion = cuts["KneelIdle"], chained = true },
+                new EnemyRig.State { name = "GatherUp", parameter = "Gather", motion = cuts["KneelUp"], chained = true, exitBlend = 0.3f },
                 new EnemyRig.State { name = "ThreadLash", motion = cuts["ThreadLash"] },
                 new EnemyRig.State { name = "Recoil", motion = cuts["Recoil"], exitBlend = 0.2f },
                 new EnemyRig.State { name = "ToppleDown", parameter = "Topple", motion = cuts["Topple"] },
                 // Held still (owner, 2026-11-15: it shook violently): the cut is a 0.05 s slice, and played it looped.
                 new EnemyRig.State { name = "ToppleHold", parameter = "Topple", motion = cuts["ToppleHold"], chained = true, speed = 0f },
-                new EnemyRig.State { name = "ToppleUp", parameter = "Topple", motion = cuts["Topple"], speed = -1f, chained = true, exitBlend = 0.25f },
+                // Up from his knees (owner, 2026-11-15: the fall played backwards glitched in the air).
+                new EnemyRig.State { name = "ToppleUp", parameter = "Topple", motion = cuts["KneelUp"], chained = true, exitBlend = 0.3f },
                 new EnemyRig.State { name = "Roar", motion = cuts["Roar"], exitBlend = 0.3f },
                 new EnemyRig.State { name = "Fallen", motion = cuts["Fallen"], final = true },
                 new EnemyRig.State { name = "LastCommand", parameter = "Fallen", motion = cuts["LastCommand"], chained = true });
@@ -348,7 +360,7 @@ namespace Kneel.EditorTools
                 string param = null;
                 switch (s.name)
                 {
-                    case "Cleave": case "Sweep": case "Grasp": case "Hammerfall": case "Leap": case "Command": case "Gather": case "ThreadLash":
+                    case "Cleave": case "Sweep": case "Grasp": case "Hammerfall": case "Leap": case "Command": case "Gather": case "GatherUp": case "ThreadLash":
                     case "Recoil": case "ToppleDown": case "ToppleUp": case "Fallen": case "LastCommand":
                         param = "MoveSpeed"; break;
                     case "Move": case "Circle": param = "MoveRate"; break;
@@ -362,11 +374,17 @@ namespace Kneel.EditorTools
                 }
 
                 // The Great Command and the last palm are the claw's (left), the sword arm planted.
-                s.mirror = s.name == "Command" || s.name == "LastCommand";
+                s.mirror = s.name == "Command" || s.name == "LastCommand" || s.name == "Grasp";
             }
+
+            // The Grasp reaches with both arms; the sword arm stays at his side instead (owner, 2026-11-15: "make sure the
+            // anim is clean"), leaving the claw to grab.
+            AvatarMask swordArm = EnemyRig.ArmMask(Clips + "AM_RightArm.mask", false);
+            EnemyRig.SetOverlayLayer(controller, "SwordArmRest", swordArm, "SwordArmRest", cuts["SwordArmRest"], 0.25f);
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssetIfDirty(controller);
+            AssetDatabase.SaveAssetIfDirty(swordArm);
 
             GameObject root = PrefabUtility.LoadPrefabContents(P2Prefab);
             try
@@ -385,6 +403,8 @@ namespace Kneel.EditorTools
                 colossus.toppleDown = ToppleCut - ToppleStart;
                 colossus.flexLength = cuts["Rise"].length;
                 colossus.gatherLength = cuts["Gather"].length;
+                colossus.kneelDownLength = cuts["KneelDown"].length;
+                colossus.kneelUpLength = cuts["KneelUp"].length;
                 colossus.recoilLength = cuts["Recoil"].length;
                 colossus.lastCommandLength = LastCommandPeak;
                 colossus.walkClipSpeed = walk;

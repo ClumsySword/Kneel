@@ -178,7 +178,9 @@ public class ColossusToppleState : EnemyState
     private float t;
 
     private const float DownTime = 0.8f;
-    private const float UpTime = 0.9f;
+    // The get-up (owner, 2026-11-15: playing the fall backwards glitched in the air): Standing Up From A Kneeling
+    // Position, from his knees, over UpTime.
+    private const float UpTime = 1.4f;
 
     public ColossusToppleState(Enemy enemyBase, EnemyStateMachine stateMachine, string animBoolName)
         : base(enemyBase, stateMachine, animBoolName) { colossus = enemyBase as AshColossus; }
@@ -223,8 +225,8 @@ public class ColossusToppleState : EnemyState
         {
             phase = 2;
             // The fall backwards: the get-up.
-            colossus.SetMoveSpeed(colossus.toppleDown / UpTime);
-            colossus.anim.CrossFadeInFixedTime("ToppleUp", 0.1f, 0, colossus.toppleDown);
+            colossus.SetMoveSpeed(colossus.kneelUpLength / UpTime);
+            colossus.anim.CrossFadeInFixedTime("ToppleUp", 0.3f, 0, 0f);
         }
 
         if (phase == 2 && t >= duration)

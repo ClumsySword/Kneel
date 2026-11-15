@@ -32,7 +32,7 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
     private readonly List<Pending> scripted = new List<Pending>();
     private readonly Dictionary<int, int> cleaves = new Dictionary<int, int>();
     private float nextDarkness = -1f;
-    private ThreadPull gatherThreads;
+    private readonly List<ThreadPull> gatherThreads = new List<ThreadPull>();
 
     // How many times a scripted hazard was held back for a blow (the playtest reads it).
     public int Held { get; private set; }
@@ -72,13 +72,13 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
             colossus.OnGatherStart += () =>
             {
                 ashStorm?.Thicken(colossus.settings.gatherTime);
-                Transform back = colossus.anim.GetBoneTransform(HumanBodyBones.Chest) ?? colossus.transform;
-                gatherThreads = ThreadPull.Begin(back, Vector3.zero, 16, 1.2f, colossus.settings.gatherTime - 1f, 0.6f);
+                // Owner, 2026-11-15: more threads join him as it goes on, a batch every gatherThreadEvery seconds.
+                StartCoroutine(GatherThreads(colossus));
             };
-            colossus.OnTopple += () => gatherThreads?.Release();
+            colossus.OnTopple += ReleaseGatherThreads;
             colossus.OnGatherComplete += () =>
             {
-                gatherThreads?.Release();
+                ReleaseGatherThreads();
                 darkness?.Begin();
                 nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
             };
@@ -190,14 +190,40 @@ public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
         }
     }
 
+    // The Gather's threads: a batch into his chest every gatherThreadEvery seconds while he kneels, each held to the end.
+    private System.Collections.IEnumerator GatherThreads(AshColossus colossus)
+    {
+        MasterSettings s = colossus.settings;
+        Transform back = colossus.anim.GetBoneTransform(HumanBodyBones.Chest) ?? colossus.transform;
+        float start = Time.time;
+        int batch = 0;
+        while (Time.time - start < s.gatherTime - 1.6f)
+        {
+            float left = s.gatherTime - (Time.time - start);
+            gatherThreads.Add(ThreadPull.Begin(back, Vector3.zero, s.gatherThreadBatch + batch, 1f, Mathf.Max(0.5f, left - 1.2f), batch % 2 == 0 ? 0.6f : 0.4f));
+            batch++;
+            yield return new WaitForSeconds(s.gatherThreadEvery);
+        }
+    }
+
+    private void ReleaseGatherThreads()
+    {
+        foreach (ThreadPull pull in gatherThreads)
+            if (pull != null)
+                pull.Release();
+        gatherThreads.Clear();
+    }
+
     public void ResetState()
     {
         StopAllCoroutines();
         scripted.Clear();
         cleaves.Clear();
         nextDarkness = -1f;
-        if (gatherThreads != null)
-            Destroy(gatherThreads.gameObject);
+        foreach (ThreadPull pull in gatherThreads)
+            if (pull != null)
+                Destroy(pull.gameObject);
+        gatherThreads.Clear();
         Held = 0;
     }
 }

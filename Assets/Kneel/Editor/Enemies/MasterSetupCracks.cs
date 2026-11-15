@@ -18,6 +18,9 @@ namespace Kneel.EditorTools
         public const string PanelCracks = CrackFolder + "T_LavaCracks_Panel.png";
         public const string RadialCrackMaterial = CrackFolder + "M_LavaCracks_Radial.mat";
         public const string PanelCrackMaterial = CrackFolder + "M_LavaCracks_Panel.mat";
+        // The strikes' (the Commands, the Gather's rain, the Leap): the Hammerfall's, smaller (owner, 2026-11-15).
+        public const string StrikeCracks = CrackFolder + "T_LavaCracks_Strike.png";
+        public const string StrikeCrackMaterial = CrackFolder + "M_LavaCracks_Strike.mat";
         private const string RubblePrefab = "Assets/Kneel/Prefabs/L4/Kit/L4_RubbleLow.prefab";
 
         [MenuItem("Kneel/Enemies/The Master/Build Lava Cracks")]
@@ -32,7 +35,23 @@ namespace Kneel.EditorTools
             WriteCracks(PanelCracks, 512, 3, false, 23);
             Material radial = CrackMaterial(RadialCrackMaterial, RadialCracks);
             Material panel = CrackMaterial(PanelCrackMaterial, PanelCracks);
-            return "lava cracks: " + RadialCracks + ", " + PanelCracks + "; " + radial.name + ", " + panel.name;
+            return "lava cracks: " + RadialCracks + ", " + PanelCracks + "; " + radial.name + ", " + panel.name + "; " + BuildStrikeCracks();
+        }
+
+        // The strikes' cracks: five out from the centre, forking, thicker for their smaller decal; and the looks the
+        // strikes share, put on MasterSettings (this material, and the aim ember's for their rings). Safe to rerun.
+        public static string BuildStrikeCracks()
+        {
+            EnsureFolder(CrackFolder);
+            WriteCracks(StrikeCracks, 512, 5, true, 37, 1.6f);
+            Material strike = CrackMaterial(StrikeCrackMaterial, StrikeCracks);
+            MasterSettings settings = EnsureSettings();
+            settings.strikeCrackMaterial = strike;
+            settings.strikeCrackMap = AssetDatabase.LoadAssetAtPath<Texture2D>(StrikeCracks);
+            settings.emberMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Kneel/Player/Ember/M_AimEmber.mat");
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssetIfDirty(settings);
+            return strike.name + ", ember " + (settings.emberMaterial != null);
         }
 
         private static Material CrackMaterial(string path, string texture)
@@ -137,7 +156,7 @@ namespace Kneel.EditorTools
             }
         }
 
-        private static void WriteCracks(string path, int size, int seeds, bool radial, int seed)
+        private static void WriteCracks(string path, int size, int seeds, bool radial, int seed, float widthScale = 1f)
         {
             var random = new System.Random(seed);
             var canvas = new CrackCanvas(size);
@@ -148,7 +167,7 @@ namespace Kneel.EditorTools
                 for (int i = 0; i < seeds; i++)
                 {
                     float angle = (i + (float)random.NextDouble() * 0.6f - 0.3f) * Mathf.PI * 2f / seeds;
-                    PaintCrack(canvas, random, c, c, angle, size * 0.0048f, size * (0.4f + (float)random.NextDouble() * 0.06f), 0f, 0);
+                    PaintCrack(canvas, random, c, c, angle, size * 0.0048f * widthScale, size * (0.4f + (float)random.NextDouble() * 0.06f), 0f, 0);
                 }
             }
             else

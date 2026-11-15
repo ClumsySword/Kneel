@@ -8321,6 +8321,8 @@ MonoBehaviour:
   toppleDown: 1.1
   flexLength: 4.666667
   gatherLength: 3.2500002
+  kneelDownLength: 2.766667
+  kneelUpLength: 2.766667
   lastCommandLength: 1.6
   recoilLength: 1.3666668
   mask: {fileID: 7145227849379422403}

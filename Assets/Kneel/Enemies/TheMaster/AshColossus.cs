@@ -33,6 +33,10 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
     public float toppleDown = 1.5f;
     public float flexLength = 4.67f;
     public float gatherLength = 3.25f;
+    // The Gather's kneel (Standing To Kneeling Down) and the get-up from it and from a Topple (Standing Up From A
+    // Kneeling Position), on his rig through the shared clips.
+    public float kneelDownLength = 1.6f;
+    public float kneelUpLength = 2f;
     // The clip second the last palm is fully raised (the finisher plays up to it, then back).
     public float lastCommandLength = 1.6f;
     public float recoilLength = 1.37f;
@@ -493,24 +497,13 @@ public class AshColossus : MasterBody, IDamageable, IParryable, IStaggerable
                 amount *= settings.windupDamageMultiplier;
         }
 
-        // The Gather breaks under the player's raw damage (heavies double) or two bashes on the planted claw.
-        bool gatherBroken = move != null && move.Kind == MoveKind.Gather && info.isEnvironmental == false
-            && move.CountGatherHit(info.amount * (info.heavy ? settings.gatherHeavyWeight : 1f), info.interrupts);
-
-        health.ApplyDamage(amount);
+health.ApplyDamage(amount);
         if (info.isEnvironmental == false)
             Flash();
 
         if (health.Current <= 0f)
         {
             Fall();
-            return;
-        }
-
-        if (gatherBroken)
-        {
-            bossTell?.GuardBroken();
-            Topple();
             return;
         }
 

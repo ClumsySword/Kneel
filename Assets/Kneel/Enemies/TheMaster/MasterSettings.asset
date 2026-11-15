@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4591116a497e274caa190d55c337514, type: 3}
   m_Name: MasterSettings
   m_EditorClassIdentifier: Assembly-CSharp::MasterSettings
+  emberMaterial: {fileID: 2100000, guid: a5fa65dd2be5a6f8ba321dd8fbf5e004, type: 2}
+  strikeCrackMaterial: {fileID: 2100000, guid: 076a359eec07d484eb8ce1321122ab8b, type: 2}
+  strikeCrackMap: {fileID: 2800000, guid: f90fb885d97bc9449a85eaf9fff5a4ad, type: 3}
   maxHealth: 450
   maxPoise: 100
   poiseRegenDelay: 3
@@ -125,13 +128,13 @@ MonoBehaviour:
   graspTell: 1
   graspLock: 0.3
   graspHandOut: 4.5
-  graspLunge: 4.5
-  graspLungeTime: 0.3
+  graspLunge: 3
+  graspLungeTime: 0.5
   graspRadius: 2
   graspDamage: 60
   graspHold: 0.6
   graspFling: 6
-  graspPunish: 2
+  graspPunish: 1.2
   hammerTell: 1.4
   hammerOut: 3.5
   hammerRadius: 4
@@ -157,11 +160,16 @@ MonoBehaviour:
   greatCommandLock: 0.3
   greatCommandPunish: 2
   greatCommandFollowupGap: 0.35
-  gatherTime: 4
+  gatherTime: 12
   gatherHeal: 0.08
-  gatherBreakDamage: 60
-  gatherHeavyWeight: 2
-  gatherBreakBashes: 2
+  rainIntervalStart: 0.75
+  rainIntervalEnd: 0.35
+  rainTell: 1.1
+  rainRadius: 1.6
+  rainDamage: 20
+  rainAtPlayer: 3
+  gatherThreadEvery: 1.6
+  gatherThreadBatch: 8
   lashTell: 1
   lashLock: 0.3
   lashCount: 5

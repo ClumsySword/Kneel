@@ -6,6 +6,13 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "MasterSettings", menuName = "Kneel/Master Settings")]
 public class MasterSettings : ScriptableObject
 {
+    [Header("Looks shared by both bodies (set by MasterSetup)")]
+    // The aim ember's particle material (the cursor's glow): the Commands' ring and the fire rain's rings are made of it.
+    public Material emberMaterial;
+    // The Hammerfall's lava cracks, smaller: where the Commands' fire, the rain and the Leap strike the floor.
+    public Material strikeCrackMaterial;
+    public Texture2D strikeCrackMap;
+
     [Header("Phase 1: body")]
     public float maxHealth = 450f;
     public float maxPoise = 100f;
@@ -182,15 +189,17 @@ public class MasterSettings : ScriptableObject
     [Header("Grasp (ember)")]
     public float graspTell = 1f;
     public float graspLock = 0.3f;
-    // The claw closes this far ahead of him, after a lunge of up to graspLunge along the locked line (3 R in all).
+    // The claw closes this far ahead of him, after a lunge of up to graspLunge along the locked line. The lunge runs over
+    // the reach (graspLungeTime), not a slide (owner, 2026-11-15: "make sure the anim is clean").
     public float graspHandOut = 4.5f;
-    public float graspLunge = 4.5f;
-    public float graspLungeTime = 0.3f;
+    public float graspLunge = 3f;
+    public float graspLungeTime = 0.5f;
     public float graspRadius = 2f;
     public float graspDamage = 60f;
     public float graspHold = 0.6f;
     public float graspFling = 6f;
-    public float graspPunish = 2f;
+    // From the grab: the rest of the (cut) clip, then his stance.
+    public float graspPunish = 1.2f;
 
     [Header("Hammerfall (no glint)")]
     public float hammerTell = 1.4f;
@@ -231,13 +240,21 @@ public class MasterSettings : ScriptableObject
     // The Hammerfall that follows lands this long after the player can move again.
     public float greatCommandFollowupGap = 0.35f;
 
-    [Header("Gather (channel)")]
-    public float gatherTime = 4f;
+    [Header("Gather (owner, 2026-11-15: he kneels, fire rains on the arena, the player only dodges)")]
+    // From going down to standing again (the rain falls for about 10 s of it); untouchable throughout; heals gatherHeal at the end.
+    public float gatherTime = 12f;
     public float gatherHeal = 0.08f;
-    // Broken by this much of the player's raw damage (heavies count double), or this many bashes: he Topples.
-    public float gatherBreakDamage = 60f;
-    public float gatherHeavyWeight = 2f;
-    public int gatherBreakBashes = 2;
+    // The rain: a strike every rainIntervalStart seconds at first, quickening to rainIntervalEnd; each marked by an
+    // ember ring for rainTell (the fire falls over the last 0.3 s of it). Every rainAtPlayer-th lands where Kael stands.
+    public float rainIntervalStart = 0.75f;
+    public float rainIntervalEnd = 0.35f;
+    public float rainTell = 1.1f;
+    public float rainRadius = 1.6f;
+    public float rainDamage = 20f;
+    public int rainAtPlayer = 3;
+    // The threads into him: a new batch every gatherThreadEvery seconds, gatherThreadBatch at a time.
+    public float gatherThreadEvery = 1.6f;
+    public int gatherThreadBatch = 8;
 
     [Header("Thread Lash")]
     public float lashTell = 1f;

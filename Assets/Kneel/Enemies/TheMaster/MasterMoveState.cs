@@ -89,7 +89,7 @@ public class MasterMoveState : EnemyState
                 master.bossTell?.Palm(commandTell);
                 master.RaiseCommandTell(commandTell);
                 // The circle the fire will strike: it follows Kael until commandLock before the strike.
-                mark = SpellMark.Ring(master.player.position, master.transform.position, S.commandRadius, commandTell, bold: 1.8f);
+                ring = EmberRing.Spawn(S.emberMaterial, master.player.position, S.commandRadius);
                 break;
             case MasterP1.MoveKind.Threads:
                 StartBlow("Threads", S.threadsTell, master.threadsRelease, glint: false);
@@ -120,10 +120,16 @@ public class MasterMoveState : EnemyState
         if (mark != null)
             mark.Release();
         mark = null;
+        if (ring != null)
+            ring.Release();
+        ring = null;
     }
 
     // The Threads' floor mark (SpellMark): it follows him onto the player, then locks threadsLock before the release.
     private SpellMark mark;
+
+    // The Command's ember ring: it follows Kael until commandLock before the strike.
+    private EmberRing ring;
 
     private Vector3 AimAtPlayer()
     {
@@ -189,21 +195,23 @@ public class MasterMoveState : EnemyState
 
         if (mark != null && landed == false)
         {
-            bool command = kind == MasterP1.MoveKind.Command;
-            float lockBefore = command ? S.commandLock : S.threadsLock;
-            if (elapsed < contactAt - lockBefore)
-            {
-                if (command)
-                    mark.Aim(master.player.position, master.player.position - master.transform.position);
-                else
-                    mark.Aim(ThreadsOrigin(AimAtPlayer()), AimAtPlayer());
-            }
-            else if (mark.Locked == false)
-            {
+            if (elapsed < contactAt - S.threadsLock)
+                mark.Aim(ThreadsOrigin(AimAtPlayer()), AimAtPlayer());
+            else
                 mark.Lock();
-                // The fire starts falling onto the locked circle.
-                if (command)
-                    FireStrike.Begin(mark.Origin, S.commandRadius, lockBefore);
+        }
+
+        if (ring != null && landed == false)
+        {
+            if (elapsed < contactAt - S.commandLock)
+            {
+                ring.Aim(master.player.position);
+            }
+            else if (ring.Locked == false)
+            {
+                // The fire starts falling onto the locked ring.
+                ring.Lock();
+                FireStrike.Begin(S, ring.Origin, S.commandRadius, S.commandLock);
             }
         }
 
@@ -219,10 +227,10 @@ public class MasterMoveState : EnemyState
                 punishUntil = elapsed + S.decreePunish;
                 break;
             case MasterP1.MoveKind.Command:
-                Vector3 struck = mark != null ? mark.Origin : master.player.position;
-                if (mark != null)
-                    mark.Release();
-                mark = null;
+                Vector3 struck = ring != null ? ring.Origin : master.player.position;
+                if (ring != null)
+                    ring.Release();
+                ring = null;
                 if (HallActors.FlatDistance(master.player.position, struck) <= S.commandRadius + 0.3f)
                 {
                     master.bossTell?.Bell();
