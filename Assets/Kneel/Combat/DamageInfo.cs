@@ -29,6 +29,9 @@ public struct DamageInfo
 
     // How much heavier than a normal blow this lands: 1 doubles the hit-stop and shake, and it shoves the receiver.
     public float impact;
+
+    // The player's heavy attack: the only blow that cracks armour (see IArmoured).
+    public bool heavy;
 }
 
 public interface IDamageable
@@ -40,6 +43,13 @@ public interface IDamageable
 public interface IParryable
 {
     void OnParried(GameObject parrier);
+}
+
+// Targets wearing armour that some blows glance off. The attacker asks before landing the hit, so it can show a
+// deflection (dull sparks, a light hit-stop) instead of an impact.
+public interface IArmoured
+{
+    bool Deflects(DamageInfo info);
 }
 
 // Targets that can be knocked off balance; hits on a staggered target are critical.

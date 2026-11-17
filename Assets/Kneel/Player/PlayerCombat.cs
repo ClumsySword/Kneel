@@ -554,7 +554,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Vector3 direction = hitCollider.transform.position - transform.position;
         direction.y = 0f;
 
-        target.TakeHit(new DamageInfo
+        var info = new DamageInfo
         {
             amount = attack.damage * multiplier,
             poiseDamage = attack.poiseDamage * multiplier,
@@ -562,7 +562,21 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             direction = direction.normalized,
             source = gameObject,
             isCritical = critical,
-        });
+            heavy = attack == settings.heavyAttack,
+        };
+
+        // Asked before the hit lands, since the hit itself can strip the armour.
+        bool deflected = target is IArmoured armoured && armoured.Deflects(info);
+        target.TakeHit(info);
+
+        if (deflected)
+        {
+            // The blade glances off: pale sparks and a short catch, no blood and no crit flourish.
+            HitSpark.Spawn(point, -direction, new Color(0.85f, 0.88f, 0.95f), 8);
+            HitStop.Freeze(settings.hitStop * 0.5f);
+            Shake(settings.hitShake * 0.5f);
+            return;
+        }
 
         HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), critical ? 24 : 14);
         HitStop.Freeze(settings.hitStop);
