@@ -162,7 +162,8 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
 
         guardDownTimer -= Time.deltaTime;
 
-        stateMachine.currentState.Update();
+        if (Frozen == false)
+            stateMachine.currentState.Update();
 
         // The block recoil is a full-body clip of its own, so the arm overlay lets it play.
         anim.SetBool(GuardId, IsGuarding && stateMachine.currentState != blockState);
@@ -190,6 +191,9 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
 
     public void TakeHit(DamageInfo info)
     {
+        if (Frozen)
+            return;
+
         if (IsDead)
             return;
 
@@ -263,6 +267,16 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
         Stagger(staggerTime);
     }
 
+    // Ashfall: knocked off balance through shield and poise alike.
+    public override void ForceStagger()
+    {
+        if (IsDead || IsStaggered || stateMachine.currentState == dormantState)
+            return;
+
+        poise.Reset();
+        Stagger(staggerTime);
+    }
+
     public override void AttackHit()
     {
         if (stateMachine.currentState == sweepState)
@@ -309,8 +323,9 @@ public class AshenFootman : Enemy, IDamageable, IParryable, IStaggerable
 
     private void TakeHitOnShield(DamageInfo info)
     {
-        // A bash breaks the guard outright. Anything else wears on his poise, which is what lets a heavy break it too.
-        if (info.interrupts || poise.ApplyDamage(info.poiseDamage * guardPoiseMultiplier))
+        // A bash or an Ember Strike breaks the guard outright. Anything else wears on his poise, which is what lets a heavy
+        // break it too.
+        if (info.interrupts || info.breaksGuard || poise.ApplyDamage(info.poiseDamage * guardPoiseMultiplier))
         {
             health.ApplyDamage(info.amount);
             Flash();

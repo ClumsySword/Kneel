@@ -32,7 +32,7 @@ public class ChaseState_TheFool : EnemyState
             TheFool.agent.isStopped = true;
             TheFool.agent.velocity = Vector3.zero;
             TheFool.transform.rotation = TheFool.FaceTarget(TheFool.player.position);
-            if (TheFool.IsFacing(TheFool.player.position))
+            if (TheFool.IsFacing(TheFool.player.position) && TheFool.CanStartAttack)
                 stateMachine.ChangeState(TheFool.attackState);
             return;
         }

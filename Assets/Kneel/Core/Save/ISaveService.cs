@@ -10,6 +10,11 @@ namespace Kneel.Core
         public string sceneName;
         public string savedAtUtc;
         public double playtimeSeconds;
+
+        // Ash abilities used so far, which unlock the next ones (AshProgress), and the key hints already shown. The
+        // meter itself isn't kept: it empties on death, and Continue starts it empty too.
+        public int ashUses;
+        public int ashHintsSeen;
     }
 
     // The menu talks to saves only through this, so the JSON file below can be swapped for a real save system.

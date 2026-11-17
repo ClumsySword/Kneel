@@ -29,10 +29,14 @@ public class DebugTuningOverlay : MonoBehaviour
     private TargetDummy targetDummy;
 
     [SerializeField]
+    private PlayerAsh playerAsh;
+
+    [SerializeField]
     private bool startOpen = false;
 
     private bool isOpen;
     private Vector2 scroll;
+    private string scrollToSection;
 
     private bool showCamera = false;
     private bool showMovement = false;
@@ -43,14 +47,57 @@ public class DebugTuningOverlay : MonoBehaviour
     private bool previewVignette = false;
     private float previewHealth = 1f;
     private bool showDummy = true;
+    private bool showAsh = true;
+    private bool showAshTuning = false;
+    private bool showEnemies = true;
+
+    // Enemy spawner: pick a type, click in the world, and it appears frozen until released.
+    private EnemySpawnRoster roster;
+    private Enemy placing;
+    private bool keepPlacing = false;
+    private bool faceThePlayer = true;
+    private string placeMessage = "";
+    private readonly System.Collections.Generic.List<Enemy> spawned = new System.Collections.Generic.List<Enemy>();
+
+    // Everything but the player and the enemies, so a click lands on the ground under them.
+    private const int PlayerLayer = 9;
+    private const int EnemyLayer = 8;
 
     private const float PanelWidth = 340f;
 
-    // True while the pointer is over the open panel, so clicks there don't also swing the sword.
+    // True while the pointer is over the open panel, or a click is about to place an enemy, so the click doesn't also
+    // swing the sword.
     public static bool IsPointerOverPanel { get; private set; }
+
+    // True while the pointer is over the open panel itself; the camera leaves the scroll wheel to the panel meanwhile.
+    public static bool IsPointerOverPanelArea { get; private set; }
 
     // True while the panel is open; the aim ember hands over to the menu cursor meanwhile (AimEmber).
     public static bool IsOpen { get; private set; }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Levels without one placed get one, so the F1 tools (the Ash unlocks among them) work everywhere while testing.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        AddIfMissing();
+    }
+
+    private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        AddIfMissing();
+    }
+
+    private static void AddIfMissing()
+    {
+        if (FindAnyObjectByType<DebugTuningOverlay>() == null && FindAnyObjectByType<PlayerCombat>() != null)
+        {
+            new GameObject("Debug").AddComponent<DebugTuningOverlay>();
+        }
+    }
+#endif
 
     private void Awake()
     {
@@ -95,6 +142,12 @@ public class DebugTuningOverlay : MonoBehaviour
             targetDummy = FindAnyObjectByType<TargetDummy>();
         }
 
+        if (playerAsh == null)
+        {
+            playerAsh = FindAnyObjectByType<PlayerAsh>();
+        }
+
+        roster = EnemySpawnRoster.Load();
         isOpen = startOpen;
     }
 
@@ -106,12 +159,85 @@ public class DebugTuningOverlay : MonoBehaviour
         if (isOpen == false || mouse == null)
         {
             IsPointerOverPanel = false;
+            IsPointerOverPanelArea = false;
+            placing = null;
             return;
         }
 
         // IMGUI rects are measured from the top of the screen, pointer positions from the bottom.
         Vector2 pointer = mouse.position.ReadValue();
-        IsPointerOverPanel = PanelRect().Contains(new Vector2(pointer.x, Screen.height - pointer.y));
+        bool overPanel = PanelRect().Contains(new Vector2(pointer.x, Screen.height - pointer.y));
+        IsPointerOverPanelArea = overPanel;
+
+        if (placing != null && overPanel == false && Kneel.UI.PauseMenu.IsPaused == false)
+        {
+            if (mouse.rightButton.wasPressedThisFrame)
+            {
+                placing = null;
+                placeMessage = "";
+            }
+            else if (mouse.leftButton.wasPressedThisFrame)
+            {
+                TryPlace(placing, pointer);
+                if (keepPlacing == false)
+                    placing = null;
+
+                // This frame's click was already kept from the sword (the flag was up since the type was picked).
+                IsPointerOverPanel = true;
+                return;
+            }
+        }
+
+        IsPointerOverPanel = overPanel || placing != null;
+    }
+
+    private void TryPlace(Enemy prefab, Vector2 pointer)
+    {
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            placeMessage = "No main camera.";
+            return;
+        }
+
+        int mask = ~((1 << PlayerLayer) | (1 << EnemyLayer) | (1 << 2));
+        if (Physics.Raycast(cam.ScreenPointToRay(pointer), out RaycastHit hit, 500f, mask, QueryTriggerInteraction.Ignore) == false)
+        {
+            placeMessage = "Nothing under the cursor.";
+            return;
+        }
+
+        // Onto the NavMesh this type walks on (L3/L4 use other agent types), or it can't path once released.
+        Vector3 position = hit.point;
+        var prefabAgent = prefab.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (prefabAgent != null)
+        {
+            var filter = new UnityEngine.AI.NavMeshQueryFilter { agentTypeID = prefabAgent.agentTypeID, areaMask = UnityEngine.AI.NavMesh.AllAreas };
+            if (UnityEngine.AI.NavMesh.SamplePosition(hit.point, out UnityEngine.AI.NavMeshHit onMesh, 2f, filter) == false)
+            {
+                placeMessage = "No NavMesh there for " + prefab.name + ".";
+                return;
+            }
+
+            position = onMesh.position;
+        }
+
+        Quaternion rotation = Quaternion.Euler(0f, cam.transform.eulerAngles.y + 180f, 0f);
+        if (faceThePlayer && playerMovement != null)
+        {
+            Vector3 toPlayer = playerMovement.transform.position - position;
+            toPlayer.y = 0f;
+            if (toPlayer.sqrMagnitude > 0.01f)
+                rotation = Quaternion.LookRotation(toPlayer);
+        }
+
+        // Awake has run once Instantiate returns and Start hasn't, so it's frozen before its first state ever ticks.
+        Enemy enemy = Instantiate(prefab, position, rotation);
+        enemy.name = prefab.name + " (spawned)";
+        enemy.Frozen = true;
+        enemy.ClearPatrol();
+        spawned.Add(enemy);
+        placeMessage = "Placed " + prefab.name + ".";
     }
 
     private static Rect PanelRect()
@@ -160,6 +286,16 @@ public class DebugTuningOverlay : MonoBehaviour
             DrawVignetteSection(damageVignette.Settings);
         }
 
+        if (playerAsh != null && playerAsh.Settings != null && Foldout("Ash", ref showAsh))
+        {
+            DrawAshSection(playerAsh, playerAsh.Settings);
+        }
+
+        if (roster != null && Foldout("Enemies", ref showEnemies))
+        {
+            DrawEnemiesSection();
+        }
+
         if (targetDummy != null && Foldout("Target Dummy", ref showDummy))
         {
             DrawDummySection();
@@ -167,6 +303,126 @@ public class DebugTuningOverlay : MonoBehaviour
 
         GUILayout.EndScrollView();
         GUILayout.EndArea();
+    }
+
+    // The meter and the use count are live state (AshProgress), not tuning; the sliders below them write the asset.
+    private void DrawAshSection(PlayerAsh ash, AshSettings s)
+    {
+        AshMeter meter = ash.GetComponent<AshMeter>();
+        int uses = Kneel.Core.AshProgress.Uses;
+
+        GUILayout.Label($"Ash <b>{meter.Ash:0}</b> / {meter.Max:0}{(meter.IsFull ? "  FULL" : "")}   Uses <b>{uses}</b>"
+            + (meter.Granted ? "" : "   (not granted in this level)")
+            + (Kneel.Core.AshProgress.Practice ? "   practice run" : ""), RichLabel());
+        DrawBar(meter.Fraction, new Color(1f, 0.45f, 0.15f));
+
+        string unlocked = "";
+        foreach (PlayerAsh.Ability ability in System.Enum.GetValues(typeof(PlayerAsh.Ability)))
+        {
+            int key = (int)ability + 1;
+            unlocked += ash.IsUnlocked(ability)
+                ? $"{key} {PlayerAsh.Names[key - 1]}   "
+                : $"<color=#777>{key} {PlayerAsh.Names[key - 1]} ({ash.UnlockUses(ability)})</color>   ";
+        }
+
+        GUILayout.Label(unlocked, RichLabel());
+
+        float ashValue = Slider("Ash", meter.Ash, 0f, meter.Max);
+        if (Mathf.Abs(ashValue - meter.Ash) > 0.01f)
+        {
+            meter.SetAsh(ashValue);
+        }
+
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Fill meter"))
+        {
+            meter.SetAsh(meter.Max);
+        }
+
+        if (GUILayout.Button("Empty"))
+        {
+            meter.SetAsh(0f);
+        }
+
+        GUILayout.EndHorizontal();
+
+        // Instant unlocks: each button sets the use count to what that ability needs.
+        GUILayout.Label("Unlock instantly", RichLabel());
+        GUILayout.BeginHorizontal();
+        foreach (PlayerAsh.Ability ability in System.Enum.GetValues(typeof(PlayerAsh.Ability)))
+        {
+            if (ability == PlayerAsh.Ability.AshenSword)
+            {
+                continue;
+            }
+
+            GUI.enabled = ash.IsUnlocked(ability) == false;
+            if (GUILayout.Button(PlayerAsh.Names[(int)ability]))
+            {
+                ash.SetUses(ash.UnlockUses(ability));
+            }
+        }
+
+        GUI.enabled = true;
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Unlock all"))
+        {
+            ash.UnlockAll();
+        }
+
+        if (GUILayout.Button("Reset uses"))
+        {
+            ash.SetUses(0);
+        }
+
+        GUILayout.EndHorizontal();
+
+        int newUses = Mathf.RoundToInt(Slider("Uses", uses, 0f, 40f));
+        if (newUses != uses)
+        {
+            ash.SetUses(newUses);
+        }
+
+        Kneel.Core.AshProgress.DebugGrant = GUILayout.Toggle(Kneel.Core.AshProgress.DebugGrant, " Meter in L1 too");
+        AshMeter.DummyGivesAsh = GUILayout.Toggle(AshMeter.DummyGivesAsh, " Dummy gives Ash when felled");
+
+        showAshTuning = GUILayout.Toggle(showAshTuning, " Tuning");
+        if (showAshTuning == false)
+        {
+            return;
+        }
+
+        EditorDirtyCheck(s, () =>
+        {
+            s.footmanKill = Slider("Footman kill", s.footmanKill, 0f, 100f);
+            s.archerKill = Slider("Archer kill", s.archerKill, 0f, 100f);
+            s.bruteKill = Slider("Brute kill", s.bruteKill, 0f, 100f);
+            s.foolKill = Slider("Fool kill", s.foolKill, 0f, 100f);
+            s.parryGain = Slider("Parry", s.parryGain, 0f, 50f);
+            s.evadeGain = Slider("Roll-through", s.evadeGain, 0f, 30f);
+            s.castBufferTime = Slider("Cast buffer", s.castBufferTime, 0f, 1f);
+
+            s.ashenSwordDuration = Slider("Ashen Sword time", s.ashenSwordDuration, 1f, 30f);
+            s.ashenSwordDamageMultiplier = Slider("Ashen Sword dmg x", s.ashenSwordDamageMultiplier, 1f, 3f);
+            s.blindDuration = Slider("Blind time", s.blindDuration, 0.5f, 10f);
+            s.blindRange = Slider("Blind range", s.blindRange, 3f, 25f);
+            s.surgeDistance = Slider("Surge distance", s.surgeDistance, 1f, 8f);
+            s.surgeDuration = Slider("Surge time", s.surgeDuration, 0.1f, 0.8f);
+            s.ashfallRadius = Slider("Ashfall radius", s.ashfallRadius, 1f, 10f);
+            s.rekindleHeal = Slider("Rekindle heal", s.rekindleHeal, 0f, 1f);
+
+            s.fillingIntensity = Slider("Glow filling", s.fillingIntensity, 0f, 3f);
+            s.fullIntensity = Slider("Glow full", s.fullIntensity, 0f, 5f);
+            s.handLightIntensity = Slider("Hand light", s.handLightIntensity, 0f, 5f);
+            s.handLightRange = Slider("Hand light range", s.handLightRange, 0.5f, 4f);
+            s.emberRate = Slider("Embers /s", s.emberRate, 0f, 60f);
+            s.wispRate = Slider("Wisps /s", s.wispRate, 0f, 30f);
+            s.gradeStrength = Slider("Grade", s.gradeStrength, 0f, 1f);
+            s.volume = Slider("Volume", s.volume, 0f, 1f);
+            s.humVolume = Slider("Hum volume", s.humVolume, 0f, 1f);
+        });
     }
 
     private void DrawCameraSection(PlayerCameraSettings s)
@@ -264,6 +520,31 @@ public class DebugTuningOverlay : MonoBehaviour
             s.comboBufferTime = Slider("Combo buffer", s.comboBufferTime, 0f, 1f);
             s.attackTurnWindow = Slider("Swing turn window", s.attackTurnWindow, 0f, 0.6f);
             s.drawSpeed = Slider("Draw speed", s.drawSpeed, 0.5f, 2.5f);
+            s.drawReachStart = Slider("Draw reach from", s.drawReachStart, 0f, 0.6f);
+            s.drawGrabTime = Slider("Draw grab", s.drawGrabTime, 0.1f, 1f);
+            s.drawPullTime = Slider("Draw pull time", s.drawPullTime, 0.05f, 0.8f);
+            s.drawPullDistance = Slider("Draw pull dist", s.drawPullDistance, 0f, 1.2f);
+            s.drawHandBackTime = Slider("Draw hand back", s.drawHandBackTime, 0.05f, 0.8f);
+            s.shieldHandUpTime = Slider("Shield hand up", s.shieldHandUpTime, 0f, 0.6f);
+            s.shieldGrabTime = Slider("Shield grab", s.shieldGrabTime, 0.05f, 0.8f);
+            s.shieldLiftedTime = Slider("Shield lifted", s.shieldLiftedTime, 0.1f, 1f);
+            s.shieldOverTime = Slider("Shield over", s.shieldOverTime, 0.2f, 1.2f);
+            s.shieldHandBackTime = Slider("Shield hand back", s.shieldHandBackTime, 0.05f, 0.8f);
+            s.shieldStowStart = Slider("Stow from", s.shieldStowStart, 0f, 1f);
+            s.shieldStowSideTime = Slider("Stow beside", s.shieldStowSideTime, 0.1f, 1.2f);
+            s.shieldStowLiftTime = Slider("Stow over", s.shieldStowLiftTime, 0.2f, 1.4f);
+            s.backShieldReleaseTime = Slider("Back sheathe: shield off", s.backShieldReleaseTime, 0f, 1.3f);
+            s.shieldStowDoneTime = Slider("Stow on back", s.shieldStowDoneTime, 0.3f, 1.6f);
+            s.shieldArc = Slider("Shield arc", s.shieldArc, 0f, 0.6f);
+            s.shieldMaxReach = Slider("Shield reach", s.shieldMaxReach, 0.3f, 0.7f);
+            s.sheathEnterStart = Slider("Sheathe reach from", s.sheathEnterStart, 0f, 1.5f);
+            s.sheathInsertStart = Slider("Sheathe insert", s.sheathInsertStart, 0f, 1.5f);
+            s.sheathReleaseTime = Slider("Sheathe release", s.sheathReleaseTime, 0.2f, 1.7f);
+            s.sheathLetGoTime = Slider("Sheathe let go", s.sheathLetGoTime, 0.05f, 0.8f);
+            s.swordSettleTime = Slider("Sword settle", s.swordSettleTime, 0f, 0.5f);
+            s.shieldSettleTime = Slider("Shield settle", s.shieldSettleTime, 0f, 1f);
+            s.drawHandRotationWeight = Slider("Draw hand turn", s.drawHandRotationWeight, 0f, 1f);
+            s.shieldReachRotationWeight = Slider("Shield hand turn", s.shieldReachRotationWeight, 0f, 1f);
 
             s.dodgeDistance = Slider("Roll distance", s.dodgeDistance, 1f, 6f);
             s.dodgeDuration = Slider("Roll duration", s.dodgeDuration, 0.4f, 1.6f);
@@ -417,6 +698,55 @@ public class DebugTuningOverlay : MonoBehaviour
         GUILayout.Space(10f);
     }
 
+    private void DrawEnemiesSection()
+    {
+        spawned.RemoveAll(e => e == null);
+
+        GUILayout.Label(placing != null
+            ? $"<color=#ffcc55>Click the ground to place {placing.name}. Right-click cancels.</color>"
+            : "Pick an enemy, then click the ground.", RichLabel());
+
+        foreach (Enemy prefab in roster.prefabs)
+        {
+            if (prefab == null)
+                continue;
+
+            bool armed = placing == prefab;
+            if (GUILayout.Button((armed ? "● " : "") + prefab.name))
+            {
+                placing = armed ? null : prefab;
+                placeMessage = "";
+            }
+        }
+
+        keepPlacing = GUILayout.Toggle(keepPlacing, " Keep placing (several per pick)");
+        faceThePlayer = GUILayout.Toggle(faceThePlayer, " Face the player");
+
+        if (placeMessage.Length > 0)
+            GUILayout.Label(placeMessage);
+
+        int frozen = spawned.FindAll(e => e.Frozen).Count;
+        GUILayout.Label($"Spawned {spawned.Count}   Frozen {frozen}");
+
+        GUI.enabled = frozen > 0;
+        if (GUILayout.Button("Unfreeze all spawned"))
+        {
+            foreach (Enemy e in spawned)
+                e.Frozen = false;
+        }
+
+        GUI.enabled = spawned.Count > 0;
+        if (GUILayout.Button("Remove all spawned"))
+        {
+            foreach (Enemy e in spawned)
+                Destroy(e.gameObject);
+            spawned.Clear();
+        }
+
+        GUI.enabled = true;
+        GUILayout.Space(10f);
+    }
+
     private void DrawDummySection()
     {
         TargetDummy d = targetDummy;
@@ -435,11 +765,22 @@ public class DebugTuningOverlay : MonoBehaviour
         d.windupPoiseMultiplier = Slider("Wind-up poise x", d.windupPoiseMultiplier, 1f, 4f);
     }
 
-    private static bool Foldout(string title, ref bool open)
+    private bool Foldout(string title, ref bool open)
     {
         if (GUILayout.Button((open ? "▼ " : "► ") + title, RichLabel()))
         {
             open = open == false;
+
+            // The open sections easily run past the bottom of the screen (Combat alone does), so a section opened
+            // below the fold is brought up to the top instead of opening out of sight.
+            if (open)
+                scrollToSection = title;
+        }
+
+        if (scrollToSection == title && Event.current.type == EventType.Repaint)
+        {
+            scroll.y = GUILayoutUtility.GetLastRect().y - 4f;
+            scrollToSection = null;
         }
 
         return open;
@@ -506,5 +847,7 @@ public class DebugTuningOverlay : MonoBehaviour
         controls.Debug.Disable();
         IsOpen = false;
         IsPointerOverPanel = false;
+        IsPointerOverPanelArea = false;
+        placing = null;
     }
 }

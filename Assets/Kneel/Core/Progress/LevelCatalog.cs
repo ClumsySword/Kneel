@@ -31,6 +31,20 @@ namespace Kneel.Core
             new Level("V", "The Throne Room", "L5_ThroneRoom"),
         };
 
+        // 0 for L1 to 4 for L5, or -1 for a scene that isn't one of the five (test arenas).
+        public static int IndexOf(string scene)
+        {
+            for (int i = 0; i < Levels.Count; i++)
+            {
+                if (Levels[i].Scene == scene)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         // The level's name, or null for a scene that isn't one of the five (test arenas).
         public static string NameOf(string scene)
         {

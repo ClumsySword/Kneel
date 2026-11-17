@@ -527,6 +527,8 @@ namespace Kneel.UI
                 {
                     sceneName = SceneManager.GetActiveScene().name,
                     playtimeSeconds = Playtime.Seconds,
+                    ashUses = AshProgress.SavedUses,
+                    ashHintsSeen = AshProgress.SavedHintsSeen,
                 });
                 return true;
             }
