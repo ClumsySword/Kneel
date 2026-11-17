@@ -116,16 +116,19 @@ public class MasterDevTool : MonoBehaviour
 
     private void Update()
     {
+        // The pause menu (and the death screen, which is the pause menu) comes first: the lab hides under it and F2
+        // does nothing there (it could be a key being rebound on the Controls page).
+        bool paused = Kneel.UI.PauseMenu.IsPaused;
         var keyboard = UnityEngine.InputSystem.Keyboard.current;
-        if (keyboard != null && keyboard.f2Key.wasPressedThisFrame)
+        if (paused == false && keyboard != null && keyboard.f2Key.wasPressedThisFrame)
         {
             open = open == false;
             wasOpen = open;
         }
 
-        IsOpen = open;
+        IsOpen = open && paused == false;
         var mouse = UnityEngine.InputSystem.Mouse.current;
-        if (open && mouse != null)
+        if (IsOpen && mouse != null)
         {
             Vector2 pointer = mouse.position.ReadValue();
             IsPointerOverPanel = PanelRect().Contains(new Vector2(pointer.x, Screen.height - pointer.y));
@@ -366,13 +369,24 @@ public class MasterDevTool : MonoBehaviour
 
     // --- The panel ---
 
-    private static Rect PanelRect() => new Rect(Screen.width - PanelWidth - 10f, 10f, PanelWidth, Screen.height - 20f);
+    // On the right of the screen, clear of the F1 tuning overlay on the left: with both open on a narrow screen, the
+    // lab starts where the overlay ends and gets narrower rather than covering it.
+    private static Rect PanelRect()
+    {
+        float left = DebugTuningOverlay.IsOpen ? DebugTuningOverlay.PanelRight + 10f : 10f;
+        float x = Mathf.Max(left, Screen.width - PanelWidth - 10f);
+        return new Rect(x, 10f, Mathf.Clamp(Screen.width - x - 10f, 200f, PanelWidth), Screen.height - 20f);
+    }
 
     private void OnGUI()
     {
+        if (Kneel.UI.PauseMenu.IsPaused)
+            return;
+
         if (open == false)
         {
-            GUI.Label(new Rect(10f, 30f, 200f, 22f), "F2: boss lab");
+            // Top right, where the lab opens (the F1 overlay's hint is top left).
+            GUI.Label(new Rect(Screen.width - 110f, 10f, 100f, 22f), "F2: boss lab");
             return;
         }
 

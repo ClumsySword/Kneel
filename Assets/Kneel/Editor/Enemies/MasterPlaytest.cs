@@ -1295,6 +1295,8 @@ namespace Kneel.EditorTools
             yield return ResetFight(Centre);
             typeof(MasterP1).GetField("halfReached", Any).SetValue(master, false);
             master.health.ApplyDamage(master.health.Max * 0.5f - 5f);
+            // Owner, 2026-11-15: only a staggered Master takes the player's blows; the beat starts as he gets up.
+            master.staggerState.Begin(S.poiseStaggerTime);
             PlaceFront(2.3f);
             Press("OnStrikePressed");
             yield return (Func<bool>)(() => State == master.pommelState);
@@ -1402,6 +1404,8 @@ namespace Kneel.EditorTools
             yield return ResetFight(Centre);
             typeof(MasterP1).GetField("halfReached", Any).SetValue(master, false);
             master.health.ApplyDamage(master.health.Max * 0.5f - 5f);
+            // Owner, 2026-11-15: only a staggered Master takes the player's blows; the beat starts as he gets up.
+            master.staggerState.Begin(S.poiseStaggerTime);
             PlaceFront(2.3f);
             int beats = halfBeats;
             float health = master.health.Current;

@@ -48,6 +48,9 @@ public class DebugTuningOverlay : MonoBehaviour
 
     private const float PanelWidth = 340f;
 
+    // Where the open panel ends on the left of the screen (the boss lab, MasterDevTool, keeps clear of it).
+    public static float PanelRight => 10f + PanelWidth;
+
     // True while the pointer is over the open panel, so clicks there don't also swing the sword.
     public static bool IsPointerOverPanel { get; private set; }
 
