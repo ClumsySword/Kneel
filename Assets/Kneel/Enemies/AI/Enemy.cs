@@ -27,6 +27,9 @@ public class Enemy : MonoBehaviour
     // How much heavier than a normal blow its attacks land (see DamageInfo.impact).
     public float attackImpact;
 
+    // Its attacks can't be parried (a shoulder charge, an arrow): a press in the parry window only blocks them.
+    public bool attackUnparryable;
+
     // An attack only starts once the player is within this many degrees of straight ahead.
     public float attackFacingAngle = 15f;
 
@@ -144,6 +147,7 @@ public class Enemy : MonoBehaviour
                 source = gameObject,
                 isCritical = false,
                 impact = attackImpact,
+                unparryable = attackUnparryable,
             });
             return true;
         }
