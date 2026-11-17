@@ -1296,8 +1296,8 @@ namespace Kneel.EditorTools
 
             Throne(g, root, r);
 
-            // The old King in marble, kneeling at the foot of his own dais, his crown fallen before him.
-            KneelingStatue(g, root, new Vector3(54f, y + 0.2f, 466.75f), 0f, Bake("L5_Kneeling_Knight_02_Black", KneelPose).mesh, Marble, 1.15f, false);
+            // The old King in marble that knelt here was a placeholder, removed (owner, 2026-11-10): the Master sits
+            // above this spot and walks down through it. His fallen crown stays.
             var crown = Group(g, "Crown");
             crown.position = new Vector3(54.2f, y + 0.02f, 466.0f);
             crown.rotation = Quaternion.Euler(14f, 30f, 0f);
@@ -1524,7 +1524,7 @@ namespace Kneel.EditorTools
             RenderSettings.sun = null;
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = L1Build.Hex("#2B2E36");
+            RenderSettings.ambientSkyColor = L1Build.Hex("#302A26"); // warm: nothing in the castle lights blue (L5Polish.WarmTheDark)
             RenderSettings.ambientEquatorColor = L1Build.Hex("#302A25");
             RenderSettings.ambientGroundColor = L1Build.Hex("#15120F");
             RenderSettings.fog = true;
@@ -1538,7 +1538,7 @@ namespace Kneel.EditorTools
             fillGo.transform.rotation = Quaternion.Euler(50f, -25f, 0f);
             var fill = fillGo.AddComponent<Light>();
             fill.type = LightType.Directional;
-            fill.color = L1Build.Hex("#C9CCD4");
+            fill.color = L1Build.Hex("#D6C6B2");
             fill.intensity = 0.5f;
             fill.shadows = LightShadows.None;
             uint characters = (uint)RenderingLayerMask.GetMask(L1LightingPass.CharactersLayer);
@@ -1582,9 +1582,11 @@ namespace Kneel.EditorTools
             vignette.intensity.Override(0.42f);
             vignette.smoothness.Override(0.45f);
             var bloom = Get<Bloom>();
-            bloom.threshold.Override(0.8f);
-            bloom.intensity.Override(1.25f);
-            bloom.scatter.Override(0.72f);
+            // Owner, 2026-11-11: small, distinct light sources, never a blob of glow (L5Polish.Glow).
+            bloom.threshold.Override(L5Polish.BloomThreshold);
+            bloom.intensity.Override(L5Polish.BloomIntensity);
+            bloom.scatter.Override(L5Polish.BloomScatter);
+            bloom.highQualityFiltering.Override(true);
             bloom.tint.Override(L1Build.Hex("#FFB27A"));
             var grain = Get<FilmGrain>();
             grain.type.Override(FilmGrainLookup.Thin1);
@@ -1694,9 +1696,8 @@ namespace Kneel.EditorTools
         // never fills the screen with glow as the player walks under it.
         private static void Halo(Transform parent, Vector3 local, float size, float strength = 1f)
         {
-            var halo = L1Wayfinding.Particles("Halo", parent, HaloMaterial(), 16, 6f, new Vector2(2.4f, 2.6f), Vector2.zero,
-                new Vector2(size * 0.95f, size * 1.05f), new Color(1f, 0.62f, 0.3f, 0.13f * strength), new Color(1f, 0.55f, 0.25f, 0.11f * strength));
-            halo.transform.localPosition = local;
+            // Owner, 2026-11-11: no halo sprites round the fixtures (they read as blobs of glow; L5Polish.Glow removed
+            // them from the scene). Kept as a no-op so the fixture builders read as before.
         }
 
         private static Material HaloMaterial()
@@ -2512,102 +2513,9 @@ namespace Kneel.EditorTools
         // texture holds four lozenges (tiled at a quarter), so its wear doesn't repeat every runner width: the nap
         // trodden flat down the middle, the borders grimed, a few old dark stains (owner, 2026-10-23: "rough the place
         // up a bit... too clean"; and "a slightly darker red").
-        private static Material CarpetMaterial()
-        {
-            const int w = 256, h = 1024, lozenges = 4;
-            var px = new Color[w * h];
-            var field = L1Build.Hex("#47131A");
-            var deep = L1Build.Hex("#200709");
-            var band = L1Build.Hex("#2E0B0F");
-            var gold = L1Build.Hex("#7E5E2E");
-            var rose = L1Build.Hex("#5B1B21");
-            var stainColour = L1Build.Hex("#1C0B09");
-            var stains = new List<Vector3>();
-            var sr = new System.Random(9177);
-            for (int i = 0; i < 9; i++)
-            {
-                stains.Add(new Vector3(0.15f + (float)sr.NextDouble() * 0.7f, (float)sr.NextDouble(), 0.03f + (float)sr.NextDouble() * 0.05f));
-            }
-
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    float u = (x + 0.5f) / w, whole = (y + 0.5f) / h, v = Mathf.Repeat(whole * lozenges, 1f);
-                    float edge = Mathf.Min(u, 1f - u);
-                    Color c = field;
-                    if (edge < 0.1f)
-                    {
-                        // The border band, with a gold diamond every eighth of a repeat.
-                        c = band;
-                        float bv = Mathf.Repeat(v * 8f, 1f) - 0.5f, bu = (edge - 0.05f) / 0.035f;
-                        if (Mathf.Abs(bu) + Mathf.Abs(bv) * 1.6f < 0.55f)
-                        {
-                            c = gold;
-                        }
-                    }
-                    else if (Mathf.Abs(edge - 0.115f) < 0.007f)
-                    {
-                        c = gold;
-                    }
-                    else
-                    {
-                        // The lozenge chain: dark outline, rose fill, gold heart; small dark crosses where two meet.
-                        float lz = Mathf.Abs(u - 0.5f) / 0.3f + Mathf.Abs(v - 0.5f) / 0.46f;
-                        if (lz < 1f)
-                        {
-                            c = lz > 0.86f ? deep : lz < 0.3f ? (lz < 0.1f ? deep : gold) : rose;
-                        }
-                        else
-                        {
-                            float cv = Mathf.Min(v, 1f - v), cu = Mathf.Abs(u - 0.5f);
-                            if ((cu < 0.012f && cv < 0.07f) || (cv < 0.01f && cu < 0.05f))
-                            {
-                                c = deep;
-                            }
-                        }
-                    }
-
-                    // The weave: fine rows across, a little noise in every thread.
-                    float grain = 0.93f + 0.07f * Mathf.PerlinNoise(x * 0.9f, y * 0.13f) + ((y & 1) == 0 ? 0.025f : -0.025f);
-                    c *= grain;
-
-                    // Wear: the nap trodden flat and dulled down the middle, grime toward the borders, old stains.
-                    float tread = Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) / 0.22f) * (0.6f + 0.4f * Mathf.PerlinNoise(u * 6f, whole * 40f));
-                    c = Color.Lerp(c, new Color(c.grayscale, c.grayscale * 0.8f, c.grayscale * 0.75f) * 1.15f, 0.22f * tread);
-                    c *= 1f - 0.18f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.16f, 0.02f, edge)) * Mathf.PerlinNoise(u * 20f, whole * 90f);
-                    foreach (var s in stains)
-                    {
-                        float dv = Mathf.Abs(whole - s.y);
-                        dv = Mathf.Min(dv, 1f - dv) * lozenges;
-                        float d = new Vector2(u - s.x, dv).magnitude / s.z + (Mathf.PerlinNoise(x * 0.15f, y * 0.15f) - 0.5f) * 0.8f;
-                        c = Color.Lerp(c, stainColour, 0.55f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.1f, 0.6f, d)));
-                    }
-
-                    c.a = 1f;
-                    px[y * w + x] = c;
-                }
-            }
-
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, true);
-            tex.SetPixels(px);
-            tex.Apply();
-            string texPath = TexturesPath + "/L5_Carpet_Weave.png";
-            File.WriteAllBytes(texPath, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
-            var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
-            importer.wrapMode = TextureWrapMode.Repeat;
-            importer.filterMode = FilterMode.Trilinear;
-            importer.anisoLevel = 4;
-            importer.SaveAndReimport();
-
-            var mat = Flat("L5_Carpet", "#FFFFFF", 0.04f);
-            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f / lozenges));
-            EditorUtility.SetDirty(mat);
-            return mat;
-        }
+        // The flights' runner: drawn by L5Polish.RunnerMaterial (owner, 2026-11-11: worn and dirty, no lozenge chain;
+        // the border every L5 carpet shares).
+        public static Material CarpetMaterial() => L5Polish.RunnerMaterial();
 
         // ---------------------------------------------------------------- Look-dev shots
 

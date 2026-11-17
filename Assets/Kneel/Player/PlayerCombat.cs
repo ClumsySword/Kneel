@@ -25,6 +25,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         Bashing,
         Drinking,
         Casting,
+        Kneeling,
+        Knockdown,
         Dead,
     }
 
@@ -82,6 +84,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     private Vector3 shoveVelocity;
     private float shoveLeft;
     private bool shoving;
+    private bool shoveExact;
 
     private bool blockHeld = false;
     private float blockPressTime = -999f;
@@ -115,9 +118,78 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     public event System.Action<AttackDefinition, Vector3> AttackLanded;
 
-    public bool IsInvulnerable => State == CombatState.Dodging
+    // A roll's i-frames, and a forced kneel: nothing lands on a kneeling player (the Master's rule, The Master.md §1).
+    // Knocked flat: invulnerable while held and while down, not through the get-up.
+    public bool IsInvulnerable => (State == CombatState.Dodging
         && stateTime >= settings.dodgeInvulnerableStart
-        && stateTime <= settings.dodgeInvulnerableEnd;
+        && stateTime <= settings.dodgeInvulnerableEnd) || State == CombatState.Kneeling
+        || (State == CombatState.Knockdown && knockdownPhase < 2) || IsShielded;
+
+    public bool IsKneeling => State == CombatState.Kneeling;
+
+    public bool IsKnockedDown => State == CombatState.Knockdown;
+
+    // In a grab (the Colossus's Grasp): hidden inside his fist.
+    public bool IsHeld => State == CombatState.Knockdown && knockdownPhase == 0;
+
+    // A scripted shield (the Master's transition): nothing lands at all until ShieldedUntil (Time.time).
+    public float ShieldedUntil { get; private set; } = -1f;
+
+    public bool IsShielded => Time.time < ShieldedUntil;
+
+    public void Shield(float seconds) => ShieldedUntil = Mathf.Max(ShieldedUntil, Time.time + seconds);
+
+    public void ReleaseShield() => ShieldedUntil = -1f;
+
+    // Raised when the player is knocked flat (the boss times its next blow).
+    public event System.Action OnKnockedDown;
+
+    // Raised when something forces the player to kneel, with how long (Kael's scar flares; the boss times its next blow).
+    public event System.Action<float> OnForcedKneel;
+
+    // Raised when the player's shield or blade parries an attacker (Ash hooks, the scar's ember thread).
+    public event System.Action<GameObject> OnParry;
+
+    // A scripted hold on the player (the Master's palm in the intro, the transition): until RestrictedUntil (Time.time),
+    // they can only walk, at RestrictedSpeed, and every action is ignored.
+    public float RestrictedUntil { get; private set; } = -1f;
+
+    public float RestrictedSpeed { get; private set; } = 1f;
+
+    public bool IsRestricted => Time.time < RestrictedUntil;
+
+    // A slow from the ground (the L5 ash storm): movement x speed until `seconds` from now; renewed each frame by
+    // whatever applies it.
+    public void Slow(float speed, float seconds)
+    {
+        slowSpeed = Mathf.Clamp01(speed);
+        slowUntil = Time.time + seconds;
+    }
+
+    private float slowSpeed = 1f;
+    private float slowUntil = -1f;
+
+    private float kneelDuration;
+    private int kneelPhase;
+    private bool restrictAllowsHeal;
+
+    // Holds the player for `seconds`: walking only, at `speed` of normal, every action ignored (healing too, unless
+    // allowHeal). Extends rather than shortens a hold already running.
+    public void Restrict(float seconds, float speed, bool allowHeal = false)
+    {
+        RestrictedUntil = Mathf.Max(RestrictedUntil, Time.time + seconds);
+        RestrictedSpeed = speed;
+        restrictAllowsHeal = allowHeal;
+        blockHeld = false;
+        dodgeRequestTime = -999f;
+        heavyRequestTime = -999f;
+        attackRequestTime = -999f;
+    }
+
+    public void ReleaseRestriction() => RestrictedUntil = -1f;
+
+    // Forces the player to their knees for `seconds` with no damage (the Master's last palm in the finisher).
+    public void ForceKneel(float seconds) => StartKneel(seconds);
 
     public bool IsParryWindowOpen => IsBlocking && pressCanParry && Time.time - blockPressTime <= settings.parryWindow;
 
@@ -219,6 +291,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnDrawPressed()
     {
+        if (IsRestricted == true)
+        {
+            return;
+        }
+
         if (State == CombatState.Sheathed)
         {
             StartDraw();
@@ -231,7 +308,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnStrikePressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || MasterDevTool.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -270,7 +347,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnHeavyPressed()
     {
-        if (DebugTuningOverlay.IsPointerOverPanel == true)
+        if (DebugTuningOverlay.IsPointerOverPanel == true || MasterDevTool.IsPointerOverPanel == true || IsRestricted == true)
         {
             return;
         }
@@ -321,6 +398,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
     private void OnBlockPressed()
     {
+        if (IsRestricted == true)
+        {
+            return;
+        }
+
         blockHeld = true;
 
         // Only a fresh press gets a parry window, so mashing block doesn't parry everything.
@@ -360,6 +442,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 break;
             case CombatState.Casting:
                 UpdateCasting();
+                break;
+            case CombatState.Kneeling:
+                UpdateKneeling();
+                break;
+            case CombatState.Knockdown:
+                UpdateKnockdown();
                 break;
         }
 
@@ -633,6 +721,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             isCritical = critical,
             breaksGuard = attack.breaksGuard,
             impact = attack.impact,
+            heavy = attack == settings.heavyAttack,
         });
 
         float weight = 1f + attack.impact;
@@ -763,7 +852,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
     // before the sip wastes it.
     private void OnHealPressed()
     {
-        if (State != CombatState.Sheathed || potions == null || potions.TryTake() == false)
+        if ((IsRestricted == true && restrictAllowsHeal == false) || State != CombatState.Sheathed || potions == null || potions.TryTake() == false)
         {
             return;
         }
@@ -871,7 +960,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (State != CombatState.Sheathed && State != CombatState.Armed)
+        if ((State != CombatState.Sheathed && State != CombatState.Armed) || IsRestricted == true)
         {
             return;
         }
@@ -992,16 +1081,22 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         animator.CrossFadeInFixedTime(IsBlocking ? "Block" : "ArmedIdle", 0.12f, upperBodyLayer);
     }
 
+    // For dev tools (MasterDevTool): nothing lands on the player at all, as if they weren't there.
+    [System.NonSerialized]
+    public bool devPassThrough;
+
     public void TakeHit(DamageInfo info)
     {
-        if (IsDead == true)
+        bool rolling = State == CombatState.Dodging;
+        if (devPassThrough == true || IsShielded == true || IsDead == true)
         {
             return;
         }
 
-        if (IsInvulnerable == true)
+        if (IsInvulnerable == true && (info.ignoresRoll == false || rolling == false))
         {
-            if (info.isEnvironmental == false)
+            // Only a roll's i-frames count as evading (Ash); a kneel or a knockdown just shrugs the hit off.
+            if (rolling == true && info.isEnvironmental == false)
             {
                 NotifyEvaded(info.source);
             }
@@ -1023,13 +1118,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (fromFront == true && IsParryWindowOpen == true && info.unparryable == false)
+        if (fromFront == true && IsParryWindowOpen == true && info.unparryable == false && info.unblockable == false)
         {
             if (info.source != null && info.source.TryGetComponent(out IParryable parried))
             {
                 parried.OnParried(gameObject);
             }
 
+            OnParry?.Invoke(info.source);
             LastParryTime = Time.time;
             Parried?.Invoke(info.source);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
@@ -1039,7 +1135,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable
             return;
         }
 
-        if (fromFront == true && IsBlocking == true)
+        if (fromFront == true && IsBlocking == true && info.unblockable == false)
         {
             // The shield soaks most of the poise damage too; what gets through can still break the guard.
             if (Poise.ApplyDamage(info.poiseDamage * settings.blockPoiseMultiplier) == true)
@@ -1068,6 +1164,22 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         HitStop.Freeze(settings.hitStop * weight);
         Shove(info, 1f);
 
+        // Forced to kneel: that replaces any stagger or flinch.
+        if (info.kneelTime > 0f)
+        {
+            Shake(settings.hitShake * 1.5f * weight);
+            StartKneel(info.kneelTime);
+            return;
+        }
+
+        // Knocked flat: that replaces them too.
+        if (info.knockdown == true)
+        {
+            Shake(settings.hitShake * 2f * weight);
+            StartKnockdown(info.direction, info.fling, info.holdTime, info.holder);
+            return;
+        }
+
         if (poiseBroken == true)
         {
             StartHitStun(settings.staggerDuration, "GuardBreak");
@@ -1082,6 +1194,22 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         {
             StartHitStun(settings.hitStunDuration, "HitReact");
         }
+    }
+
+    // Moves the player `distance` metres along `direction` over the shove time, as a blow's shove does (the Master's
+    // transition: the floor's ring).
+    public void Push(Vector3 direction, float distance)
+    {
+        direction.y = 0f;
+        if (distance <= 0f || direction.sqrMagnitude < 0.0001f || IsDead == true)
+        {
+            return;
+        }
+
+        shoveLeft = distance;
+        shoveVelocity = direction.normalized * Mathf.Max(distance / settings.impactShoveTime, 8f);
+        shoving = true;
+        shoveExact = true;
     }
 
     // A heavy blow physically moves the player, guard or no guard.
@@ -1113,6 +1241,15 @@ public class PlayerCombat : MonoBehaviour, IDamageable
 
         if (shoveLeft <= 0f)
         {
+            // A scripted push (and a knockdown's fling) stops dead where it should: one frame of zero velocity, or the
+            // movement carries on at the push's speed until its deceleration catches up (5 m pushed became 15).
+            if (shoveExact == true)
+            {
+                shoveExact = false;
+                movement.forcedVelocity = Vector3.zero;
+                return;
+            }
+
             shoving = false;
             movement.forcedVelocity = null;
             return;
@@ -1153,6 +1290,18 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
 
         InterruptCast();
+
+        if (IsHeld == true)
+        {
+            movement.enabled = true;
+            RevealHidden();
+            var controller = GetComponent<CharacterController>();
+            if (controller != null)
+            {
+                controller.enabled = true;
+            }
+        }
+
         StopAirborne();
         potions?.ShowInHand(false);
         equipment.SwordHitbox.End();
@@ -1225,6 +1374,260 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         }
     }
 
+    // --- Forced kneel ---
+
+    // Down to one knee in kneelDownTime, held until `duration` has passed since the start, then up in kneelUpTime.
+    // Nothing lands meanwhile (IsInvulnerable) and the player can't act.
+    private void StartKneel(float duration)
+    {
+        if (IsDead == true)
+        {
+            return;
+        }
+
+        if (State == CombatState.Dodging)
+        {
+            movement.forcedVelocity = null;
+            SetEnemyCollision(true);
+            animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
+        }
+        else if (State == CombatState.Casting)
+        {
+            EndForcedMotion();
+        }
+
+        InterruptCast();
+        StopAirborne();
+        potions?.ShowInHand(false);
+        equipment.SwordHitbox.End();
+        attackQueued = false;
+        IsBlocking = false;
+        blockHeld = false;
+
+        SetState(CombatState.Kneeling);
+        kneelDuration = Mathf.Max(duration, settings.kneelDownTime + settings.kneelUpTime);
+        kneelPhase = 0;
+        upperBodyTarget = 0f;
+        upperBodyWeight = 0f;
+        fullBodyTarget = 1f;
+        fullBodyWeight = 1f;
+        animator.CrossFadeInFixedTime("KneelDown", 0.08f, fullBodyLayer, 0f);
+        OnForcedKneel?.Invoke(duration);
+    }
+
+    private void UpdateKneeling()
+    {
+        if (kneelPhase == 0 && stateTime >= settings.kneelDownTime)
+        {
+            kneelPhase = 1;
+            animator.CrossFadeInFixedTime("KneelIdle", 0.12f, fullBodyLayer);
+        }
+
+        if (kneelPhase == 1 && stateTime >= kneelDuration - settings.kneelUpTime)
+        {
+            kneelPhase = 2;
+            animator.CrossFadeInFixedTime("KneelUp", 0.1f, fullBodyLayer, 0f);
+        }
+
+        if (kneelPhase == 2 && stateTime >= kneelDuration)
+        {
+            fullBodyTarget = 0f;
+            animator.CrossFadeInFixedTime("Locomotion", 0.2f, 0);
+            if (equipment.SwordInHand == true)
+            {
+                SetState(CombatState.Armed);
+                upperBodyTarget = 1f;
+                animator.CrossFadeInFixedTime("ArmedIdle", 0.15f, upperBodyLayer);
+            }
+            else
+            {
+                SetState(CombatState.Sheathed);
+            }
+        }
+    }
+
+    // --- Knockdown ---
+
+    // 0: held in a grab (hidden, riding the holder); 1: flung and down (invulnerable); 2: getting up.
+    private int knockdownPhase;
+    private float knockdownPhaseStart;
+    private float knockdownHold;
+    private Transform knockdownHolder;
+    private Vector3 knockdownDirection;
+    private float knockdownFling;
+    private Renderer[] hiddenRenderers;
+
+    // Flat on the floor: `fling` metres along `direction` (after `holdTime` s inside `holder`, for a grab), down
+    // knockdownDownTime, then up over knockdownUpTime. A roll cuts the get-up short after knockdownRollAfter.
+    private void StartKnockdown(Vector3 direction, float fling, float holdTime, Transform holder)
+    {
+        if (IsDead == true)
+        {
+            return;
+        }
+
+        if (State == CombatState.Dodging || State == CombatState.Casting)
+        {
+            SetEnemyCollision(true);
+        }
+
+        InterruptCast();
+        movement.forcedVelocity = null;
+        shoving = false;
+        StopAirborne();
+        potions?.ShowInHand(false);
+        equipment.SwordHitbox.End();
+        attackQueued = false;
+        IsBlocking = false;
+        blockHeld = false;
+
+        SetState(CombatState.Knockdown);
+        direction.y = 0f;
+        knockdownDirection = direction.sqrMagnitude > 0.01f ? direction.normalized : -transform.forward;
+        knockdownFling = Mathf.Max(0f, fling);
+        knockdownHold = Mathf.Max(0f, holdTime);
+        knockdownHolder = holder;
+        upperBodyTarget = 0f;
+        upperBodyWeight = 0f;
+        fullBodyTarget = 1f;
+        fullBodyWeight = 1f;
+        OnKnockedDown?.Invoke();
+
+        if (knockdownHold > 0f && holder != null)
+        {
+            // Inside the fist: hidden, riding it, out of the physics.
+            knockdownPhase = 0;
+            knockdownPhaseStart = Time.time;
+            var controller = GetComponent<CharacterController>();
+            if (controller != null)
+            {
+                controller.enabled = false;
+            }
+
+            movement.enabled = false;
+            hiddenRenderers = System.Array.FindAll(GetComponentsInChildren<Renderer>(), r => r.enabled);
+            foreach (Renderer r in hiddenRenderers)
+            {
+                r.enabled = false;
+            }
+
+            return;
+        }
+
+        BeginKnockdownFall();
+    }
+
+    private void BeginKnockdownFall()
+    {
+        knockdownPhase = 1;
+        knockdownPhaseStart = Time.time;
+        // Facing the blow, falling back along it.
+        transform.rotation = Quaternion.LookRotation(-knockdownDirection);
+        animator.SetFloat("KnockdownSpeed", settings.knockdownFallClip / Mathf.Max(settings.knockdownDownTime, 0.1f));
+        animator.CrossFadeInFixedTime("KnockdownFall", 0.06f, fullBodyLayer, 0f);
+        if (knockdownFling > 0f)
+        {
+            shoveLeft = knockdownFling;
+            shoveVelocity = knockdownDirection * settings.knockdownFlingSpeed;
+            shoving = true;
+            shoveExact = true;
+        }
+    }
+
+    private void UpdateKnockdown()
+    {
+        if (knockdownPhase == 0)
+        {
+            if (knockdownHolder != null)
+            {
+                Vector3 at = knockdownHolder.position;
+                transform.position = new Vector3(at.x, Mathf.Max(at.y - 1f, transform.position.y), at.z);
+            }
+
+            if (Time.time - knockdownPhaseStart < knockdownHold && knockdownHolder != null)
+            {
+                return;
+            }
+
+            // Out of the fist, back on the floor where it let go.
+            if (Physics.Raycast(transform.position + Vector3.up * 2f, Vector3.down, out RaycastHit ground, 12f, LayerMask.GetMask("Default", "Ground", "Obstacles"), QueryTriggerInteraction.Ignore))
+            {
+                transform.position = ground.point + Vector3.up * 0.05f;
+            }
+
+            var controller = GetComponent<CharacterController>();
+            if (controller != null)
+            {
+                controller.enabled = true;
+            }
+
+            movement.enabled = true;
+            RevealHidden();
+            BeginKnockdownFall();
+            return;
+        }
+
+        float t = Time.time - knockdownPhaseStart;
+        if (knockdownPhase == 1 && t >= settings.knockdownDownTime)
+        {
+            knockdownPhase = 2;
+            knockdownPhaseStart = Time.time;
+            animator.SetFloat("KnockdownSpeed", settings.knockdownUpClip / Mathf.Max(settings.knockdownUpTime, 0.1f));
+            animator.CrossFadeInFixedTime("KnockdownUp", 0.15f, fullBodyLayer, settings.knockdownUpClipStart);
+            return;
+        }
+
+        if (knockdownPhase != 2)
+        {
+            return;
+        }
+
+        // A roll out of the get-up, once it's under way.
+        bool roll = t >= settings.knockdownRollAfter && Time.time - dodgeRequestTime <= settings.dodgeBufferTime;
+        if (roll == false && t < settings.knockdownUpTime)
+        {
+            return;
+        }
+
+        fullBodyTarget = 0f;
+        animator.CrossFadeInFixedTime("Locomotion", 0.2f, 0);
+        if (equipment.SwordInHand == true)
+        {
+            SetState(CombatState.Armed);
+            upperBodyTarget = 1f;
+            animator.CrossFadeInFixedTime("ArmedIdle", 0.15f, upperBodyLayer);
+        }
+        else
+        {
+            SetState(CombatState.Sheathed);
+        }
+
+        if (roll == true)
+        {
+            fullBodyWeight = 0f;
+            dodgeRequestTime = -999f;
+            StartDodge();
+        }
+    }
+
+    private void RevealHidden()
+    {
+        if (hiddenRenderers == null)
+        {
+            return;
+        }
+
+        foreach (Renderer r in hiddenRenderers)
+        {
+            if (r != null)
+            {
+                r.enabled = true;
+            }
+        }
+
+        hiddenRenderers = null;
+    }
+
     // --- Shared ---
 
     private void ApplyMovementRules()
@@ -1254,6 +1657,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable
                 jumpBlocked = true;
                 break;
             case CombatState.HitStun:
+            case CombatState.Kneeling:
+            case CombatState.Knockdown:
             case CombatState.Dead:
                 moveMultiplier = 0f;
                 rotationLocked = true;
@@ -1280,6 +1685,18 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         if (IsBlocking == true)
         {
             moveMultiplier = settings.blockMoveMultiplier;
+            sprintBlocked = true;
+            jumpBlocked = true;
+        }
+
+        if (Time.time < slowUntil)
+        {
+            moveMultiplier *= slowSpeed;
+        }
+
+        if (IsRestricted == true)
+        {
+            moveMultiplier *= RestrictedSpeed;
             sprintBlocked = true;
             jumpBlocked = true;
         }

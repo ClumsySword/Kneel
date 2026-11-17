@@ -156,7 +156,8 @@ public class PlayerAsh : MonoBehaviour
 
     private void OnPressed(Ability ability)
     {
-        if (combat.IsDead || meter.Granted == false)
+        // A scripted hold (the Master's palm) ignores every action.
+        if (combat.IsDead || combat.IsRestricted || meter.Granted == false)
         {
             return;
         }
@@ -222,7 +223,8 @@ public class PlayerAsh : MonoBehaviour
             case Ability.AshenSword:
                 // Instant, mid-swing included; it only needs the sword in hand.
                 if (combat.SwordInHand == false || combat.State == PlayerCombat.CombatState.Sheathing
-                    || combat.State == PlayerCombat.CombatState.Drawing)
+                    || combat.State == PlayerCombat.CombatState.Drawing
+                    || combat.IsKneeling || combat.IsKnockedDown || combat.IsRestricted)
                 {
                     return false;
                 }
