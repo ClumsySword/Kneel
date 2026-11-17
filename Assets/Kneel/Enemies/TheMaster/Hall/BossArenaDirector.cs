@@ -1,0 +1,230 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+// The throne hall's director (The Master.md §8, BossArenaDirector): it ties the hall to the fight and owns the
+// pacing rule, so the player has one impact to read at a time.
+// - Scripted hazards (panel F1 at P1's 50% beat now; the statues, the darkness and P2's panels in Stage 6) are held
+//   while their impact would land within 0.5 s of one of his blows.
+// - Levers the player sets off (the braziers) fire on time; instead he won't start a blow that would land within
+//   0.5 s of one (MasterP1.HazardImpactNear).
+// - The statues bow at every Command.
+// - Phase 2 (§6, §8): at his 50% roar the four statues topple inward and the ash storm starts; a Gather thickens the
+//   storm, pulls threads into him and holds the hall dark until he rises; a darkness wave also comes every
+//   35-45 s (never during a Great Command); the panel under a Hammerfall gives way 3 s after it; a second Cleave on
+//   the same panel cracks it.
+public class BossArenaDirector : MonoBehaviour, Kneel.Hazards.ILevelResettable
+{
+    public MasterBoss boss;
+    public HallFloor floor;
+    public FloorFire fire;
+    public DarknessWave darkness;
+    public AshStorm ashStorm;
+    public float spacing = 0.5f;
+
+    private struct Pending
+    {
+        public float lead;
+        public Action begin;
+        public string name;
+    }
+
+    private readonly List<Pending> scripted = new List<Pending>();
+    private readonly Dictionary<int, int> cleaves = new Dictionary<int, int>();
+    private float nextDarkness = -1f;
+    private readonly List<ThreadPull> gatherThreads = new List<ThreadPull>();
+
+    // How many times a scripted hazard was held back for a blow (the playtest reads it).
+    public int Held { get; private set; }
+
+    private void Start()
+    {
+        MasterP1 master = boss != null ? boss.master : null;
+        MasterP1.HazardImpactNear = ImpactNear;
+        if (master != null)
+        {
+            master.pommelState.OnPommelStrike += () => Schedule("panel F1", floor != null ? floor.tell : 2f, () => floor?.Crack(floor.f1));
+            master.OnCommandTell += tell =>
+            {
+                foreach (HallStatue statue in HallStatue.All)
+                    statue.Bow(tell);
+            };
+        }
+
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (colossus != null)
+        {
+            colossus.OnCommandTell += tell =>
+            {
+                foreach (HallStatue statue in HallStatue.All)
+                    statue.Bow(tell);
+            };
+            colossus.OnHalfHealth += () =>
+            {
+                foreach (HallStatue statue in HallStatue.All)
+                {
+                    HallStatue s = statue;
+                    Schedule("statue " + s.name, s.tell + s.fallTime, () => s.Topple());
+                }
+
+                ashStorm?.Begin();
+            };
+            colossus.OnGatherStart += () =>
+            {
+                ashStorm?.Thicken(colossus.settings.gatherTime);
+                // Dark through the whole Gather; the hall relights as he rises (his get-up is its last 1.3 s).
+                darkness?.HoldUntil(Time.time + colossus.settings.gatherTime - 1.3f);
+                // Owner, 2026-11-15: more threads join him as it goes on, a batch every gatherThreadEvery seconds.
+                StartCoroutine(GatherThreads(colossus));
+            };
+            colossus.OnTopple += ReleaseGatherThreads;
+            colossus.OnGatherComplete += () =>
+            {
+                ReleaseGatherThreads();
+                nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
+            };
+            colossus.OnHammerfall += at =>
+            {
+                int index = floor != null ? floor.IndexAt(at) : -1;
+                if (index >= 0)
+                    StartCoroutine(CrackLater(index, colossus.settings.hammerPanelDelay - floor.tell));
+            };
+            colossus.OnCleave += at =>
+            {
+                int index = floor != null ? floor.IndexAt(at) : -1;
+                if (index < 0)
+                    return;
+                cleaves[index] = cleaves.TryGetValue(index, out int n) ? n + 1 : 1;
+                if (cleaves[index] == 2)
+                    Schedule("panel under two Cleaves", floor.tell, () => floor.Crack(index));
+            };
+        }
+
+        if (boss != null)
+            boss.OnP2Started += () => nextDarkness = Time.time + UnityEngine.Random.Range(35f, 45f);
+    }
+
+    // The Hammerfall's panel: it cracks `delay` after the impact (and falls a tell later).
+    private System.Collections.IEnumerator CrackLater(int index, float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, delay));
+        Schedule("panel under the Hammerfall", floor.tell, () => floor.Crack(index));
+    }
+
+    private void OnDestroy()
+    {
+        if (MasterP1.HazardImpactNear == (Func<float, bool>)ImpactNear)
+            MasterP1.HazardImpactNear = null;
+    }
+
+    // A scripted hazard whose impact comes `lead` seconds after it begins: it begins once that impact is clear of
+    // his next blow by `spacing`.
+    public void Schedule(string name, float lead, Action begin)
+    {
+        scripted.Add(new Pending { name = name, lead = lead, begin = begin });
+    }
+
+    private void Update()
+    {
+        // Phase 2's darkness waves, never during a Great Command (it would hide the shadows that are the answer).
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (nextDarkness > 0f && colossus != null && colossus.Engaged && Time.time >= nextDarkness && darkness != null)
+        {
+            bool commanding = colossus.stateMachine.currentState == colossus.commandState;
+            if (commanding == false && darkness.Active == false)
+            {
+                darkness.Begin();
+                nextDarkness = Time.time + UnityEngine.Random.Range(colossus.settings.darknessEveryMin, colossus.settings.darknessEveryMax);
+            }
+        }
+
+        for (int i = scripted.Count - 1; i >= 0; i--)
+        {
+            Pending p = scripted[i];
+            float impact = Time.time + p.lead;
+            float blow = NextBlow();
+            if (blow >= 0f && Mathf.Abs(blow - impact) < spacing)
+            {
+                Held++;
+                continue;
+            }
+
+            scripted.RemoveAt(i);
+            p.begin?.Invoke();
+        }
+    }
+
+    // When his next blow lands (game time), or -1.
+    public float NextBlow()
+    {
+        MasterP1 master = boss != null ? boss.master : null;
+        if (master != null && master.isActiveAndEnabled && master.stateMachine.currentState is MasterMoveState move)
+            return move.LandsAt;
+        AshColossus colossus = boss != null ? boss.colossus : null;
+        if (colossus != null && colossus.Present && colossus.stateMachine.currentState is ColossusMoveState p2)
+            return p2.LandsAt;
+        return -1f;
+    }
+
+    // True if any hazard lands within `spacing` of time t (his picker asks before he starts a blow).
+    public bool ImpactNear(float t)
+    {
+        foreach (float impact in Impacts())
+        {
+            if (impact >= 0f && Mathf.Abs(impact - t) < spacing)
+                return true;
+        }
+
+        return false;
+    }
+
+    private IEnumerable<float> Impacts()
+    {
+        foreach (BrazierTopple b in BrazierTopple.All)
+            yield return b.ImpactAt;
+        foreach (HallStatue s in HallStatue.All)
+            yield return s.ImpactAt;
+        if (floor != null)
+        {
+            for (int i = 0; i < floor.panels.Length; i++)
+                yield return floor.ImpactAt(i);
+        }
+    }
+
+    // The Gather's threads: a batch into his chest every gatherThreadEvery seconds while he kneels, each held to the end.
+    private System.Collections.IEnumerator GatherThreads(AshColossus colossus)
+    {
+        MasterSettings s = colossus.settings;
+        Transform back = colossus.anim.GetBoneTransform(HumanBodyBones.Chest) ?? colossus.transform;
+        float start = Time.time;
+        int batch = 0;
+        while (Time.time - start < s.gatherTime - 1.6f)
+        {
+            float left = s.gatherTime - (Time.time - start);
+            gatherThreads.Add(ThreadPull.Begin(back, Vector3.zero, s.gatherThreadBatch + batch, 1f, Mathf.Max(0.5f, left - 1.2f), batch % 2 == 0 ? 0.6f : 0.4f));
+            batch++;
+            yield return new WaitForSeconds(s.gatherThreadEvery);
+        }
+    }
+
+    private void ReleaseGatherThreads()
+    {
+        foreach (ThreadPull pull in gatherThreads)
+            if (pull != null)
+                pull.Release();
+        gatherThreads.Clear();
+    }
+
+    public void ResetState()
+    {
+        StopAllCoroutines();
+        scripted.Clear();
+        cleaves.Clear();
+        nextDarkness = -1f;
+        foreach (ThreadPull pull in gatherThreads)
+            if (pull != null)
+                Destroy(pull.gameObject);
+        gatherThreads.Clear();
+        Held = 0;
+    }
+}

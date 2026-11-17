@@ -13201,6 +13201,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c631082276defb46aa275a3b4d22b315, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4632024745077618712}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c631082276defb46aa275a3b4d22b315, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3029724432619218577}
     - targetCorrespondingSourceObject: {fileID: 5479220136002837050, guid: c631082276defb46aa275a3b4d22b315, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1108907688939486580}
@@ -13359,6 +13362,22 @@ MonoBehaviour:
   height: 0.45
   fontSize: 22
   fadeTime: 0.12
+--- !u!114 &3029724432619218577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3344468211059206201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fdaf9ae71deb244db9161ddc6ff37db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerScar
+  color: {r: 1, g: 0.45, b: 0.15, a: 1}
+  flareIntensity: 6
+  flareTime: 1.2
+  restIntensity: 0
 --- !u!4 &6877145877161788670 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9068031327672816022, guid: c631082276defb46aa275a3b4d22b315, type: 3}

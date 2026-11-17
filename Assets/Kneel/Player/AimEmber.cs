@@ -55,7 +55,7 @@ public class AimEmber : MonoBehaviour
     // because alt-tabbing back shows the OS pointer again.
     private void LateUpdate()
     {
-        bool inMenu = DebugTuningOverlay.IsOpen || Kneel.UI.PauseMenu.IsPaused;
+        bool inMenu = DebugTuningOverlay.IsOpen || MasterDevTool.IsOpen || Kneel.UI.PauseMenu.IsPaused;
         Cursor.visible = inMenu;
         SetHidden(inMenu);
 
