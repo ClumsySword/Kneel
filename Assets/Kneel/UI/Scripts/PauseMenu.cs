@@ -123,7 +123,7 @@ namespace Kneel.UI
         // One menu per gameplay scene, living in that scene, so a reload or a scene change always starts fresh.
         private static void OnSceneLoaded(Scene scene, LoadSceneMode loadMode)
         {
-            if (loadMode != LoadSceneMode.Single || Array.IndexOf(MenuScenes, scene.name) >= 0 || (Current != null && Current.gameObject.scene == scene))
+            if (loadMode != LoadSceneMode.Single || Array.IndexOf(MenuScenes, scene.name) >= 0 || (Current != null && Current.gameObject.scene == scene) || SceneLoader.IsDiscarding(scene))
             {
                 return;
             }
@@ -262,7 +262,8 @@ namespace Kneel.UI
             if (mode == Mode.Closed)
             {
                 Playtime.Add(Time.unscaledDeltaTime);
-                if (pausePressed && !SceneLoader.IsLoading && !playerDead)
+                // No pausing through a level transition (outro, loading screen, intro).
+                if (pausePressed && !SceneLoader.IsLoading && !playerDead && !LevelTransition.Active)
                 {
                     Open();
                 }
@@ -519,22 +520,16 @@ namespace Kneel.UI
             return saved ? "Your progress has been saved." : "Your progress could not be saved.";
         }
 
+        // The scene and the playtime, kept in the existing save: its story flags and the state carried into the
+        // level stay (a fresh SaveData here used to drop them). Continue then starts this level with what he
+        // carried into it, as a death reload does.
         private static bool AutoSave()
         {
-            try
+            return SaveServices.Update(data =>
             {
-                SaveServices.Current.Save(new SaveData
-                {
-                    sceneName = SceneManager.GetActiveScene().name,
-                    playtimeSeconds = Playtime.Seconds,
-                });
-                return true;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Auto-save failed: " + e.Message);
-                return false;
-            }
+                data.sceneName = SceneManager.GetActiveScene().name;
+                data.playtimeSeconds = Playtime.Seconds;
+            });
         }
 
         private void OpenDialog(string message, Action confirmed)

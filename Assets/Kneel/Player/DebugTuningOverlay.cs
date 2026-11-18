@@ -107,6 +107,12 @@ public class DebugTuningOverlay : MonoBehaviour
 
     private void Update()
     {
+        // It never opens through a level transition (and closes if it was open at the exit).
+        if (Kneel.Core.LevelTransition.Active)
+        {
+            isOpen = false;
+        }
+
         IsOpen = isOpen;
 
         var mouse = UnityEngine.InputSystem.Mouse.current;
@@ -128,6 +134,12 @@ public class DebugTuningOverlay : MonoBehaviour
 
     private void OnGUI()
     {
+        // Nothing of it on screen through a level transition, the hint included.
+        if (Kneel.Core.LevelTransition.Active)
+        {
+            return;
+        }
+
         if (isOpen == false)
         {
             GUI.Label(new Rect(10f, 10f, 200f, 22f), "F1: tuning");
@@ -175,6 +187,12 @@ public class DebugTuningOverlay : MonoBehaviour
         if (master != null && master.settings != null && Foldout("Master", ref showMaster))
         {
             DrawMasterSection(master.settings);
+        }
+
+        Kneel.Core.LevelTransitionSettings transition = Kneel.Core.LevelTransition.Settings;
+        if (transition != null && Foldout("Transitions", ref showTransitions))
+        {
+            DrawTransitionSection(transition);
         }
 
         GUILayout.EndScrollView();
@@ -482,6 +500,43 @@ public class DebugTuningOverlay : MonoBehaviour
         d.staggerDuration = Slider("Stagger time", d.staggerDuration, 0.2f, 3f);
         d.poise.maxPoise = Slider("Max poise", d.poise.maxPoise, 1f, 200f);
         d.windupPoiseMultiplier = Slider("Wind-up poise x", d.windupPoiseMultiplier, 1f, 4f);
+    }
+
+    private bool showTransitions;
+
+    // Level transitions (Kneel.Core.LevelTransition): their timings and grade leans. They apply to the next exit.
+    private void DrawTransitionSection(Kneel.Core.LevelTransitionSettings s)
+    {
+        EditorDirtyCheck(s, () =>
+        {
+            s.walkInput = Slider("Walk pace", s.walkInput, 0.3f, 1f);
+            s.walkTurnRate = Slider("Walk turn rate", s.walkTurnRate, 60f, 720f);
+            s.sheatheTimeout = Slider("Sheathe timeout", s.sheatheTimeout, 0.5f, 6f);
+            s.outroCameraBlend = Slider("Outro camera blend", s.outroCameraBlend, 0.1f, 3f);
+            s.outroMaxTime = Slider("Outro max", s.outroMaxTime, 1f, 8f);
+            s.outroLean = Slider("Outro grade lean", s.outroLean, 0f, 1f);
+            s.musicFadeShare = Slider("Music fade share", s.musicFadeShare, 0.2f, 1f);
+            s.fadeToBlack = Slider("Fade to black", s.fadeToBlack, 0.1f, 3f);
+            s.artFadeIn = Slider("Art fade in", s.artFadeIn, 0.1f, 3f);
+            s.artFadeOut = Slider("Art fade out", s.artFadeOut, 0.1f, 3f);
+            s.minLoadingScreen = Slider("Min loading screen", s.minLoadingScreen, 5f, 15f);
+            s.artPush = Slider("Art push", s.artPush, 0f, 0.08f);
+            s.emberAfter = Slider("Ember after", s.emberAfter, 2f, 20f);
+            s.stableFrameMs = Slider("Stable frame ms", s.stableFrameMs, 10f, 60f);
+            s.fadeFromBlack = Slider("Fade from black", s.fadeFromBlack, 0.1f, 3f);
+            s.introLean = Slider("Intro grade lean", s.introLean, 0f, 1f);
+            s.introLeanSettle = Slider("Intro lean settle", s.introLeanSettle, 0.5f, 8f);
+            s.introCameraRelease = Slider("Intro camera release", s.introCameraRelease, 0.2f, 4f);
+            s.soundFadeIn = Slider("Sound fade in", s.soundFadeIn, 0.2f, 6f);
+            s.introMaxTime = Slider("Intro max", s.introMaxTime, 1f, 10f);
+        });
+
+        if (GUILayout.Button("Reset transitions to defaults"))
+        {
+            ResetToDefaults(s);
+        }
+
+        GUILayout.Space(10f);
     }
 
     private static bool Foldout(string title, ref bool open)

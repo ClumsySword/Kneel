@@ -48,7 +48,8 @@ public class ShrineRest : MonoBehaviour
     private void Start()
     {
         player = FindAnyObjectByType<PlayerCombat>();
-        if (player != null && SaveFlags.Has(flag))
+        // Arriving through the seam from the level before, he stays where the seam put him.
+        if (player != null && SaveFlags.Has(flag) && LevelTransition.IsArriving == false)
             PlaceAtShrine(player);
     }
 
@@ -89,12 +90,17 @@ public class ShrineRest : MonoBehaviour
         }
 
         SaveFlags.Set(flag);
-        SaveData data = SaveServices.Current.Load();
-        if (data != null)
+        // The rest refilled him: that is what he now comes back here with (the level's rule over the state he
+        // carried into it).
+        string scene = gameObject.scene.name;
+        CarriedState rested = CarriedStates.Capture(player.gameObject, scene);
+        if (SaveServices.Current.Load() != null)
         {
-            data.sceneName = gameObject.scene.name;
-            data.savedAtUtc = System.DateTime.UtcNow.ToString("o");
-            SaveServices.Current.Save(data);
+            SaveServices.Update(data =>
+            {
+                data.sceneName = scene;
+                data.entry = rested;
+            });
         }
 
         FindAnyObjectByType<Kneel.Hazards.LevelReset>()?.ResetAll();

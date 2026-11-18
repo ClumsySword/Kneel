@@ -118,7 +118,7 @@ public class MasterDevTool : MonoBehaviour
     {
         // The pause menu (and the death screen, which is the pause menu) comes first: the lab hides under it and F2
         // does nothing there (it could be a key being rebound on the Controls page).
-        bool paused = Kneel.UI.PauseMenu.IsPaused;
+        bool paused = Kneel.UI.PauseMenu.IsPaused || Kneel.Core.LevelTransition.Active;
         var keyboard = UnityEngine.InputSystem.Keyboard.current;
         if (paused == false && keyboard != null && keyboard.f2Key.wasPressedThisFrame)
         {
@@ -380,7 +380,7 @@ public class MasterDevTool : MonoBehaviour
 
     private void OnGUI()
     {
-        if (Kneel.UI.PauseMenu.IsPaused)
+        if (Kneel.UI.PauseMenu.IsPaused || Kneel.Core.LevelTransition.Active)
             return;
 
         if (open == false)

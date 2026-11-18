@@ -82,6 +82,50 @@ public class PlayerMovement : MonoBehaviour
     // Current steering input in world space, magnitude 0..1.
     public Vector3 MoveDirection => movementDirection;
 
+    // A scripted walk (the level transitions' walk-off and walk-in): when set, replaces the player's input with this
+    // world-space direction (magnitude 0..1), and he faces scriptedFacing (or where he walks) instead of the aim
+    // point. It drives the same acceleration, speeds and animator as the player's input, so the walk is his own walk
+    // at the clips' measured speeds, with no foot slide.
+    [System.NonSerialized]
+    public Vector3? scriptedMove = null;
+
+    [System.NonSerialized]
+    public Vector3? scriptedFacing = null;
+
+    [System.NonSerialized]
+    public float scriptedTurnRate = 240f;
+
+    // Puts him somewhere at rest: no carried speed, no fall, the aim dot in front of him.
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        if (characterController == null)
+        {
+            characterController = GetComponent<CharacterController>();
+        }
+
+        bool wasEnabled = characterController.enabled;
+        characterController.enabled = false;
+        transform.SetPositionAndRotation(position, rotation);
+        characterController.enabled = wasEnabled;
+        planarVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+        justJumped = false;
+        moveInput = Vector2.zero;
+        sprintHeld = false;
+        if (aim != null)
+        {
+            aim.position = position + rotation * Vector3.forward * 2f;
+        }
+    }
+
+    // Drops any cached input (a key held into a scripted walk), so nothing carries out of it.
+    public void ClearInput()
+    {
+        moveInput = Vector2.zero;
+        sprintHeld = false;
+        justJumped = false;
+    }
+
     private void Awake()
     {
         controls = new PlayerControls();
@@ -121,10 +165,19 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         // Rebuild the direction every frame from the latest input, relative to the camera's facing.
-        Quaternion cameraYaw = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
-        movementDirection = Vector3.ClampMagnitude(cameraYaw * new Vector3(moveInput.x, 0f, moveInput.y), 1f);
+        if (scriptedMove.HasValue == true)
+        {
+            Vector3 scripted = scriptedMove.Value;
+            scripted.y = 0f;
+            movementDirection = Vector3.ClampMagnitude(scripted, 1f);
+        }
+        else
+        {
+            Quaternion cameraYaw = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
+            movementDirection = Vector3.ClampMagnitude(cameraYaw * new Vector3(moveInput.x, 0f, moveInput.y), 1f);
+            AimTowardsMouse();
+        }
 
-        AimTowardsMouse();
         UpdateSprintState();
         ApplyRotation();
         ApplyPlanarVelocity();
@@ -152,7 +205,7 @@ public class PlayerMovement : MonoBehaviour
     private void UpdateSprintState()
     {
         bool hasMoveInput = movementDirection.sqrMagnitude > 0.01f;
-        IsSprinting = sprintHeld && hasMoveInput && sprintBlocked == false;
+        IsSprinting = sprintHeld && hasMoveInput && sprintBlocked == false && scriptedMove.HasValue == false;
     }
 
     // Adds a burst of horizontal velocity (e.g. an attack lunge) that decays with deceleration.
@@ -170,6 +223,18 @@ public class PlayerMovement : MonoBehaviour
 
         if (rotationLocked == true)
         {
+            return;
+        }
+
+        if (scriptedMove.HasValue == true)
+        {
+            Vector3 face = scriptedFacing ?? movementDirection;
+            face.y = 0f;
+            if (face.sqrMagnitude > 0.0001f)
+            {
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(face, Vector3.up), scriptedTurnRate * Time.deltaTime);
+            }
+
             return;
         }
 
