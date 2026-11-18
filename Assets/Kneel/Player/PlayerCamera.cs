@@ -246,7 +246,8 @@ public class PlayerCamera : MonoBehaviour
     private void UpdateZoom()
     {
         // Input System's scrollDeltaBehavior (UniformAcrossAllPlatforms) makes one notch = 1 on every platform.
-        float scroll = controls.Character.Zoom.ReadValue<float>();
+        // Over the F1 panel the wheel scrolls the panel, not the camera.
+        float scroll = DebugTuningOverlay.IsPointerOverPanelArea ? 0f : controls.Character.Zoom.ReadValue<float>();
 
         // Clamped every frame so min/max edits made while playing apply immediately.
         targetDistance = Mathf.Clamp(targetDistance - scroll * settings.zoomStep, settings.minDistance, settings.maxDistance);

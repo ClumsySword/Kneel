@@ -24,6 +24,9 @@ public struct DamageInfo
     // Shield bash: cancels an attack that is still winding up.
     public bool interrupts;
 
+    // Ember Strike: breaks a raised guard outright, like a bash, without the bash's other effects.
+    public bool breaksGuard;
+
     // No weapon to parry, such as an arrow: a press in the parry window only blocks it.
     public bool unparryable;
 
@@ -67,4 +70,16 @@ public interface IParryable
 public interface IStaggerable
 {
     bool IsStaggered { get; }
+}
+
+// Ash's Blind: a blinded target can't start an attack until it wears off.
+public interface IBlindable
+{
+    void Blind(float seconds);
+}
+
+// Ash's Ashfall: staggers whatever its poise and guard, as a parry would.
+public interface IForceStaggerable
+{
+    void ForceStagger();
 }

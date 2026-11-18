@@ -79,7 +79,7 @@ public class HollowArcher : Enemy, IDamageable, IStaggerable
     public bool IsAttacking => stateMachine.currentState == attackState;
 
     // The first wind-up waits for the gate where a level has one (L4 decision 9), and every one waits for the fire rate.
-    public bool CanStartShot => Time.time >= nextShotTime && (gate == null || gate.CanStartWindUp);
+    public bool CanStartShot => CanStartAttack && Time.time >= nextShotTime && (gate == null || gate.CanStartWindUp);
 
     private OnScreenGate gate;
     private Renderer body;
@@ -136,7 +136,8 @@ public class HollowArcher : Enemy, IDamageable, IStaggerable
     {
         base.Update();
 
-        stateMachine.currentState.Update();
+        if (Frozen == false)
+            stateMachine.currentState.Update();
         UpdateSpeedParameter();
     }
 
@@ -201,6 +202,9 @@ public class HollowArcher : Enemy, IDamageable, IStaggerable
 
     public void TakeHit(DamageInfo info)
     {
+        if (Frozen)
+            return;
+
         if (IsDead)
             return;
 
@@ -235,6 +239,15 @@ public class HollowArcher : Enemy, IDamageable, IStaggerable
             return;
 
         stateMachine.ChangeState(hitState);
+    }
+
+    // Ashfall: knocked off balance whatever his poise.
+    public override void ForceStagger()
+    {
+        if (IsDead || IsStaggered)
+            return;
+
+        stateMachine.ChangeState(staggerState);
     }
 
     // The fire rate counts from one wind-up to the next, so the cycle doesn't depend on what he did in between.

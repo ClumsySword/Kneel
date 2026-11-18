@@ -28,6 +28,12 @@ public class AttackDefinition
     public float lunge;
 
     public float lungeTime;
+
+    // Breaks a raised guard outright (Ember Strike, see DamageInfo.breaksGuard).
+    public bool breaksGuard;
+
+    // How much heavier than a normal blow it lands (see DamageInfo.impact): more hit-stop and shake.
+    public float impact;
 }
 
 // Tuning values for PlayerCombat. Kept in an asset so edits made during Play mode are saved.
@@ -91,7 +97,7 @@ public class PlayerCombatSettings : ScriptableObject
     public float drawSpeed = 1.3f;
 
     // Seconds into the draw (Draw1 then Draw2) when the hand closes on the hilt.
-    public float drawGrabTime = 0.45f;
+    public float drawGrabTime = 0.32f;
 
     public float drawDuration = 1.2f;
 
@@ -99,6 +105,111 @@ public class PlayerCombatSettings : ScriptableObject
     public float sheathReleaseTime = 1.03f;
 
     public float sheathDuration = 1.7f;
+
+    [Header("Draw Pose Info")]
+    // PlayerDrawPose's IK over the draw and sheathe clips. Times are clip-seconds, like drawGrabTime.
+    // Draw: both hands start for the hilt and the shield's rim here, and close on them at drawGrabTime.
+    public float drawReachStart = 0.08f;
+
+    // Then the sword comes straight out along the scabbard, this far over this long (about as far as the right arm
+    // reaches up that line; past it the hand would fall short of the blade)...
+    public float drawPullTime = 0.25f;
+
+    public float drawPullDistance = 0.5f;
+
+    // ...and the clip takes the hand back over this long.
+    public float drawHandBackTime = 0.25f;
+
+    // Sheathe: the hand brings the tip to the scabbard's mouth from here, and the sword is pushed home from
+    // sheathInsertStart to sheathReleaseTime.
+    public float sheathEnterStart = 0.55f;
+
+    public float sheathInsertStart = 0.8f;
+
+    // After the release, the clip takes the hand back over this long.
+    public float sheathLetGoTime = 0.25f;
+
+    // Real seconds for an item to ease into the hand socket once taken.
+    public float swordSettleTime = 0.08f;
+
+    public float shieldSettleTime = 0.3f;
+
+    // The shield's way on and off the back, which never passes through the body: the left hand goes up the outside
+    // of the arm to a point over the shoulder (shieldHandOver), down behind it to the shield's top rim, lifts the
+    // shield straight up off the back (shieldLift), carries it over the shoulder in an arc (shieldArc) to stand beside
+    // it facing out (shieldBesideShoulder), and only there takes it into the grip. The sheathe runs it backwards.
+    // Offsets are in the player's space (x right, y up, z forward), from the shield's pose on the back and from the
+    // left shoulder. Times are clip-seconds.
+    public float shieldReachStart = 0f;
+
+    public float shieldHandUpTime = 0.14f;
+
+    public float shieldGrabTime = 0.3f;
+
+    public float shieldLiftedTime = 0.42f;
+
+    public float shieldOverTime = 0.62f;
+
+    // After the shield is in the grip (or on the back), the clip takes the hand back over this long.
+    public float shieldHandBackTime = 0.25f;
+
+    public float shieldStowStart = 0.3f;
+
+    public float shieldStowSideTime = 0.5f;
+
+    public float shieldStowLiftTime = 0.7f;
+
+    public float shieldStowDoneTime = 0.85f;
+
+    public Vector3 shieldHandOver = new Vector3(-0.12f, 0.3f, 0f);
+
+    public Vector3 shieldLift = new Vector3(-0.12f, 0.14f, -0.04f);
+
+    public Vector3 shieldBesideShoulder = new Vector3(-0.32f, -0.08f, 0.1f);
+
+    public float shieldArc = 0.1f;
+
+    // The left arm is 0.55 m from shoulder to wrist: wherever the path would take the rim further than this from the
+    // shoulder, the shield is drawn back in, so the hand keeps hold of it rather than reaching after it.
+    public float shieldMaxReach = 0.5f;
+
+    // How far the right hand's goal turns to the hilt's grip (1 = exactly the hand socket's pose).
+    [Range(0f, 1f)]
+    public float drawHandRotationWeight = 1f;
+
+    // How far the left hand turns to the shield's rim (0 = it keeps the clip's hand turn).
+    [Range(0f, 1f)]
+    public float shieldReachRotationWeight = 0f;
+
+    // The right elbow's hint in the player's space while it reaches for the hilt: out to the side for the cross-draw.
+    public Vector3 drawElbowHint = new Vector3(0.45f, 1.05f, 0.1f);
+
+    // The left elbow's hint, as an offset (player space) from halfway along the shoulder-to-hand line: out to the side
+    // and a little forward, so the elbow opens outward wherever the hand is, over the shoulder or beside it.
+    public Vector3 shieldReachElbowHint = new Vector3(-0.3f, -0.05f, 0.12f);
+
+    [Header("Back Draw Items")]
+    // The back draw/sheathe clips (BackDraw / BackSheath) carry the motion. The shield's path relative to the left hand
+    // socket is baked with them, one pose per clip frame (written by Kneel/Animation/Build Back Draw Clips):
+    // draw: from backDrawShieldFirstFrame (the hand closes overhand on its top rim behind the shoulder) it rides the
+    // rim hold up and over the shoulder, is tossed up and caught in the grip; sheathe: the reverse, from frame 0 until
+    // it's let go onto the back at backShieldReleaseTime.
+    public float backClipFps = 30f;
+
+    public int backDrawShieldFirstFrame = 11;
+
+    public Vector3[] backDrawShieldPositions = new Vector3[0];
+
+    public Quaternion[] backDrawShieldRotations = new Quaternion[0];
+
+    public Vector3[] backSheathShieldPositions = new Vector3[0];
+
+    public Quaternion[] backSheathShieldRotations = new Quaternion[0];
+
+    public float backShieldReleaseTime = 0.833f;
+
+    // Real seconds for the shield to ease the last bit onto its back socket.
+    public float backShieldStowSettleTime = 0.06f;
 
     [Header("Dodge Info")]
     // Distance covered by a full roll.

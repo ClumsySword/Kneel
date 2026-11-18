@@ -216,7 +216,18 @@ public class PlayerShieldPose : MonoBehaviour
             return;
         }
 
+        PlayerCombat.CombatState state = combat.State;
+
         ikApplied = false;
+
+        // The draw and sheathe are authored clips (BackDraw / BackSheath): no IK on the left arm meanwhile.
+        if (state == PlayerCombat.CombatState.Drawing || state == PlayerCombat.CombatState.Sheathing)
+        {
+            animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0f);
+            animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 0f);
+            animator.SetIKHintPositionWeight(AvatarIKHint.LeftElbow, 0f);
+            return;
+        }
 
         if (weight <= 0f || (drinking == false && equipment.ShieldRenderer == null))
         {

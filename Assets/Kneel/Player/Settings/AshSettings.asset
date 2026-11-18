@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5ab0f7f04e6e2975b9be92dc5ff8029, type: 3}
+  m_Name: AshSettings
+  m_EditorClassIdentifier: Assembly-CSharp::AshSettings
+  maxAsh: 100
+  footmanKill: 50
+  archerKill: 40
+  bruteKill: 100
+  foolKill: 100
+  dummyKill: 50
+  parryGain: 15
+  evadeGain: 5
+  evadeDedupWindow: 0.5
+  engagedMargin: 4
+  castBufferTime: 0.3
+  blindUnlock: 3
+  surgeUnlock: 10
+  ashfallUnlock: 20
+  rekindleUnlock: 30
+  ashenSwordDuration: 10
+  ashenSwordDamageMultiplier: 1.5
+  ashenSwordFlameRate: 140
+  ashenSwordLightIntensity: 2.5
+  ashenSwordLightRange: 2.5
+  blindRange: 12
+  blindAimRadius: 2.5
+  blindDuration: 4
+  blindProjectileSpeed: 16
+  throwSpeed: 1.3
+  throwReleaseTime: 0.35
+  throwDuration: 0.75
+  throwMoveMultiplier: 0.5
+  surgeDistance: 4
+  surgeDuration: 0.3
+  surgeCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 2.5
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6
+      value: 0.85
+      inSlope: 1
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  ashfallRadius: 6
+  ashfallDamage: 5
+  ashfallSpeed: 1
+  ashfallImpactTime: 0.47
+  ashfallDuration: 1.5
+  ashfallShake: 0.4
+  ashfallHitStop: 0.1
+  rekindleHeal: 0.35
+  rekindleSpeed: 1.6
+  rekindleHealTime: 1.7
+  rekindleDuration: 2.2
+  rekindleMoveMultiplier: 0.3
+  emberColor: {r: 3, g: 0.9, b: 0.25, a: 1}
+  fillingIntensity: 0.6
+  fullIntensity: 1.6
+  shellOffset: 0.012
+  handLightIntensity: 1.5
+  handLightRange: 1.6
+  emberRate: 18
+  wispRate: 8
+  gradeStrength: 0.6
+  fullClip: {fileID: 0}
+  humClip: {fileID: 0}
+  fizzleClip: {fileID: 0}
+  lockedClip: {fileID: 0}
+  spendClip: {fileID: 0}
+  siphonClip: {fileID: 0}
+  unlockClip: {fileID: 0}
+  volume: 0.8
+  humVolume: 0.35
+  glowMaterial: {fileID: 2100000, guid: 8a08c6c1de9c5e03fb69c7ec20cf383a, type: 2}
+  emberParticleMaterial: {fileID: 2100000, guid: 1a76e7a9ee69b6b2090fe7aa8a509abf, type: 2}
+  ashParticleMaterial: {fileID: 2100000, guid: 99856449c0b212f84bb26434be0acd4b, type: 2}
+  gradeMaterial: {fileID: 2100000, guid: 7645358a2aa14a0ceb4995ddc85d4597, type: 2}

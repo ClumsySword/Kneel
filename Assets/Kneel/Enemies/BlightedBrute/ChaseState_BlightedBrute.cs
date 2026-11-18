@@ -32,7 +32,7 @@ public class ChaseState_BlightedBrute : EnemyState
             blightedBrute.agent.isStopped = true;
             blightedBrute.agent.velocity = Vector3.zero;
             blightedBrute.transform.rotation = blightedBrute.FaceTarget(blightedBrute.player.position);
-            if (blightedBrute.IsFacing(blightedBrute.player.position))
+            if (blightedBrute.IsFacing(blightedBrute.player.position) && blightedBrute.CanStartAttack)
                 stateMachine.ChangeState(blightedBrute.NextAttack());
             return;
         }
