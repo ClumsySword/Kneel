@@ -250,6 +250,9 @@ namespace Kneel.Core
                 d.sceneName = to;
                 d.playtimeSeconds = Playtime.Seconds;
                 d.entry = carried.Clone();
+                // Ash's progress (uses, hints seen), as the pause menu's auto-save keeps it.
+                d.ashUses = AshProgress.SavedUses;
+                d.ashHintsSeen = AshProgress.SavedHintsSeen;
             });
             Note($"saved {to} ({(saved ? "ok" : "FAILED")}): {carried}");
 

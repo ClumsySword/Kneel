@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(Health))]
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IBlindable, IForceStaggerable
 {
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int SpeedId = Animator.StringToHash("Speed");
@@ -51,11 +51,24 @@ public class Enemy : MonoBehaviour
     private Transform[] patrolPoints;
     private int currentPatrolIndex;
 
+    // Raised once when an enemy's health runs out, whatever killed it (the player's Ash meter listens).
+    public static event Action<Enemy> Killed;
+
+    // Turning speed while blinded, as a share of turnSpeed.
+    private const float BlindTurnMultiplier = 0.25f;
+
+    private float blindUntil = -999f;
+    private bool killed;
+
     public Transform player { get; private set; }
     public Animator anim { get; private set; }
     public NavMeshAgent agent { get; private set; }
     public EnemyStateMachine stateMachine { get; private set; }
     public Health health { get; private set; }
+
+    // Held by the F1 overlay's spawner: the state machine doesn't run and hits are ignored, so a placed encounter waits
+    // in its first state until it's released. Each type's Update and TakeHit check it.
+    public bool Frozen { get; set; }
 
     // 0..1 red telegraph shown while winding up an attack; set by the attack state.
     public float telegraph { get; set; }
@@ -73,6 +86,7 @@ public class Enemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         health = GetComponent<Health>();
+        health.OnDepleted += OnHealthDepleted;
         poise.Reset();
 
         GameObject playerObject = GameObject.Find("Player");
@@ -151,6 +165,25 @@ public class Enemy : MonoBehaviour
         return false;
     }
 
+    // Blinded by Ash: it can't start an attack (each type's chase state checks this) and turns slowly.
+    public bool IsBlind => Time.time < blindUntil;
+
+    public bool CanStartAttack => IsBlind == false;
+
+    public void Blind(float seconds) => blindUntil = Mathf.Max(blindUntil, Time.time + seconds);
+
+    // Ashfall's stagger. Each type sends itself to its own stagger state; one that can't be staggered leaves this empty.
+    public virtual void ForceStagger() { }
+
+    private void OnHealthDepleted()
+    {
+        if (killed)
+            return;
+
+        killed = true;
+        Killed?.Invoke(this);
+    }
+
     // Through a level transition Kael can't be targeted: whoever was chasing him stands down.
     public virtual bool PlayerInAgressionRange() =>
         Kneel.Core.LevelTransition.Active == false && Vector3.Distance(transform.position, player.position) < aggressionRange;
@@ -169,6 +202,21 @@ public class Enemy : MonoBehaviour
             currentPatrolIndex = 0;
 
         return patrolPoints[currentPatrolIndex].transform.position;
+    }
+
+    // A spawned enemy drops the prefab's own patrol ring and stands where it was put until it sees the player.
+    public void ClearPatrol()
+    {
+        if (patrolPoints != null)
+        {
+            foreach (Transform t in patrolPoints)
+            {
+                if (t != null)
+                    Destroy(t.gameObject);
+            }
+        }
+
+        patrolPoints = Array.Empty<Transform>();
     }
 
     private void InitializePatrolPoints()
@@ -194,7 +242,7 @@ public class Enemy : MonoBehaviour
         float yRotation = Mathf.LerpAngle(
             currentEulerAngles.y,
             targetRotation.eulerAngles.y,
-            turnSpeed * Time.deltaTime
+            turnSpeed * (IsBlind ? BlindTurnMultiplier : 1f) * Time.deltaTime
         );
 
         return Quaternion.Euler(currentEulerAngles.x, yRotation, currentEulerAngles.z);

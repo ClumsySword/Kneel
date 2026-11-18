@@ -132,7 +132,8 @@ public class BlightedBrute : Enemy, IDamageable, IParryable, IStaggerable
     {
         base.Update();
 
-        stateMachine.currentState.Update();
+        if (Frozen == false)
+            stateMachine.currentState.Update();
 
         // The body clips are a bare-handed creature's: the arms carry the cleavers while he stands, walks or gets his
         // breath back.
@@ -143,6 +144,9 @@ public class BlightedBrute : Enemy, IDamageable, IParryable, IStaggerable
 
     public void TakeHit(DamageInfo info)
     {
+        if (Frozen)
+            return;
+
         if (IsDead)
             return;
 
@@ -199,6 +203,16 @@ public class BlightedBrute : Enemy, IDamageable, IParryable, IStaggerable
 
         nextFlinchTime = Time.time + flinchCooldown;
         stateMachine.ChangeState(hitState);
+    }
+
+    // Ashfall: knocked off balance whatever his poise.
+    public override void ForceStagger()
+    {
+        if (IsDead || IsStaggered)
+            return;
+
+        poise.Reset();
+        stateMachine.ChangeState(staggerState);
     }
 
     // The parry stops the blow and throws the swing off, and that's all: no stagger, so no critical hits.

@@ -4,7 +4,7 @@ using UnityEngine;
 // With attacking enabled it winds up (tinting red), turns toward a nearby player and kicks.
 // Parrying the kick or breaking its poise staggers it, and hits on a staggered dummy are critical.
 [RequireComponent(typeof(Health))]
-public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
+public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable, IBlindable, IForceStaggerable
 {
     private enum DummyState
     {
@@ -83,6 +83,13 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
 
     public bool IsStaggered => state == DummyState.Staggered;
 
+    // Raised when its health first runs out, once until it has refilled (it keeps raising OnDepleted at zero). With
+    // the F1 overlay's switch on, it pays out Ash like a kill.
+    public static event System.Action<TargetDummy> Felled;
+
+    private bool felled = false;
+    private float blindUntil = -999f;
+
     public float TotalDamage { get; private set; }
 
     public int HitCount { get; private set; }
@@ -123,6 +130,12 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     {
         health.ApplyDamage(info.amount);
         TotalDamage += info.amount;
+
+        if (felled == false && health.Current <= 0f)
+        {
+            felled = true;
+            Felled?.Invoke(this);
+        }
         HitCount++;
 
         flash = 1f;
@@ -152,6 +165,17 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
         }
     }
 
+    public void Blind(float seconds)
+    {
+        blindUntil = Mathf.Max(blindUntil, Time.time + seconds);
+    }
+
+    public void ForceStagger()
+    {
+        poise.Reset();
+        Stagger();
+    }
+
     public void OnParried(GameObject parrier)
     {
         poise.Reset();
@@ -175,6 +199,11 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     {
         stateTime += Time.deltaTime;
         poise.Tick(Time.deltaTime);
+
+        if (felled == true && health.Current >= health.Max)
+        {
+            felled = false;
+        }
 
         switch (state)
         {
@@ -209,7 +238,7 @@ public class TargetDummy : MonoBehaviour, IDamageable, IParryable, IStaggerable
     {
         cooldown -= Time.deltaTime;
 
-        if (attackEnabled == false || player == null || cooldown > 0f)
+        if (attackEnabled == false || player == null || cooldown > 0f || Time.time < blindUntil)
         {
             return;
         }

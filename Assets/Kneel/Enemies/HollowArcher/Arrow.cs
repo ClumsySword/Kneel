@@ -104,7 +104,10 @@ public class Arrow : MonoBehaviour
 
         // Rolled through: the arrow flies on past the player.
         if (target is PlayerCombat rolling && rolling.IsInvulnerable)
+        {
+            rolling.NotifyEvaded(gameObject);
             return;
+        }
 
         CreateImpactFx();
         ReturnArrowToPool();

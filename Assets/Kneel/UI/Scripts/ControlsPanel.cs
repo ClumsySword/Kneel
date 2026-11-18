@@ -69,6 +69,14 @@ namespace Kneel.UI
                 new Line("HEAL", "Heal"),
                 new Line("INTERACT", "Interact"),
             }),
+            ("ASH", new[]
+            {
+                new Line("EMBER STRIKE", "Ash1"),
+                new Line("BLIND", "Ash2"),
+                new Line("SURGE", "Ash3"),
+                new Line("ASHFALL", "Ash4"),
+                new Line("REKINDLE", "Ash5"),
+            }),
             ("OTHER", new[]
             {
                 Line.Info("AIM", "MOUSE"),

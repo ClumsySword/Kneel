@@ -125,7 +125,8 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
     {
         base.Update();
 
-        stateMachine.currentState.Update();
+        if (Frozen == false)
+            stateMachine.currentState.Update();
 
         if (falling)
             Fall();
@@ -174,6 +175,9 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
 
     public void TakeHit(DamageInfo info)
     {
+        if (Frozen)
+            return;
+
         if (IsDead)
             return;
 
@@ -205,6 +209,15 @@ public class TheFool : Enemy, IDamageable, IParryable, IStaggerable
             return;
 
         stateMachine.ChangeState(hitState);
+    }
+
+    // Ashfall: like a parry, it ends the string and leaves him open.
+    public override void ForceStagger()
+    {
+        if (IsDead || IsStaggered)
+            return;
+
+        stateMachine.ChangeState(staggerState);
     }
 
     // A parry on any swing stops the string and leaves him open.

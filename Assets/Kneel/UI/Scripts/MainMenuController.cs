@@ -85,6 +85,7 @@ namespace Kneel.UI
             {
                 if (mode == Mode.Panel)
                 {
+                    AshProgress.BeginPractice(scene);
                     Leave(scene);
                 }
             };
@@ -196,6 +197,7 @@ namespace Kneel.UI
         private void Continue()
         {
             SaveData data = saves.Load();
+            AshProgress.LoadFrom(data);
             string scene = data != null && SceneLoader.CanLoad(data.sceneName) ? data.sceneName : newGameScene;
             Leave(scene);
         }
@@ -205,6 +207,7 @@ namespace Kneel.UI
             if (!saves.HasSave())
             {
                 Playtime.Reset();
+                AshProgress.NewGame();
                 Leave(newGameScene);
                 return;
             }
@@ -213,6 +216,7 @@ namespace Kneel.UI
             {
                 saves.DeleteSave();
                 Playtime.Reset();
+                AshProgress.NewGame();
                 Leave(newGameScene);
             });
         }

@@ -3,7 +3,7 @@ using UnityEngine;
 // Sword and shield combat. R draws/sheathes, left click swings a 2-hit combo, Q swings a slow heavy
 // roundhouse, either one in the air plunges into an air attack, right click blocks (the first moments
 // of a fresh press parry), left click while blocking shield-bashes, Ctrl rolls, F drinks a potion from the
-// belt (sheathed only, see PlayerPotions). The shield arm itself is
+// belt (sheathed only, see PlayerPotions), 1-5 spend a full Ash meter on an ability (PlayerAsh). The shield arm itself is
 // posed by PlayerShieldPose from the state exposed here. Drives the animator layers directly and
 // tells PlayerMovement what it may do each frame. Tuning lives in PlayerCombatSettings.
 // Runs before PlayerMovement so the movement rules it sets apply on the same frame.
@@ -24,6 +24,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         Dodging,
         Bashing,
         Drinking,
+        Casting,
         Kneeling,
         Knockdown,
         Dead,
@@ -33,7 +34,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
     private PlayerMovement movement;
     private PlayerEquipment equipment;
+    private PlayerDrawPose drawPose;
     private PlayerPotions potions;
+    private PlayerAsh ash;
     private Health health;
     private Animator animator;
     private PlayerCamera playerCamera;
@@ -74,6 +77,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
     private readonly Collider[] bashBuffer = new Collider[16];
     private int enemyMask;
 
+    // The Ash ability being cast (PlayerAsh), while Casting.
+    private AshCast currentCast;
+
     private float stunDuration = 0f;
     private Vector3 shoveVelocity;
     private float shoveLeft;
@@ -100,6 +106,17 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
     // Raised once when health reaches zero (LevelRestartOnDeath listens).
     public event System.Action OnDied;
+
+    // A parry, with the attacker. The Ash meter skims a little off each one.
+    public event System.Action<GameObject> Parried;
+
+    // An attack passed through the roll's i-frames, with what made it. NotifyEvaded raises it.
+    public event System.Action<GameObject> Evaded;
+
+    // A swing starting, and each target it lands on (with the contact point).
+    public event System.Action<AttackDefinition> AttackStarted;
+
+    public event System.Action<AttackDefinition, Vector3> AttackLanded;
 
     // A roll's i-frames, and a forced kneel: nothing lands on a kneeling player (the Master's rule, The Master.md §1).
     // Knocked flat: invulnerable while held and while down, not through the get-up.
@@ -190,6 +207,35 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
     public float LastParryTime { get; private set; } = -999f;
 
+    public Animator Animator => animator;
+
+    public bool SwordInHand => equipment.SwordInHand;
+
+    public bool IsGrounded => movement.IsGrounded;
+
+    // Real seconds a draw takes, for buffering an ability through it.
+    public float DrawTime => settings.drawDuration / settings.drawSpeed;
+
+    // Surge may cut these short: a grounded swing once its blade has passed, a bash after its thrust, a roll after its
+    // i-frames. Nothing else can be cancelled.
+    public bool InCancellableRecovery
+    {
+        get
+        {
+            switch (State)
+            {
+                case CombatState.Attacking:
+                    return airborne == false && stateTime * settings.attackSpeed >= currentAttack.hitEnd;
+                case CombatState.Bashing:
+                    return stateTime >= settings.bashWindup + settings.bashThrust;
+                case CombatState.Dodging:
+                    return stateTime > settings.dodgeInvulnerableEnd;
+                default:
+                    return false;
+            }
+        }
+    }
+
     private void Awake()
     {
         controls = new PlayerControls();
@@ -210,7 +256,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         enemyMask = LayerMask.GetMask("Enemy");
         movement = GetComponent<PlayerMovement>();
         equipment = GetComponent<PlayerEquipment>();
+        drawPose = GetComponentInChildren<PlayerDrawPose>();
         potions = GetComponent<PlayerPotions>();
+        ash = GetComponent<PlayerAsh>();
         health = GetComponent<Health>();
 
         SyncPoiseSettings();
@@ -444,6 +492,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             case CombatState.Drinking:
                 UpdateDrinking();
                 break;
+            case CombatState.Casting:
+                UpdateCasting();
+                break;
             case CombatState.Kneeling:
                 UpdateKneeling();
                 break;
@@ -453,7 +504,14 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         }
 
         UpdateShove();
+
+        // When several presses are waiting on the same moment: a roll first, then an Ash ability, then the heavy.
         TryBufferedDodge();
+        if (ash != null)
+        {
+            ash.TryBufferedCast();
+        }
+
         TryBufferedHeavy();
         UpdateBlocking();
         ApplyMovementRules();
@@ -483,9 +541,15 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
         if (itemsSwapped == false && clipTime >= settings.drawGrabTime)
         {
+            // PlayerDrawPose has the hands on the hilt and the shield's rim by now; both ease into the hands.
             itemsSwapped = true;
-            equipment.SetSwordInHand(true);
-            equipment.SetShieldInHand(true);
+            equipment.SetSwordInHand(true, settings.swordSettleTime);
+
+            // PlayerDrawPose carries the shield over the shoulder itself.
+            if (drawPose == null)
+            {
+                equipment.SetShieldInHand(true, settings.shieldSettleTime);
+            }
         }
 
         if (clipTime >= settings.drawDuration)
@@ -510,7 +574,11 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         {
             itemsSwapped = true;
             equipment.SetSwordInHand(false);
-            equipment.SetShieldInHand(false);
+
+            if (drawPose == null)
+            {
+                equipment.SetShieldInHand(false);
+            }
         }
 
         if (clipTime >= settings.sheathDuration)
@@ -536,6 +604,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         fullBodyTarget = 1f;
         animator.SetFloat("AttackSpeed", settings.attackSpeed);
         animator.CrossFadeInFixedTime(attack.stateName, 0.08f, fullBodyLayer, 0f);
+        AttackStarted?.Invoke(attack);
     }
 
     private void StartAirAttack()
@@ -696,18 +765,137 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
         target.TakeHit(new DamageInfo
         {
-            amount = attack.damage * multiplier,
+            amount = attack.damage * multiplier * SwordDamageMultiplier,
             poiseDamage = attack.poiseDamage * multiplier,
             point = point,
             direction = direction.normalized,
             source = gameObject,
             isCritical = critical,
+            breaksGuard = attack.breaksGuard,
+            impact = attack.impact,
             heavy = attack == settings.heavyAttack,
         });
 
-        HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), critical ? 24 : 14);
-        HitStop.Freeze(settings.hitStop);
-        Shake(settings.hitShake * (critical ? 1.5f : 1f));
+        float weight = 1f + attack.impact;
+        HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), Mathf.RoundToInt((critical ? 24 : 14) * weight));
+        HitStop.Freeze(settings.hitStop * weight);
+        Shake(settings.hitShake * (critical ? 1.5f : 1f) * weight);
+        AttackLanded?.Invoke(attack, point);
+    }
+
+    // --- Ash ---
+
+    // Scales the sword's health damage (not poise). Ashen Sword raises it while the blade burns (PlayerAsh).
+    public float SwordDamageMultiplier { get; set; } = 1f;
+
+    public Transform Sword => equipment.SwordHitbox.transform;
+
+    // A swing of PlayerAsh's through the normal attack path (unused since Ashen Sword replaced Ember Strike), so its hitbox, hit-stop and buffering work
+    // the same. Armed and grounded only.
+    public bool StartAshAttack(AttackDefinition attack)
+    {
+        if (State != CombatState.Armed || movement.IsGrounded == false)
+        {
+            return false;
+        }
+
+        IsBlocking = false;
+        StartAttack(attack);
+        return true;
+    }
+
+    // Draws the sword if it's away, so an ability that needs it can follow (PlayerAsh buffers it through the draw).
+    public void DrawWeapon()
+    {
+        if (State == CombatState.Sheathed)
+        {
+            StartDraw();
+        }
+    }
+
+    // Starts an ability. From a free state, or from a recovery Surge is allowed to cut short (see InCancellableRecovery).
+    public void StartCast(AshCast cast)
+    {
+        if (State == CombatState.Dodging)
+        {
+            EndForcedMotion();
+            animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
+        }
+
+        equipment.SwordHitbox.End();
+        attackQueued = false;
+        IsBlocking = false;
+        fullBodyTarget = 0f;
+        upperBodyTarget = equipment.SwordInHand ? 1f : 0f;
+
+        SetState(CombatState.Casting);
+        currentCast = cast;
+        cast.Begin();
+    }
+
+    // Plays a state on the arms-and-head layer for the cast, or the whole body.
+    public void PlayUpperBody(string stateName, float fade)
+    {
+        upperBodyTarget = 1f;
+        animator.CrossFadeInFixedTime(stateName, fade, upperBodyLayer, 0f);
+    }
+
+    public void PlayFullBody(string stateName, float fade)
+    {
+        fullBodyTarget = 1f;
+        animator.CrossFadeInFixedTime(stateName, fade, fullBodyLayer, 0f);
+    }
+
+    private void UpdateCasting()
+    {
+        if (currentCast.Tick(stateTime) == false)
+        {
+            EndCast();
+        }
+    }
+
+    private void EndCast()
+    {
+        currentCast = null;
+        EndForcedMotion();
+        fullBodyTarget = 0f;
+
+        if (equipment.SwordInHand == true)
+        {
+            SetState(CombatState.Armed);
+            upperBodyTarget = 1f;
+            animator.CrossFadeInFixedTime("ArmedIdle", 0.2f, upperBodyLayer);
+        }
+        else
+        {
+            SetState(CombatState.Sheathed);
+            upperBodyTarget = 0f;
+        }
+    }
+
+    // A hit or death cut the cast short: whatever it was spent, nothing else happens.
+    private void InterruptCast()
+    {
+        if (currentCast == null)
+        {
+            return;
+        }
+
+        currentCast.Interrupt();
+        currentCast = null;
+    }
+
+    // Hands the movement back after a roll or a Surge. A shove from the hit that ended it still plays (UpdateShove).
+    private void EndForcedMotion()
+    {
+        movement.forcedVelocity = null;
+        SetEnemyCollision(true);
+    }
+
+    // The roll's i-frames let an attack through (TakeHit, and arrows, which check the roll themselves).
+    public void NotifyEvaded(GameObject source)
+    {
+        Evaded?.Invoke(source);
     }
 
     // --- Potion ---
@@ -952,8 +1140,19 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
     public void TakeHit(DamageInfo info)
     {
         bool rolling = State == CombatState.Dodging;
-        if (devPassThrough == true || IsShielded == true || (IsInvulnerable == true && (info.ignoresRoll == false || rolling == false)) || IsDead == true)
+        if (devPassThrough == true || IsShielded == true || IsDead == true)
         {
+            return;
+        }
+
+        if (IsInvulnerable == true && (info.ignoresRoll == false || rolling == false))
+        {
+            // Only a roll's i-frames count as evading (Ash); a kneel or a knockdown just shrugs the hit off.
+            if (rolling == true && info.isEnvironmental == false)
+            {
+                NotifyEvaded(info.source);
+            }
+
             return;
         }
 
@@ -980,6 +1179,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
             OnParry?.Invoke(info.source);
             LastParryTime = Time.time;
+            Parried?.Invoke(info.source);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
             animator.CrossFadeInFixedTime("Parry", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.parryHitStop);
@@ -1084,8 +1284,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             return;
         }
 
-        // A roll or a jump out of the shove takes over the movement.
-        if (State == CombatState.Dodging || airborne == true)
+        // A roll, a jump or an ability out of the shove takes over the movement.
+        if (State == CombatState.Dodging || State == CombatState.Casting || airborne == true)
         {
             shoving = false;
             return;
@@ -1118,7 +1318,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         || State == CombatState.Drinking
         || State == CombatState.Drawing
         || State == CombatState.Sheathing
-        || State == CombatState.Dodging;
+        || State == CombatState.Dodging
+        || State == CombatState.Casting;
 
     private void SyncPoiseSettings()
     {
@@ -1135,11 +1336,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             return;
         }
 
-        if (State == CombatState.Dodging)
+        if (State == CombatState.Dodging || State == CombatState.Casting)
         {
-            movement.forcedVelocity = null;
-            SetEnemyCollision(true);
+            EndForcedMotion();
         }
+
+        InterruptCast();
 
         if (IsHeld == true)
         {
@@ -1179,11 +1381,15 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         if (State == CombatState.Dodging)
         {
             // Caught in the roll's vulnerable tail.
-            movement.forcedVelocity = null;
-            SetEnemyCollision(true);
+            EndForcedMotion();
             animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
         }
+        else if (State == CombatState.Casting)
+        {
+            EndForcedMotion();
+        }
 
+        InterruptCast();
         StopAirborne();
         potions?.ShowInHand(false);
         equipment.SwordHitbox.End();
@@ -1237,7 +1443,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             SetEnemyCollision(true);
             animator.CrossFadeInFixedTime("Locomotion", 0.1f, 0);
         }
+        else if (State == CombatState.Casting)
+        {
+            EndForcedMotion();
+        }
 
+        InterruptCast();
         StopAirborne();
         potions?.ShowInHand(false);
         equipment.SwordHitbox.End();
@@ -1307,11 +1518,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             return;
         }
 
-        if (State == CombatState.Dodging)
+        if (State == CombatState.Dodging || State == CombatState.Casting)
         {
             SetEnemyCollision(true);
         }
 
+        InterruptCast();
         movement.forcedVelocity = null;
         shoving = false;
         StopAirborne();
@@ -1511,6 +1723,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
                 break;
             case CombatState.Dodging:
                 rotationLocked = true;
+                sprintBlocked = true;
+                jumpBlocked = true;
+                break;
+            case CombatState.Casting:
+                moveMultiplier = currentCast != null ? currentCast.MoveMultiplier : 0f;
+                rotationLocked = currentCast == null || currentCast.RotationLocked;
                 sprintBlocked = true;
                 jumpBlocked = true;
                 break;

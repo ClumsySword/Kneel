@@ -211,6 +211,56 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""initialStateCheck"": false,
                     ""priority"": 0
+                },
+                {
+                    ""name"": ""Ash1"",
+                    ""type"": ""Button"",
+                    ""id"": ""c17573a9-4db8-4345-9936-c3153c8ae932"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
+                    ""name"": ""Ash2"",
+                    ""type"": ""Button"",
+                    ""id"": ""48159c52-aa29-43a0-8b72-e161be0402a7"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
+                    ""name"": ""Ash3"",
+                    ""type"": ""Button"",
+                    ""id"": ""06e26b3f-3770-4b3e-a4cd-45f77cb1bc0e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
+                    ""name"": ""Ash4"",
+                    ""type"": ""Button"",
+                    ""id"": ""b812f10f-08f1-4a19-aad1-d2c2a459f71b"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
+                    ""name"": ""Ash5"",
+                    ""type"": ""Button"",
+                    ""id"": ""81ab327e-fb5f-4503-9c94-f8585f00d76e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
                 }
             ],
             ""bindings"": [
@@ -389,6 +439,61 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""action"": ""Interact"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""60513468-6025-4d22-8196-1e33e266f71a"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ash1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""eb55885a-bf22-487b-aee4-cfa78ef1df2c"",
+                    ""path"": ""<Keyboard>/2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ash2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9459d7b8-9791-469b-b2e3-6b4e29d64a17"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ash3"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c2b9c2f9-2deb-4896-a33f-51de08dc3a15"",
+                    ""path"": ""<Keyboard>/4"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ash4"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""54685d00-6927-446e-bf4f-84d11cf05653"",
+                    ""path"": ""<Keyboard>/5"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ash5"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -438,6 +543,11 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Character_Block = m_Character.FindAction("Block", throwIfNotFound: true);
         m_Character_Dodge = m_Character.FindAction("Dodge", throwIfNotFound: true);
         m_Character_Interact = m_Character.FindAction("Interact", throwIfNotFound: true);
+        m_Character_Ash1 = m_Character.FindAction("Ash1", throwIfNotFound: true);
+        m_Character_Ash2 = m_Character.FindAction("Ash2", throwIfNotFound: true);
+        m_Character_Ash3 = m_Character.FindAction("Ash3", throwIfNotFound: true);
+        m_Character_Ash4 = m_Character.FindAction("Ash4", throwIfNotFound: true);
+        m_Character_Ash5 = m_Character.FindAction("Ash5", throwIfNotFound: true);
         // Debug
         m_Debug = asset.FindActionMap("Debug", throwIfNotFound: true);
         m_Debug_ToggleOverlay = m_Debug.FindAction("ToggleOverlay", throwIfNotFound: true);
@@ -534,6 +644,11 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Character_Block;
     private readonly InputAction m_Character_Dodge;
     private readonly InputAction m_Character_Interact;
+    private readonly InputAction m_Character_Ash1;
+    private readonly InputAction m_Character_Ash2;
+    private readonly InputAction m_Character_Ash3;
+    private readonly InputAction m_Character_Ash4;
+    private readonly InputAction m_Character_Ash5;
     /// <summary>
     /// Provides access to input actions defined in input action map "Character".
     /// </summary>
@@ -593,6 +708,26 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Character/Interact".
         /// </summary>
         public InputAction @Interact => m_Wrapper.m_Character_Interact;
+        /// <summary>
+        /// Provides access to the underlying input action "Character/Ash1".
+        /// </summary>
+        public InputAction @Ash1 => m_Wrapper.m_Character_Ash1;
+        /// <summary>
+        /// Provides access to the underlying input action "Character/Ash2".
+        /// </summary>
+        public InputAction @Ash2 => m_Wrapper.m_Character_Ash2;
+        /// <summary>
+        /// Provides access to the underlying input action "Character/Ash3".
+        /// </summary>
+        public InputAction @Ash3 => m_Wrapper.m_Character_Ash3;
+        /// <summary>
+        /// Provides access to the underlying input action "Character/Ash4".
+        /// </summary>
+        public InputAction @Ash4 => m_Wrapper.m_Character_Ash4;
+        /// <summary>
+        /// Provides access to the underlying input action "Character/Ash5".
+        /// </summary>
+        public InputAction @Ash5 => m_Wrapper.m_Character_Ash5;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -655,6 +790,21 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
+            @Ash1.started += instance.OnAsh1;
+            @Ash1.performed += instance.OnAsh1;
+            @Ash1.canceled += instance.OnAsh1;
+            @Ash2.started += instance.OnAsh2;
+            @Ash2.performed += instance.OnAsh2;
+            @Ash2.canceled += instance.OnAsh2;
+            @Ash3.started += instance.OnAsh3;
+            @Ash3.performed += instance.OnAsh3;
+            @Ash3.canceled += instance.OnAsh3;
+            @Ash4.started += instance.OnAsh4;
+            @Ash4.performed += instance.OnAsh4;
+            @Ash4.canceled += instance.OnAsh4;
+            @Ash5.started += instance.OnAsh5;
+            @Ash5.performed += instance.OnAsh5;
+            @Ash5.canceled += instance.OnAsh5;
         }
 
         /// <summary>
@@ -702,6 +852,21 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
+            @Ash1.started -= instance.OnAsh1;
+            @Ash1.performed -= instance.OnAsh1;
+            @Ash1.canceled -= instance.OnAsh1;
+            @Ash2.started -= instance.OnAsh2;
+            @Ash2.performed -= instance.OnAsh2;
+            @Ash2.canceled -= instance.OnAsh2;
+            @Ash3.started -= instance.OnAsh3;
+            @Ash3.performed -= instance.OnAsh3;
+            @Ash3.canceled -= instance.OnAsh3;
+            @Ash4.started -= instance.OnAsh4;
+            @Ash4.performed -= instance.OnAsh4;
+            @Ash4.canceled -= instance.OnAsh4;
+            @Ash5.started -= instance.OnAsh5;
+            @Ash5.performed -= instance.OnAsh5;
+            @Ash5.canceled -= instance.OnAsh5;
         }
 
         /// <summary>
@@ -922,6 +1087,41 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnInteract(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ash1" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAsh1(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ash2" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAsh2(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ash3" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAsh3(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ash4" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAsh4(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ash5" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAsh5(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Debug" which allows adding and removing callbacks.

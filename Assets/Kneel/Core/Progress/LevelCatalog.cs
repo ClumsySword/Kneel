@@ -31,7 +31,7 @@ namespace Kneel.Core
             new Level("V", "The Throne Room", "L5_ThroneRoom"),
         };
 
-        // 0-based place in the five, or -1 for a scene that isn't a level.
+        // 0 for L1 to 4 for L5, or -1 for a scene that isn't one of the five (test arenas).
         public static int IndexOf(string scene)
         {
             for (int i = 0; i < Levels.Count; i++)

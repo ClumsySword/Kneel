@@ -13,6 +13,10 @@ namespace Kneel.Core
         public string savedAtUtc;
         public double playtimeSeconds;
 
+        // Ash abilities used so far, which unlock the next ones (AshProgress), and the key hints already shown. The
+        // meter itself isn't kept: it empties on death, and Continue starts it empty too.
+        public int ashUses;
+        public int ashHintsSeen;
         // One-time story beats already seen, and checkpoints reached (see SaveFlags).
         public System.Collections.Generic.List<string> flags = new System.Collections.Generic.List<string>();
 
