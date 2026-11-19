@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15aebbd74f3dd4f4d97725d901c97369, type: 3}
+  m_Name: LevelTransitionSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Core.LevelTransitionSettings
+  sheatheTimeout: 3
+  walkInput: 1
+  walkTurnRate: 240
+  waypointReach: 0.6
+  outroCameraBlend: 1.1
+  outroMaxTime: 4.5
+  outroLean: 0.35
+  musicFadeShare: 1
+  fadeToBlack: 0.9
+  artFadeIn: 0.9
+  artFadeOut: 0.9
+  minLoadingScreen: 5
+  artPush: 0.03
+  emberAfter: 6
+  stableFrames: 8
+  stableFrameMs: 34
+  warmFrames: 6
+  fadeFromBlack: 1.1
+  introLean: 0.3
+  introLeanSettle: 3.5
+  introCameraRelease: 0.9
+  soundFadeIn: 2.5
+  introMaxTime: 5

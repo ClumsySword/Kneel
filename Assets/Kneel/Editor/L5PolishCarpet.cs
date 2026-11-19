@@ -285,12 +285,13 @@ namespace Kneel.EditorTools
 
         private static Vector2 Plan(Vector3 p) => new Vector2(p.x, p.z);
 
-        // The nave's runner from the outer doors, round the fire bowl (inside its candles, outside the stair's feet), on
+        // The nave's runner from the outer doors (its end just inside the leaves, z 269.05: owner 2026-11-18, "extend
+        // red carpet so it reaches the very start after the door"), round the fire bowl (inside its candles, outside the stair's feet), on
         // into the niche under the landing, short of its candles.
         private static CarpetShape LowerCarpet()
         {
             var bowl = Plan(L5Greybox.Centrepiece);
-            Func<Vector2, float> outer = p => SmoothUnion(SdBox(p, new Vector2(54f, 333.2f), new Vector2(CarpetHalf, 63f), 0.9f), SdCircle(p, bowl, 8f), 2.6f);
+            Func<Vector2, float> outer = p => SmoothUnion(SdBox(p, new Vector2(54f, 332.625f), new Vector2(CarpetHalf, 63.575f), 0.9f), SdCircle(p, bowl, 8f), 2.6f);
             Func<Vector2, float> shape = p => Mathf.Max(outer(p), 4.2f - (p - bowl).magnitude);
             return new CarpetShape { name = "LowerCarpet", floor = 0f, bounds = Rect.MinMaxRect(44f, 268.5f, 64f, 398f), outline = shape, sdf = shape };
         }

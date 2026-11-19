@@ -43,6 +43,13 @@ public class Health : MonoBehaviour
         Current = refill ? maxHealth : Mathf.Min(Current, maxHealth);
     }
 
+    // Sets health outright, with no damage or heal events (carried state arriving in a level). Never below 1: a
+    // restored value never arrives dead.
+    public void SetCurrent(float value)
+    {
+        Current = Mathf.Clamp(value, 1f, maxHealth);
+    }
+
     public void ApplyDamage(float amount)
     {
         if (amount <= 0f || invincible == true)

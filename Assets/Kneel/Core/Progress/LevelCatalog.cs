@@ -45,6 +45,22 @@ namespace Kneel.Core
             return -1;
         }
 
+        public static bool IsLevel(string scene) => IndexOf(scene) >= 0;
+
+        // The scene of the level after this one (what a level's exit leads to), or null after the last.
+        public static string NextOf(string scene)
+        {
+            int i = IndexOf(scene);
+            return i >= 0 && i + 1 < Levels.Count ? Levels[i + 1].Scene : null;
+        }
+
+        // The scene of the level before this one, or null for the first.
+        public static string PreviousOf(string scene)
+        {
+            int i = IndexOf(scene);
+            return i > 0 ? Levels[i - 1].Scene : null;
+        }
+
         // The level's name, or null for a scene that isn't one of the five (test arenas).
         public static string NameOf(string scene)
         {

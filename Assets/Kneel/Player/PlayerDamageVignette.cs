@@ -42,6 +42,9 @@ public class PlayerDamageVignette : MonoBehaviour
     private float deathFade = 0f;
     private bool dead = false;
 
+    // 0..1: how far the readout has faded out for a level transition's outro and intro (cinematic, no damage).
+    private float cinematic = 0f;
+
     // Health fraction to show instead of the real one, for tuning from the F1 overlay. Negative means off.
     [System.NonSerialized]
     public float previewHealth = -1f;
@@ -58,6 +61,9 @@ public class PlayerDamageVignette : MonoBehaviour
             Debug.LogWarning("PlayerDamageVignette has no settings asset assigned, using defaults.", this);
             settings = ScriptableObject.CreateInstance<PlayerDamageVignetteSettings>();
         }
+
+        // Arriving mid-transition (the next level's intro): start hidden, and fade in with control.
+        cinematic = Kneel.Core.LevelTransition.Active ? 1f : 0f;
 
         health = GetComponent<Health>();
         combat = GetComponent<PlayerCombat>();
@@ -145,6 +151,7 @@ public class PlayerDamageVignette : MonoBehaviour
         }
 
         Coverage = Mathf.Clamp(coverage, 0f, 1.5f);
+        cinematic = Mathf.MoveTowards(cinematic, Kneel.Core.LevelTransition.Active && dead == false ? 1f : 0f, dt / 0.6f);
         Apply();
     }
 
@@ -168,7 +175,7 @@ public class PlayerDamageVignette : MonoBehaviour
 
     private void Apply()
     {
-        image.enabled = Coverage > 0.001f;
+        image.enabled = Coverage > 0.001f && cinematic < 0.999f;
         if (image.enabled == false)
         {
             return;
@@ -178,7 +185,7 @@ public class PlayerDamageVignette : MonoBehaviour
 
         material.SetColor(ColorId, settings.bloodColor);
         material.SetColor(DarkColorId, settings.deepColor);
-        material.SetFloat(OpacityId, settings.opacity);
+        material.SetFloat(OpacityId, settings.opacity * (1f - cinematic));
         material.SetFloat(CoverageId, Coverage);
         material.SetFloat(EdgeSoftnessId, settings.edgeSoftness);
         material.SetFloat(DepthId, settings.deepColorDepth);

@@ -59,18 +59,59 @@ namespace Kneel.Core
             SettingsService.Changed -= Apply;
         }
 
+        // Gains the level transitions ride on top of the player's own volumes (0..1): Music fades out over an outro,
+        // everything goes to zero on the loading screen, and both come back with the next level's intro. Master is
+        // AudioListener.volume, so at zero every source is silent, routed through the mixer or not.
+        public static float MasterGain { get; private set; } = 1f;
+
+        public static float MusicGain { get; private set; } = 1f;
+
+        private static SettingsRuntime current;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetGains()
+        {
+            MasterGain = 1f;
+            MusicGain = 1f;
+            current = null;
+        }
+
+        public static void SetGains(float master, float music)
+        {
+            MasterGain = Mathf.Clamp01(master);
+            MusicGain = Mathf.Clamp01(music);
+            if (current != null)
+            {
+                current.ApplyAudio();
+            }
+            else
+            {
+                AudioListener.volume = SettingsService.Current.masterVolume * MasterGain;
+            }
+        }
+
+        private void OnEnable()
+        {
+            current = this;
+        }
+
         private void Apply()
         {
+            ApplyAudio();
             GameSettings s = SettingsService.Current;
-            AudioListener.volume = s.masterVolume;
-            if (mixer != null)
-            {
-                mixer.SetFloat(MusicParameter, ToDecibels(s.musicVolume));
-                mixer.SetFloat(SfxParameter, ToDecibels(s.sfxVolume));
-            }
-
             float offset = (s.brightness - 0.5f) * 2f * BrightnessRange;
             gamma.gamma.value = new Vector4(1f, 1f, 1f, offset);
+        }
+
+        private void ApplyAudio()
+        {
+            GameSettings s = SettingsService.Current;
+            AudioListener.volume = s.masterVolume * MasterGain;
+            if (mixer != null)
+            {
+                mixer.SetFloat(MusicParameter, ToDecibels(s.musicVolume * MusicGain * MasterGain));
+                mixer.SetFloat(SfxParameter, ToDecibels(s.sfxVolume * MasterGain));
+            }
         }
 
         private static float ToDecibels(float linear)

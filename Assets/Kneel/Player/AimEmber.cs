@@ -56,8 +56,10 @@ public class AimEmber : MonoBehaviour
     private void LateUpdate()
     {
         bool inMenu = DebugTuningOverlay.IsOpen || MasterDevTool.IsOpen || Kneel.UI.PauseMenu.IsPaused;
-        Cursor.visible = inMenu;
-        SetHidden(inMenu);
+        // Through a level transition there is nothing to aim at and no pointer: both go.
+        bool transition = Kneel.Core.LevelTransition.Active;
+        Cursor.visible = inMenu && transition == false;
+        SetHidden(inMenu || transition);
 
         transform.SetPositionAndRotation(movement.AimPoint + Vector3.up * lift, Quaternion.identity);
 

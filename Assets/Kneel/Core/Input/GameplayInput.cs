@@ -16,6 +16,7 @@ namespace Kneel.Core
         private static void ResetStatics()
         {
             suspended.Clear();
+            held.Clear();
 
             // A menu that leaves the scene (Quit to Main Menu, the death screen's choices) never resumes: forget
             // the old scene's actions, or the next Resume would switch them back on beside the new scene's.
@@ -39,6 +40,54 @@ namespace Kneel.Core
                     suspended.Add(action);
                 }
             }
+        }
+
+        // The level transitions' hold on the NEXT level's input: from the moment that level is activated until the
+        // intro hands control back, every PlayerControls action it enables is switched off again (HoldNew, each
+        // frame) and remembered here. Unlike Suspend's list this one is never cleared by a scene unloading (the old
+        // level unloads during the same activation), and it only ever holds actions of the arriving level, so
+        // ReleaseHeld can't wake a destroyed scene's input.
+        private static readonly List<InputAction> held = new List<InputAction>();
+
+        public static int HeldCount => held.Count;
+
+        public static void HoldNew()
+        {
+            foreach (InputAction action in InputSystem.ListEnabledActions())
+            {
+                InputActionAsset asset = action.actionMap != null ? action.actionMap.asset : null;
+                if (asset != null && asset.name == KeybindService.AssetName)
+                {
+                    action.Disable();
+                    if (held.Contains(action) == false)
+                    {
+                        held.Add(action);
+                    }
+                }
+            }
+        }
+
+        public static void ReleaseHeld()
+        {
+            foreach (InputAction action in held)
+            {
+                InputActionAsset asset = action.actionMap != null ? action.actionMap.asset : null;
+                if (asset == null)
+                {
+                    continue;
+                }
+
+                KeybindService.ApplyTo(asset);
+                action.Enable();
+            }
+
+            held.Clear();
+        }
+
+        // Drops Suspend's list without re-enabling anything (the level it came from is being left for good).
+        public static void Forget()
+        {
+            suspended.Clear();
         }
 
         // Re-enables what Suspend turned off, with any rebinds made in the meantime.

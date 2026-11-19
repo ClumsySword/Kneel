@@ -2,8 +2,10 @@ using System;
 
 namespace Kneel.Core
 {
-    // What the game remembers between sessions. Only enough for the menu's Continue and the pause menu's
-    // playtime for now; the real save system adds to it (checkpoint shrine, health, ...).
+    // What the game remembers between sessions: the level to continue in, the playtime, the story flags, and the
+    // state the player carried into that level. Fields added later are missing from older files; JsonUtility then
+    // leaves them at their defaults, so every old save still loads (an old save has no carried state: entry.valid
+    // is false, and the level starts with its own defaults, as it always did).
     [Serializable]
     public class SaveData
     {
@@ -17,6 +19,10 @@ namespace Kneel.Core
         public int ashHintsSeen;
         // One-time story beats already seen, and checkpoints reached (see SaveFlags).
         public System.Collections.Generic.List<string> flags = new System.Collections.Generic.List<string>();
+
+        // What the player carried into entry.scene (the level transition writes it; a checkpoint that refills the
+        // player, like L5's Last Shrine, updates it). Applied whenever that level is loaded from the save.
+        public CarriedState entry = new CarriedState();
     }
 
     // Named once-per-save facts: "L5.Reveal" (the throne hall's reveal played), "L5.MasterMet" (the boss's long intro
@@ -92,5 +98,30 @@ namespace Kneel.Core
     public static class SaveServices
     {
         public static ISaveService Current { get; set; } = new JsonFileSaveService();
+
+        // The project enters Play mode without a domain reload: a test that swapped the service never leaks into the
+        // next session.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Current = new JsonFileSaveService();
+
+        // Loads the save (or starts one), lets `change` edit it, and writes it back, so a partial save (the pause
+        // menu's scene and playtime) never drops the fields it doesn't know about (flags, carried state).
+        public static bool Update(Action<SaveData> change)
+        {
+            try
+            {
+                SaveData data = Current.Load() ?? new SaveData();
+                data.flags ??= new System.Collections.Generic.List<string>();
+                data.entry ??= new CarriedState();
+                change(data);
+                Current.Save(data);
+                return true;
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError("Save failed: " + e.Message);
+                return false;
+            }
+        }
     }
 }

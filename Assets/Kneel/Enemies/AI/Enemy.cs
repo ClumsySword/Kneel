@@ -184,11 +184,12 @@ public class Enemy : MonoBehaviour, IBlindable, IForceStaggerable
         Killed?.Invoke(this);
     }
 
+    // Through a level transition Kael can't be targeted: whoever was chasing him stands down.
     public virtual bool PlayerInAgressionRange() =>
-        Vector3.Distance(transform.position, player.position) < aggressionRange;
+        Kneel.Core.LevelTransition.Active == false && Vector3.Distance(transform.position, player.position) < aggressionRange;
 
     public bool PlayerInAttackRange() =>
-        Vector3.Distance(transform.position, player.position) < attackRange;
+        Kneel.Core.LevelTransition.Active == false && Vector3.Distance(transform.position, player.position) < attackRange;
 
     public Vector3 GetPatrolDestination()
     {

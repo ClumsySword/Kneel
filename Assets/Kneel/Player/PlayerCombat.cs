@@ -11,7 +11,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerMovement))]
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(Health))]
-public class PlayerCombat : MonoBehaviour, IDamageable
+public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 {
     public enum CombatState
     {
@@ -287,6 +287,58 @@ public class PlayerCombat : MonoBehaviour, IDamageable
         equipment.SetSwordInHand(false);
         equipment.SetShieldInHand(false);
         equipment.SwordHitbox.OnHit += OnSwordHit;
+    }
+
+    // --- Level transitions ---
+
+    // The game takes over at a level's exit: put the sword away if it's out and nothing is under way. A committed
+    // action (swing, roll, drink) isn't cut short; the transition waits for it and asks again.
+    public void RequestSheathe()
+    {
+        if (State == CombatState.Armed)
+        {
+            blockHeld = false;
+            StartSheath();
+        }
+    }
+
+    // Forgets every press waiting to fire (a roll or swing buffered just before the exit, a block still held), so
+    // nothing goes off once control comes back.
+    public void ClearBufferedInput()
+    {
+        dodgeRequestTime = -999f;
+        attackRequestTime = -999f;
+        heavyRequestTime = -999f;
+        attackQueued = false;
+        blockHeld = false;
+    }
+
+    // Health is part of what carries into the next level (Kneel.Core.CarriedState).
+    public void WriteTo(Kneel.Core.CarriedState state)
+    {
+        if (health != null)
+        {
+            state.health = health.Current;
+            state.maxHealth = health.Max;
+        }
+    }
+
+    public void ReadFrom(Kneel.Core.CarriedState state)
+    {
+        if (health == null)
+        {
+            return;
+        }
+
+        if (state.maxHealth > 0f)
+        {
+            health.SetMax(state.maxHealth, false);
+        }
+
+        if (state.health > 0f)
+        {
+            health.SetCurrent(state.health);
+        }
     }
 
     private void OnDrawPressed()

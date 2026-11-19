@@ -4,7 +4,7 @@ using UnityEngine;
 // The healing potions the player carries: up to one per belt slot, shown as bottles hanging on the front of
 // the belt. Those bottles are the only way to see how many are left. Interact (E) picks up the nearest potion
 // in reach; PlayerCombat drinks them (F) and shows a bottle in the drinking hand while it does.
-public class PlayerPotions : MonoBehaviour
+public class PlayerPotions : MonoBehaviour, Kneel.Core.ICarriedState
 {
     private PlayerControls controls;
 
@@ -96,6 +96,21 @@ public class PlayerPotions : MonoBehaviour
 
         bottle.SetActive(false);
         return bottle;
+    }
+
+    // The potions on the belt carry into the next level (Kneel.Core.CarriedState).
+    public void WriteTo(Kneel.Core.CarriedState state)
+    {
+        state.potions = Count;
+    }
+
+    public void ReadFrom(Kneel.Core.CarriedState state)
+    {
+        if (state.potions >= 0)
+        {
+            Count = Mathf.Clamp(state.potions, 0, Capacity);
+            Refresh();
+        }
     }
 
     public bool TryAdd()
