@@ -292,6 +292,7 @@ public class HollowArcher : Enemy, IDamageable, IStaggerable
 
         attackState.released = true;
         anim.SetTrigger(ShootId);
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.BowRelease, transform.position + Vector3.up * 1.5f);
         FireArrow();
         EndShot();
     }

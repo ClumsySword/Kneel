@@ -31,10 +31,14 @@ namespace Kneel.EditorTools
 
         // --- Shrine C ---
 
+        // L5 has a ShrineRest at Shrine B too: the Last Shrine is the one with its flag.
+        private static ShrineRest LastShrineRest() =>
+            UnityEngine.Object.FindObjectsByType<ShrineRest>(FindObjectsInactive.Exclude).FirstOrDefault(r => r.flag == "L5.ShrineC");
+
         private static IEnumerator ShrineC()
         {
             Note("--- Shrine C, the Last Shrine");
-            var rest = UnityEngine.Object.FindAnyObjectByType<ShrineRest>();
+            var rest = LastShrineRest();
             Check("it's in the level", rest != null, "");
             if (rest == null)
                 yield break;
@@ -66,14 +70,14 @@ namespace Kneel.EditorTools
         {
             Note("--- Shrine C across a reload (death, then the death screen's Restart)");
             BackupSave();
-            var oldRest = UnityEngine.Object.FindAnyObjectByType<ShrineRest>();
+            var oldRest = LastShrineRest();
             if (oldRest == null)
             {
                 Check("Shrine C is in the level", false, "");
                 yield break;
             }
 
-            Kneel.Core.SaveFlags.Set(oldRest.flag);
+            oldRest.SaveAsRespawn();
             if (combat.IsDead == false)
             {
                 playerHealth.SetMax(100f, true);
@@ -88,12 +92,12 @@ namespace Kneel.EditorTools
             typeof(Kneel.UI.PauseMenu).GetMethod("RestartLevel", Any).Invoke(menu, null);
             yield return (Func<bool>)(() =>
             {
-                var now = UnityEngine.Object.FindAnyObjectByType<ShrineRest>();
+                var now = LastShrineRest();
                 return now != null && now != oldRest;
             });
             yield return 1.5f;
 
-            var rest = UnityEngine.Object.FindAnyObjectByType<ShrineRest>();
+            var rest = LastShrineRest();
             var kael = UnityEngine.Object.FindAnyObjectByType<PlayerCombat>();
             var newBoss = UnityEngine.Object.FindAnyObjectByType<MasterBoss>();
             bool reloaded = rest != null && rest != oldRest && kael != null;

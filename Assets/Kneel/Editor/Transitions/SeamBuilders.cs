@@ -439,8 +439,11 @@ namespace Kneel.EditorTools.Transitions
             door.openTime = 1.6f;
             door.closeTime = 1.4f;
 
-            // Outside the gate: the farm ground has no collider, so an unseen floor carries the walk in.
-            BoxCollider outside = SeamKit.Box(g, "OutsideFloor", new Vector3(60f, -0.33f, -125f), new Vector3(5f, 0.5f, 9f), false);
+            // Outside the gate: the farm ground has no collider, so an unseen floor carries the walk in. It runs on under
+            // the gateway to z -119.5, past the farm track's south edge (-120): the wall segments switched off above
+            // took their colliders with them, and a floor stopping at the wall line (-120.5) left a 0.5 m strip with
+            // nothing under it, wider than Kael's capsule, that he could drop through mid-walk.
+            BoxCollider outside = SeamKit.Box(g, "OutsideFloor", new Vector3(60f, -0.33f, -124.5f), new Vector3(5f, 0.5f, 10f), false);
             outside.gameObject.layer = LayerMask.NameToLayer("Ground");
 
             var arrival = g.gameObject.AddComponent<LevelArrival>();

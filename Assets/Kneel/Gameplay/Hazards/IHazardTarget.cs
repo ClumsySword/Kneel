@@ -17,7 +17,7 @@ namespace Kneel.Hazards
     }
 
     // What a hazard talks to. Hazards only report contact; the actor decides the consequence
-    // (a burning row costs the player a hit and kills a hound).
+    // (a burning row costs the player a hit and kills a footman).
     public interface IHazardTarget
     {
         void OnHazard(HazardKind kind);

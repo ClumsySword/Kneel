@@ -462,25 +462,17 @@ namespace Kneel.EditorTools
 
         public static readonly List<Spawn> Spawns = new List<Spawn>
         {
-            S("E1a", Kneel.Markers.EnemyType.Hound, 63f, 80f, "Feeding", "", 14f),
-            S("E1", Kneel.Markers.EnemyType.Hound, 60.5f, 117f, "Feeding"),
-            S("E1", Kneel.Markers.EnemyType.Hound, 64.5f, 117f, "Feeding"),
-            S("E1", Kneel.Markers.EnemyType.Hound, 71.5f, 117f, "Asleep", "Wakes 3 s after the other two aggro"),
+            S("E1", Kneel.Markers.EnemyType.Fool, 64.5f, 117f, "Standing", "In the field"),
             S("E2", Kneel.Markers.EnemyType.Brute, 114.5f, 131f, "Circling", "Aggro when the player steps onto F11. Leash: F11"),
-            S("E3", Kneel.Markers.EnemyType.Hound, 100.5f, 209f, "Bedded in the west row", "Wakes when the player passes y 202 or its row ignites"),
-            S("E3", Kneel.Markers.EnemyType.Hound, 101.5f, 221f, "Bedded in the west row", "Wakes when the player passes y 202 or its row ignites"),
-            S("E3", Kneel.Markers.EnemyType.Hound, 110.5f, 211f, "Bedded in the east row", "Wakes when the player passes y 202 or its row ignites"),
-            S("E3", Kneel.Markers.EnemyType.Hound, 111.5f, 219f, "Bedded in the east row", "Wakes when the player passes y 202 or its row ignites"),
-            S("E3", Kneel.Markers.EnemyType.Hound, 106.5f, 227f, "Standing", "In the open, at the bridge foot"),
+            S("E3", Kneel.Markers.EnemyType.Fool, 110.5f, 211f, "In the east row"),
+            S("E3", Kneel.Markers.EnemyType.Crossbowman, 106.5f, 227f, "Standing", "At the bridge foot"),
             S("G", Kneel.Markers.EnemyType.Footman, 158.5f, 251f, "On the gibbet", "Woken by that gibbet. Leash: the mud volume"),
             S("E4", Kneel.Markers.EnemyType.Brute, 176.5f, 277f, "At the well", "Leash: F23"),
             S("E4", Kneel.Markers.EnemyType.Footman, 166.5f, 273f, "Standing in the barn"),
             S("E4", Kneel.Markers.EnemyType.Footman, 165.5f, 261f, "On the gibbet", "Woken by that gibbet"),
             S("E4", Kneel.Markers.EnemyType.Footman, 182.5f, 261f, "On the gibbet", "Woken by that gibbet"),
             S("E5", Kneel.Markers.EnemyType.Brute, 174.5f, 331f, "At the foot of the mill stair", "Leash: F30"),
-            S("E5", Kneel.Markers.EnemyType.Hound, 170.5f, 337.5f, "Asleep", "Wakes when the player passes y 316"),
-            S("E5", Kneel.Markers.EnemyType.Hound, 162.5f, 331f, "Asleep", "Wakes when the player passes y 316"),
-            S("E5", Kneel.Markers.EnemyType.Hound, 186.5f, 331f, "Asleep", "Wakes when the player passes y 316"),
+            S("E5", Kneel.Markers.EnemyType.Crossbowman, 186.5f, 331f, "Standing", "East of the mill stair"),
             S("D3", Kneel.Markers.EnemyType.Brute, 147f, 300f, "Digging", "Leash: the mud volume. Never leaves it"),
         };
 

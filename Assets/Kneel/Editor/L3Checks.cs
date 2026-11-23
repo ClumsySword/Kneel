@@ -172,7 +172,7 @@ namespace Kneel.EditorTools
                     break;
             }
 
-            // Cover blocks a hound but never hides the player.
+            // Cover blocks movement but never hides the player.
             if (item.Table.StartsWith("14.3") && item.Collider != L3Assets.Col.None)
             {
                 if (item.Size.y < 1.2f - 0.001f || item.Size.y > 1.8f + 0.001f)

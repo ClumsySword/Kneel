@@ -130,7 +130,6 @@ namespace Kneel.EditorTools
             Add("N05", "L4_StandIn_Fool", "Enemies", en, 1f, 1f, 1.9f, Col.Custom, hit, "BUILT", "PolygonKnights Character_Soldier_02 baked standing; SM_Wep_Broadsword_01 (x1.5)",
                 "The Fool with his long blade. Capsule; SpawnMarker.",
                 root => StandIn(root, "Soldier_02", "L1_Regiment_Enemy", EnemyType.Fool, 1f, 0.45f, Pose.Stand, false, false, "K:SM_Wep_Broadsword_01"));
-            list.Add(new Item { Id = "N06a", Name = "L3_StandIn_Hound", Folder = "", Table = en, Size = new Vector3(0.8f, 0.8f, 1.4f), Collider = Col.None, Layer = hit, Status = "FOUND", Source = "L3 stand-in", Notes = "L3's hound stand-in.", ExistingPath = "Assets/Kneel/Prefabs/L3/Enemies/L3_StandIn_Hound.prefab" });
             list.Add(new Item { Id = "N06b", Name = "L3_StandIn_Brute", Folder = "", Table = en, Size = new Vector3(2f, 2.6f, 2f), Collider = Col.None, Layer = hit, Status = "FOUND", Source = "L3 stand-in", Notes = "L3's brute stand-in.", ExistingPath = "Assets/Kneel/Prefabs/L3/Enemies/L3_StandIn_Brute.prefab" });
             Add("N07", "L4_Steward", "Enemies", en, 1f, 1f, 1.8f, Col.None, L3Build.Unlayered, "BUILT", "PolygonKnights Character_Soldier_01 baked bent over work",
                 "The steward feeding the braziers on the Kneeling Court (vignette 7): harmless, ignores the player. (The gatekeeper and the pour-tender are inside H05b and H10.)",

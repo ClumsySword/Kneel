@@ -10,7 +10,7 @@ namespace Kneel.Hazards
         public enum ActorKind
         {
             Player,
-            Hound,
+            Hound, // retired: there are no hounds; kept so the values after it keep their meaning
             Footman,
             Brute,
         }

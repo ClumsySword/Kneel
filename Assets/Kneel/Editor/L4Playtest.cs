@@ -36,7 +36,7 @@ namespace Kneel.EditorTools
         private static KneelerAmbush twinA, twinB, footKneeler;
         private static OneTimeGate postern, grille;
         private static PourTender tender;
-        private static HazardTestDummy dPour, dOil, dHound, dSlot, dUnder;
+        private static HazardTestDummy dPour, dOil, dOilFootman, dSlot, dUnder;
         private static Transform player;
         private static Vector3 playerHome;
         private static int poursBeforeTenderDied;
@@ -88,7 +88,7 @@ namespace Kneel.EditorTools
             tender = lane.GetComponentInChildren<PourTender>();
             dPour = Dummy("Dummy_Pour");
             dOil = Dummy("Dummy_Oil");
-            dHound = Dummy("Dummy_OilHound");
+            dOilFootman = Dummy("Dummy_OilFootman");
             dSlot = Dummy("Dummy_Slot");
             dUnder = Dummy("Dummy_Under");
             player = Object.FindAnyObjectByType<PlayerMovement>().transform;
@@ -118,7 +118,7 @@ namespace Kneel.EditorTools
             // Play mode ran for a while before the test began: put every hazard back to its start so the clocks
             // (rings, gate cycle) count from now.
             Object.FindAnyObjectByType<LevelReset>().ResetAll();
-            foreach (var d in new[] { dPour, dOil, dHound, dSlot, dUnder })
+            foreach (var d in new[] { dPour, dOil, dOilFootman, dSlot, dUnder })
             {
                 d.ClearLog();
             }
@@ -300,7 +300,7 @@ namespace Kneel.EditorTools
             Expect(dOil.Count(HazardKind.OilBurnEnter) == 1, "Dummy in slick A burnt on contact once (" + dOil.Count(HazardKind.OilBurnEnter) + ")");
             int ticks = dOil.Count(HazardKind.OilBurnTick);
             Expect(ticks >= 4 && ticks <= 6, "Burning ticks in 6 s (" + ticks + ")");
-            Expect(dHound.Count(HazardKind.OilBurnEnter) == 1, "Hound dummy in slick B burnt (" + dHound.Consequence(HazardKind.OilBurnEnter) + ")");
+            Expect(dOilFootman.Count(HazardKind.OilBurnEnter) == 1, "Footman dummy in slick B burnt (" + dOilFootman.Consequence(HazardKind.OilBurnEnter) + ")");
 
             // The gate passage.
             float rattle = First("gate.Rattle"), drop = First("gate.Drop"), down = First("gate.Down"), rise = First("gate.Rise"), up = Events.TryGetValue("gate.Up", out var ups) ? ups.FirstOrDefault(t => t > rise) : float.NaN;

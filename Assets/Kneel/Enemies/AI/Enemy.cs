@@ -87,6 +87,8 @@ public class Enemy : MonoBehaviour, IBlindable, IForceStaggerable
         anim = GetComponent<Animator>();
         health = GetComponent<Health>();
         health.OnDepleted += OnHealthDepleted;
+        health.OnDamaged += _ => Kneel.Audio.EnemyAudio.Hurt(this);
+        lastStepPosition = transform.position;
         poise.Reset();
 
         GameObject playerObject = GameObject.Find("Player");
@@ -117,7 +119,19 @@ public class Enemy : MonoBehaviour, IBlindable, IForceStaggerable
     {
         poise.Tick(Time.deltaTime);
         UpdateTint();
+
+        // Footsteps by distance walked (on the ground only: a body knocked back or falling doesn't step).
+        Vector3 moved = transform.position - lastStepPosition;
+        lastStepPosition = transform.position;
+        moved.y = 0f;
+        if (agent != null && agent.enabled && moved.sqrMagnitude < 1f)
+        {
+            Kneel.Audio.EnemyAudio.Step(this, ref stepTravelled, moved.magnitude);
+        }
     }
+
+    private Vector3 lastStepPosition;
+    private float stepTravelled;
 
     private void OnDrawGizmos()
     {
@@ -140,6 +154,7 @@ public class Enemy : MonoBehaviour, IBlindable, IForceStaggerable
     // One overlap check `reach` in front of the enemy. Returns true if it hit the player.
     public bool TryAttackHit(float reach, float radius, float damage, float poiseDamage)
     {
+        Kneel.Audio.EnemyAudio.Swing(this);
         Vector3 center = AttackCenter(reach);
         int count = Physics.OverlapSphereNonAlloc(center, radius, overlapBuffer, playerMask, QueryTriggerInteraction.Ignore);
 

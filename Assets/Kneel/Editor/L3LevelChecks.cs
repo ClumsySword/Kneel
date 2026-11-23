@@ -694,13 +694,13 @@ namespace Kneel.EditorTools
             Physics.SyncTransforms();
             var root = L3Level.Root;
             var sb = new StringBuilder();
-            int hounds = 0, brutes = 0, footmen = 0, off = 0, withEnemy = 0;
+            int brutes = 0, footmen = 0, others = 0, off = 0, withEnemy = 0;
             var markers = root.transform.Find("Spawns").GetComponentsInChildren<Kneel.Markers.SpawnMarker>(true);
             foreach (var m in markers)
             {
-                hounds += m.enemyType == Kneel.Markers.EnemyType.Hound ? 1 : 0;
                 brutes += m.enemyType == Kneel.Markers.EnemyType.Brute ? 1 : 0;
                 footmen += m.enemyType == Kneel.Markers.EnemyType.Footman ? 1 : 0;
+                others += m.enemyType == Kneel.Markers.EnemyType.Fool || m.enemyType == Kneel.Markers.EnemyType.Crossbowman ? 1 : 0;
                 withEnemy += m.transform.childCount >= 2 ? 1 : 0;
                 bool found = false;
                 foreach (var s in L3Plan.Spawns)
@@ -712,7 +712,7 @@ namespace Kneel.EditorTools
                 off += found ? 0 : 1;
             }
 
-            sb.AppendLine("spawn markers: " + markers.Length + " (" + hounds + " hounds, " + brutes + " brutes, " + footmen + " footmen), " + withEnemy + " with the enemy as a child, " + off + " not matching 15.5");
+            sb.AppendLine("spawn markers: " + markers.Length + " (" + brutes + " brutes, " + footmen + " footmen, " + others + " fools and crossbowmen), " + withEnemy + " with the enemy as a child, " + off + " not matching 15.5");
             sb.AppendLine("markers: " + root.GetComponentsInChildren<Kneel.Markers.PlayerSpawnMarker>(true).Length + " player spawn, " + root.GetComponentsInChildren<Kneel.Markers.ExitMarker>(true).Length + " exit, "
                 + root.GetComponentsInChildren<Kneel.Markers.VistaMarker>(true).Length + " vista, " + root.GetComponentsInChildren<Kneel.Markers.ArenaMarker>(true).Length + " arena volumes, "
                 + root.GetComponentsInChildren<Kneel.Markers.SecretTell>(true).Length + " secret tells, " + root.GetComponentsInChildren<Kneel.Markers.PickupMarker>(true).Length + " pickups, "

@@ -23,7 +23,7 @@ namespace Kneel.EditorTools
 
         public static readonly (string name, float radius, float height)[] Agents =
         {
-            ("Thrall", 0.5f, 2f), ("Brute", 1f, 2.6f), ("Hound", 0.4f, 0.9f),
+            ("Thrall", 0.5f, 2f), ("Brute", 1f, 2.6f),
         };
 
         [MenuItem("Kneel/L3/Build/Level (replaces the scene)")]
@@ -1269,7 +1269,7 @@ namespace Kneel.EditorTools
         private static string SpawnMarkers(Transform root)
         {
             Physics.SyncTransforms();
-            int hounds = 0, brutes = 0, footmen = 0;
+            int brutes = 0, footmen = 0, others = 0;
             var index = new Dictionary<string, int>();
             foreach (var s in L3Plan.Spawns)
             {
@@ -1284,7 +1284,17 @@ namespace Kneel.EditorTools
                 L3Build.Set(data, "aggroRadius", s.Aggro);
                 L3Build.Set(data, "leashNote", s.Leash);
 
-                string id = s.Type == EnemyType.Footman ? "E01" : s.Type == EnemyType.Hound ? "E02" : "E03";
+                // The Fool and the Crossbowman (the Hollow Archer) are the real enemies, on the Thrall NavMesh.
+                if (s.Type == EnemyType.Fool || s.Type == EnemyType.Crossbowman)
+                {
+                    string path = s.Type == EnemyType.Fool ? "Assets/Kneel/Enemies/TheFool/TheFool.prefab" : "Assets/Kneel/Enemies/HollowArcher/HollowArcher.prefab";
+                    var real = L3Build.Instance(AssetDatabase.LoadAssetAtPath<GameObject>(path), marker.transform, Vector3.zero);
+                    real.GetComponent<NavMeshAgent>().agentTypeID = AgentType("Thrall", 0.5f, 2f);
+                    others++;
+                    continue;
+                }
+
+                string id = s.Type == EnemyType.Footman ? "E01" : "E03";
                 var enemy = L3Build.Instance(L3Assets.Load(id), marker.transform, Vector3.zero);
                 if (s.Type == EnemyType.Footman)
                 {
@@ -1301,17 +1311,13 @@ namespace Kneel.EditorTools
                     Record(enemy);
                     footmen++;
                 }
-                else if (s.Type == EnemyType.Hound)
-                {
-                    hounds++;
-                }
                 else
                 {
                     brutes++;
                 }
             }
 
-            return "spawn markers: " + hounds + " hounds, " + brutes + " brutes, " + footmen + " footmen";
+            return "spawn markers: " + brutes + " brutes, " + footmen + " footmen, " + others + " fools and crossbowmen";
         }
 
         private static GameObject Volume(Transform parent, string id, string name, float x0, float x1, float z0, float z1, float y, float height)
@@ -1413,7 +1419,7 @@ namespace Kneel.EditorTools
             camera.AddComponent<Kneel.OcclusionFader>();
         }
 
-        // Thrall, Brute and Hound agent types (15.7), added to the project's NavMesh settings if missing.
+        // Thrall and Brute agent types (15.7), added to the project's NavMesh settings if missing.
         public static int AgentType(string name, float radius, float height)
         {
             for (int i = 0; i < NavMesh.GetSettingsCount(); i++)

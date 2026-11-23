@@ -175,7 +175,13 @@ public class PlayerPotions : MonoBehaviour, Kneel.Core.ICarriedState
             }
         }
 
-        return nearest != null && nearest.TryPickUp(this);
+        if (nearest != null && nearest.TryPickUp(this))
+        {
+            Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.Pickup);
+            return true;
+        }
+
+        return false;
     }
 
     private void OnEnable()

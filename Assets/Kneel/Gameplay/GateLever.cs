@@ -1,12 +1,27 @@
 using System.Collections;
+using Kneel.Core;
+using TMPro;
 using UnityEngine;
 
 namespace Kneel
 {
     // A lever the player pulls with Interact (E) while standing next to it; it opens its gate (ShortcutGate).
     // Like every script here it reads its own PlayerControls.
+    // With showPrompt on, "E to Pull" floats over it while the player is in reach (set on the first lever only, to
+    // teach it; the rest are left bare). Names the key Interact is on now, so it follows a rebind.
     public class GateLever : MonoBehaviour
     {
+        [SerializeField]
+        private bool showPrompt = false;
+
+        // {0} is the Interact key.
+        [SerializeField]
+        private string labelFormat = "{0} to Pull";
+
+        // Height of the prompt above the lever's base, in metres.
+        [SerializeField]
+        private float promptHeight = 1.8f;
+
         [SerializeField]
         private ShortcutGate gate;
 
@@ -27,6 +42,10 @@ namespace Kneel
         private Transform player;
         private bool pulled;
         private Quaternion handleRest;
+        private GameObject canvasObject;
+        private RectTransform canvasRect;
+        private TextMeshProUGUI text;
+        private float alpha;
 
         public bool Pulled => pulled;
 
@@ -37,6 +56,73 @@ namespace Kneel
             if (handle != null)
             {
                 handleRest = handle.localRotation;
+            }
+
+            if (showPrompt)
+            {
+                BuildPrompt();
+            }
+        }
+
+        private void BuildPrompt()
+        {
+            canvasObject = new GameObject("LeverPrompt");
+            var canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 110;
+            canvasRect = (RectTransform)canvasObject.transform;
+            var label = new GameObject("Label", typeof(RectTransform));
+            label.transform.SetParent(canvasObject.transform, false);
+            text = label.AddComponent<TextMeshProUGUI>();
+            text.fontSize = 22f;
+            text.alignment = TextAlignmentOptions.Center;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            text.color = new Color(0.92f, 0.88f, 0.8f, 0f);
+            text.outlineWidth = 0.2f;
+            text.outlineColor = new Color32(10, 8, 6, 255);
+            var rect = (RectTransform)label.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.sizeDelta = new Vector2(300f, 40f);
+        }
+
+        private void LateUpdate()
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            bool show = pulled == false && InReach;
+            // Set as it appears, so a rebind made in the pause menu shows the next time.
+            if (show && alpha <= 0f)
+            {
+                text.text = string.Format(labelFormat, KeybindService.KeyFor("Interact"));
+            }
+
+            alpha = Mathf.MoveTowards(alpha, show ? 1f : 0f, Time.unscaledDeltaTime / 0.12f);
+            Camera cam = Camera.main;
+            Vector3 screen = cam != null ? cam.WorldToScreenPoint(transform.position + Vector3.up * promptHeight) : Vector3.zero;
+            text.enabled = alpha > 0f && screen.z > 0f;
+            if (text.enabled == false)
+            {
+                return;
+            }
+
+            float scale = canvasRect.lossyScale.x > 0f ? canvasRect.lossyScale.x : 1f;
+            ((RectTransform)text.transform).anchoredPosition = new Vector2(screen.x, screen.y) / scale;
+            Color c = text.color;
+            c.a = alpha * 0.9f;
+            text.color = c;
+        }
+
+        private void OnDestroy()
+        {
+            controls?.Dispose();
+            if (canvasObject != null)
+            {
+                Destroy(canvasObject);
             }
         }
 
@@ -80,6 +166,7 @@ namespace Kneel
             }
 
             pulled = true;
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Lever, transform.position + Vector3.up);
             StartCoroutine(Pull());
         }
 

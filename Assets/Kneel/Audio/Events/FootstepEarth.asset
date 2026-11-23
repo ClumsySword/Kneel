@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc492a5adf6379d4dbfe53c9488ceec6, type: 3}
+  m_Name: FootstepEarth
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Audio.SoundEvent
+  clips:
+  - {fileID: 8300000, guid: ee4f12e0b402072f8a207b59d12c275f, type: 3}
+  - {fileID: 8300000, guid: 9ded5f4f47ac4f780ae3f7aa8936e79c, type: 3}
+  - {fileID: 8300000, guid: 87f67239200b1a2b8801a71ec9dc22bd, type: 3}
+  - {fileID: 8300000, guid: f2526d377faa84cc6ad178df7a164003, type: 3}
+  - {fileID: 8300000, guid: 5d5c932f776dfab798e900eb7b9da1da, type: 3}
+  volume: 0.6
+  volumeSpread: 0.1
+  pitch: 1
+  pitchSpread: 0.1
+  group: 0
+  spatial: 0.9
+  minDistance: 2
+  maxDistance: 18
+  cooldown: 0

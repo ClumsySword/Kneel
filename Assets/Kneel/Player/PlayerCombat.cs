@@ -102,6 +102,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
     public bool IsBlocking { get; private set; }
 
+    // When a burn last drew a grunt: fire ticks every second and shouldn't grunt on each one.
+    private float lastBurnGrunt = -10f;
+
     public bool IsDead => State == CombatState.Dead;
 
     // Raised once when health reaches zero (LevelRestartOnDeath listens).
@@ -544,6 +547,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             // PlayerDrawPose has the hands on the hilt and the shield's rim by now; both ease into the hands.
             itemsSwapped = true;
             equipment.SetSwordInHand(true, settings.swordSettleTime);
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.SwordDraw, transform.position + Vector3.up * 1.2f);
 
             // PlayerDrawPose carries the shield over the shoulder itself.
             if (drawPose == null)
@@ -574,6 +578,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         {
             itemsSwapped = true;
             equipment.SetSwordInHand(false);
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.SwordSheathe, transform.position + Vector3.up * 1.2f);
 
             if (drawPose == null)
             {
@@ -656,6 +661,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         {
             hitStarted = true;
             equipment.SwordHitbox.Begin();
+            bool heavySwing = attack == settings.heavyAttack || airborne;
+            Kneel.Audio.Sfx.Play(heavySwing ? Kneel.Audio.SfxId.PlayerSwingHeavy : Kneel.Audio.SfxId.PlayerSwingLight, transform.position + Vector3.up * 1.2f);
         }
 
         if (hitStarted == true && hitEnded == false && clipTime >= attack.hitEnd)
@@ -713,6 +720,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
     private void LandAirAttack()
     {
         StopAirborne();
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Land, transform.position, 1.2f);
 
         // Down early: skip ahead to the touchdown so the impact plays now.
         if (stateTime * settings.attackSpeed < settings.airLandTime)
@@ -763,6 +771,10 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         Vector3 direction = hitCollider.transform.position - transform.position;
         direction.y = 0f;
 
+        // Whether it bit: a raised shield (or anything that shrugs the blow off) takes no health.
+        Health targetHealth = (target as Component) != null ? ((Component)target).GetComponentInParent<Health>() : null;
+        float healthBefore = targetHealth != null ? targetHealth.Current : -1f;
+
         target.TakeHit(new DamageInfo
         {
             amount = attack.damage * multiplier * SwordDamageMultiplier,
@@ -777,6 +789,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         });
 
         float weight = 1f + attack.impact;
+        bool bit = targetHealth == null || targetHealth.Current < healthBefore;
+        Kneel.Audio.Sfx.Play(bit ? Kneel.Audio.SfxId.HitFlesh : Kneel.Audio.SfxId.HitShield, point, Mathf.Clamp(0.75f + 0.25f * weight, 0.6f, 1.2f));
         HitSpark.Spawn(point, direction, critical ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.55f, 0.25f), Mathf.RoundToInt((critical ? 24 : 14) * weight));
         HitStop.Freeze(settings.hitStop * weight);
         Shake(settings.hitShake * (critical ? 1.5f : 1f) * weight);
@@ -911,6 +925,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
         SetState(CombatState.Drinking);
         sipped = false;
+        Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.Drink);
         potions.ShowInHand(true);
         upperBodyTarget = 1f;
         animator.SetFloat("DrinkSpeed", settings.drinkSpeed);
@@ -996,6 +1011,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             });
 
             HitSpark.Spawn(point, direction, new Color(0.85f, 0.85f, 0.9f), 18);
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Block, point);
             HitStop.Freeze(settings.hitStop);
             Shake(settings.bashShake);
         }
@@ -1035,6 +1051,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         transform.rotation = Quaternion.LookRotation(dodgeDirection);
 
         SetState(CombatState.Dodging);
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Roll, transform.position);
         dodgeTravelled = 0f;
         dodgeStoppedByWall = false;
         lastDodgeStep = 0f;
@@ -1166,6 +1183,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         if (info.isEnvironmental == true)
         {
             health.ApplyDamage(info.amount);
+            if (Time.time - lastBurnGrunt > 1.2f)
+            {
+                lastBurnGrunt = Time.time;
+                Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.PlayerHurt, 0.7f);
+            }
+
             Shake(settings.hitShake * 0.4f);
             return;
         }
@@ -1181,6 +1204,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             LastParryTime = Time.time;
             Parried?.Invoke(info.source);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(1f, 0.85f, 0.4f), 30);
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Parry, ShieldPoint());
             animator.CrossFadeInFixedTime("Parry", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.parryHitStop);
             Shake(settings.hitShake * 1.5f * weight);
@@ -1193,6 +1217,8 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             if (Poise.ApplyDamage(info.poiseDamage * settings.blockPoiseMultiplier) == true)
             {
                 health.ApplyDamage(info.amount);
+                Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.GuardBreak, ShieldPoint());
+                Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.PlayerHurt);
                 StartHitStun(settings.staggerDuration, "GuardBreak");
                 HitStop.Freeze(settings.hitStop * weight);
                 Shake(settings.hitShake * 2f * weight);
@@ -1204,6 +1230,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
             float taken = info.amount * (1f - settings.blockDamageReduction);
             health.ApplyDamage(taken);
             HitSpark.Spawn(ShieldPoint(), toAttacker, new Color(0.8f, 0.85f, 1f), Mathf.RoundToInt(10 * weight));
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Block, ShieldPoint(), Mathf.Clamp(0.8f + 0.2f * weight, 0.6f, 1.2f));
             animator.CrossFadeInFixedTime("BlockHit", 0.05f, upperBodyLayer, 0f);
             HitStop.Freeze(settings.hitStop * weight);
             Shake(settings.hitShake * 0.6f * weight);
@@ -1213,6 +1240,12 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
 
         bool poiseBroken = Poise.ApplyDamage(info.poiseDamage);
         health.ApplyDamage(info.amount);
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.HitFlesh, transform.position + Vector3.up * 1.2f, Mathf.Clamp(0.7f + 0.3f * weight, 0.6f, 1.2f));
+        if (IsDead == false)
+        {
+            Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.PlayerHurt);
+        }
+
         HitStop.Freeze(settings.hitStop * weight);
         Shove(info, 1f);
 
@@ -1228,6 +1261,7 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         if (info.knockdown == true)
         {
             Shake(settings.hitShake * 2f * weight);
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.BodyFall, transform.position);
             StartKnockdown(info.direction, info.fling, info.holdTime, info.holder);
             return;
         }
@@ -1335,6 +1369,9 @@ public class PlayerCombat : MonoBehaviour, IDamageable, Kneel.Core.ICarriedState
         {
             return;
         }
+
+        Kneel.Audio.Sfx.PlayFlat(Kneel.Audio.SfxId.PlayerDeath);
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.BodyFall, transform.position);
 
         if (State == CombatState.Dodging || State == CombatState.Casting)
         {
