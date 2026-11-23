@@ -6,7 +6,7 @@ using UnityEngine.Video;
 
 namespace Kneel.UI
 {
-    // New Game's opening: the prologue film, a fade to black, a card ("You awaken some time later"), then L1, where Kael wakes in the water
+    // New Game's opening: the prologue film, a fade to black, a card ("YOU HAVE AWAKENED"), then L1, where Kael wakes in the water
     // beside the broken relic (L1WakeUp fades the level in from black). The film ends on him lying there, so the wake-up
     // picks up its last shot.
     //

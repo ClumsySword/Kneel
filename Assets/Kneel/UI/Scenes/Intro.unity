@@ -313,7 +313,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: You awaken some time later
+  m_text: YOU HAVE AWAKENED
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 518d24517164fd54a9f1813f0655a22d, type: 2}
   m_sharedMaterial: {fileID: 1065967983390619814, guid: 518d24517164fd54a9f1813f0655a22d, type: 2}
@@ -350,7 +350,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 10
+  m_characterSpacing: 24
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0

@@ -196,7 +196,7 @@ Added 2026-11-23. Owner: New Game plays `kneel_intro.mp4` first, then a fade to 
 - **Flow.** New Game → `Intro` scene:
   1. The prologue film, 50.8 s. It ends on Kael lying on his back in the sanctuary's water.
   2. A fade to black.
-  3. A card: "You awaken some time later" (the owner's words).
+  3. A card: "YOU HAVE AWAKENED" (the owner's words).
   4. L1, where the wake-up fades in on the same pose.
 - **Skipping.** Pressing a skip key once shows "Press again to skip", and a second press skips the film. The card always plays.
 - **Files.**

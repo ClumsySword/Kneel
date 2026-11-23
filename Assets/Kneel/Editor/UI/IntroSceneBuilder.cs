@@ -14,7 +14,7 @@ namespace Kneel.EditorTools
     // Generates the Intro scene (UI/Scenes/Intro.unity) that New Game plays before L1: the prologue film on a full-screen
     // RawImage of the overlay canvas (IntroSequence gives it a render texture; letterboxed by an AspectRatioFitter; the
     // camera's far-plane mode drew nothing under URP here), its sound on a plain 2D source (master volume only, so the music and
-    // effects sliders don't cut the film's mix), a black cover, the card ("You awaken some time later") and the skip hint, all driven by
+    // effects sliders don't cut the film's mix), a black cover, the card ("YOU HAVE AWAKENED") and the skip hint, all driven by
     // IntroSequence. It also puts the scene in the build, straight after MainMenu. Rerun it after changing it; don't
     // edit the scene by hand.
     public static class IntroSceneBuilder
@@ -27,8 +27,8 @@ namespace Kneel.EditorTools
         private static readonly Color Bright = new Color32(0xF2, 0xE6, 0xD0, 0xFF);
         private static readonly Color Muted = new Color32(0x8C, 0x84, 0x78, 0xFF);
 
-        // The card between the film and the wake-up: the gap in time (LORE.md §4, beat 14), in the owner's words.
-        private const string CardText = "You awaken some time later";
+        // The card between the film and the wake-up, in the owner's words.
+        private const string CardText = "YOU HAVE AWAKENED";
 
         [MenuItem("Kneel/UI/Build Intro Scene")]
         public static void BuildMenu() => Debug.Log(Build());
@@ -110,7 +110,7 @@ namespace Kneel.EditorTools
             CanvasGroup card = Group(canvasObject.transform, "TitleCard");
             Stretch(card.transform as RectTransform);
             var bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(BodyFont);
-            Text(card.transform, "Line", CardText, bodyFont, 60f, 10f, new Color(Bright.r, Bright.g, Bright.b, 0.9f), Vector2.zero, new Vector2(1400f, 120f));
+            Text(card.transform, "Line", CardText, bodyFont, 60f, 24f, new Color(Bright.r, Bright.g, Bright.b, 0.9f), Vector2.zero, new Vector2(1400f, 120f));
 
             CanvasGroup hint = Group(canvasObject.transform, "SkipHint");
             var hintRect = (RectTransform)hint.transform;
