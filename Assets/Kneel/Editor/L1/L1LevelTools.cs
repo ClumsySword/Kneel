@@ -266,7 +266,9 @@ namespace Kneel.EditorTools
             var lighting = root.transform.Find("_Lighting");
             foreach (var r in root.GetComponentsInChildren<Renderer>())
             {
-                if (!(r is ParticleSystemRenderer) && !r.name.StartsWith("L1_Ground") && (lighting == null || !r.transform.IsChildOf(lighting)))
+                // Transparent renderers (light-shaft cards, the monastery's water) never hide anything either.
+                bool transparent = r.sharedMaterial != null && r.sharedMaterial.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                if (!(r is ParticleSystemRenderer) && !transparent && !r.name.StartsWith("L1_Ground") && (lighting == null || !r.transform.IsChildOf(lighting)))
                 {
                     renderers.Add(r);
                 }

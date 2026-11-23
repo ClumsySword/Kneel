@@ -24,6 +24,8 @@ namespace Kneel.UI
 
         [Header("Scenes")]
         [SerializeField] private string newGameScene = "L1_BrokenLine_Playable";
+        // New Game plays the prologue film and title card first (IntroSequence), which then loads newGameScene.
+        [SerializeField] private string introScene = "Intro";
         [SerializeField] private float leaveFadeTime = 1.2f;
         [SerializeField] private float arriveFadeTime = 0.8f;
 
@@ -204,11 +206,12 @@ namespace Kneel.UI
 
         private void NewGame()
         {
+            string first = SceneLoader.CanLoad(introScene) ? introScene : newGameScene;
             if (!saves.HasSave())
             {
                 Playtime.Reset();
                 AshProgress.NewGame();
-                Leave(newGameScene);
+                Leave(first);
                 return;
             }
 
@@ -217,7 +220,7 @@ namespace Kneel.UI
                 saves.DeleteSave();
                 Playtime.Reset();
                 AshProgress.NewGame();
-                Leave(newGameScene);
+                Leave(first);
             });
         }
 
