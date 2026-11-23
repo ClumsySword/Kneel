@@ -1051495,6 +1051495,10 @@ PrefabInstance:
       propertyPath: gate
       value: 
       objectReference: {fileID: 992506118}
+    - target: {fileID: 7253192269503148103, guid: 642fa2b53852ed54cb993f692fe8b6ad, type: 3}
+      propertyPath: showPrompt
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8328825274775653343, guid: 642fa2b53852ed54cb993f692fe8b6ad, type: 3}
       propertyPath: m_Layer
       value: 7
