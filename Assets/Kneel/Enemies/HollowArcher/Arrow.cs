@@ -109,6 +109,12 @@ public class Arrow : MonoBehaviour
             return;
         }
 
+        // A hit on the player sounds through the player (flesh, block or parry); this is the arrow striking the world.
+        if (target is not PlayerCombat)
+        {
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.ArrowImpact, transform.position);
+        }
+
         CreateImpactFx();
         ReturnArrowToPool();
 

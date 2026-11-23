@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc492a5adf6379d4dbfe53c9488ceec6, type: 3}
+  m_Name: EnemyDeath
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Audio.SoundEvent
+  clips:
+  - {fileID: 8300000, guid: a5fb9253a2aa59ed18c4980417e73907, type: 3}
+  - {fileID: 8300000, guid: 65cc8380183ff8b75b558617f9dc3ea9, type: 3}
+  volume: 0.8
+  volumeSpread: 0.1
+  pitch: 1
+  pitchSpread: 0.06
+  group: 0
+  spatial: 1
+  minDistance: 2
+  maxDistance: 35
+  cooldown: 0.2

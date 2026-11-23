@@ -80,6 +80,7 @@ namespace Kneel
             }
 
             pulled = true;
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Lever, transform.position + Vector3.up);
             StartCoroutine(Pull());
         }
 

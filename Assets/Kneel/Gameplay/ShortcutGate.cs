@@ -53,6 +53,7 @@ namespace Kneel
             }
 
             IsOpen = true;
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Gate, transform.position + Vector3.up * 1.5f);
             StartCoroutine(Swing());
         }
 

@@ -159,6 +159,7 @@ public class PlayerMovement : MonoBehaviour
         {
             justJumped = true;
             animator.SetTrigger("Jump");
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Roll, transform.position, 0.6f);
         }
     }
 
@@ -185,7 +186,47 @@ public class PlayerMovement : MonoBehaviour
         ApplyJumpVelocity();
         ApplyMovement();
         AnimatorControllers();
+        UpdateFootsteps();
     }
+
+    // Steps by distance on the ground, a stride growing with speed; a landing after a real fall. The roll has its own
+    // sound, so a forced move (roll, shove) doesn't step.
+    private void UpdateFootsteps()
+    {
+        bool grounded = characterController.isGrounded;
+        if (grounded == false)
+        {
+            airTime += Time.deltaTime;
+            fallSpeed = Mathf.Max(fallSpeed, -verticalVelocity);
+            return;
+        }
+
+        if (airTime > 0.25f)
+        {
+            Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.Land, transform.position, Mathf.Clamp(fallSpeed / 8f, 0.4f, 1f));
+            stepTravelled = 0f;
+        }
+
+        airTime = 0f;
+        fallSpeed = 0f;
+        if (forcedVelocity.HasValue)
+        {
+            return;
+        }
+
+        stepTravelled += LastMoveDelta.magnitude;
+        float stride = 0.55f + 0.13f * CurrentSpeed;
+        if (stepTravelled >= stride && CurrentSpeed > 0.3f)
+        {
+            stepTravelled = 0f;
+            var step = Kneel.Audio.LevelAudio.Surface == Kneel.Audio.FootSurface.Earth ? Kneel.Audio.SfxId.FootstepEarth : Kneel.Audio.SfxId.FootstepStone;
+            Kneel.Audio.Sfx.PlayFlat(step, Mathf.Lerp(0.45f, 0.75f, CurrentSpeed / 5f));
+        }
+    }
+
+    private float stepTravelled;
+    private float airTime;
+    private float fallSpeed;
 
     private void AimTowardsMouse()
     {

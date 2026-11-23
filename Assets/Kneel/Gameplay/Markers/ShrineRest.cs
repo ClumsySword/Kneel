@@ -81,6 +81,7 @@ public class ShrineRest : MonoBehaviour
 
         // He kneels at it, as he will at the end.
         player.ForceKneel(kneelTime);
+        Kneel.Audio.Sfx.Play(Kneel.Audio.SfxId.ShrineRest, transform.position + Vector3.up);
         Health health = player.GetComponent<Health>();
         if (health != null)
             health.SetMax(health.Max, true);

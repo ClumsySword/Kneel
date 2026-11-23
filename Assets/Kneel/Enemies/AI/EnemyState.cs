@@ -24,6 +24,7 @@ public class EnemyState
     {
         enemyBase.anim.SetBool(animBoolName, true);
         triggerCalled = false;
+        Kneel.Audio.EnemyAudio.StateEntered(enemyBase, animBoolName);
     }
 
     public virtual void Update()
