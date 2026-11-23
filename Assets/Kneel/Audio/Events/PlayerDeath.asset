@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc492a5adf6379d4dbfe53c9488ceec6, type: 3}
+  m_Name: PlayerDeath
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Audio.SoundEvent
+  clips:
+  - {fileID: 8300000, guid: 48db94eebdd1d872e85dd3b7ee47c923, type: 3}
+  - {fileID: 8300000, guid: 4aa4a91998ef6bed4b7d4bb4821ee5a9, type: 3}
+  - {fileID: 8300000, guid: da752d9d8a8b9f0b4b0dd1d5e5d27203, type: 3}
+  volume: 0.85
+  volumeSpread: 0.1
+  pitch: 1
+  pitchSpread: 0.03
+  group: 0
+  spatial: 0
+  minDistance: 2
+  maxDistance: 20
+  cooldown: 1

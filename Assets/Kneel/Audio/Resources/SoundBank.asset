@@ -1,0 +1,160 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ca136ddfe31248f19b2d28b02f12d06, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Audio.SoundBank
+  sounds:
+  - id: 0
+    sound: {fileID: 11400000, guid: 72b8c959a211c36138954a34f4cd0842, type: 2}
+  - id: 1
+    sound: {fileID: 11400000, guid: a909d9e8800063ae89309a8399ce34f0, type: 2}
+  - id: 2
+    sound: {fileID: 11400000, guid: e859c882e801ff7239f961dbe18d0b62, type: 2}
+  - id: 3
+    sound: {fileID: 11400000, guid: 91b9567e59f98697b957140400932968, type: 2}
+  - id: 4
+    sound: {fileID: 11400000, guid: 7cdabd79bfe973183ada732380f75c87, type: 2}
+  - id: 5
+    sound: {fileID: 11400000, guid: 650b82c3e26d8b7debad02aeaa786c11, type: 2}
+  - id: 6
+    sound: {fileID: 11400000, guid: 2b580d010c095e772b35d4543cf180f1, type: 2}
+  - id: 7
+    sound: {fileID: 11400000, guid: 77b8c2b6a820f1bd3b6dac9041ec166a, type: 2}
+  - id: 8
+    sound: {fileID: 11400000, guid: fbf57ad0b6a1d1550bec9a15b4784509, type: 2}
+  - id: 9
+    sound: {fileID: 11400000, guid: 243a820ca85073bdb9afcf71404de427, type: 2}
+  - id: 10
+    sound: {fileID: 11400000, guid: 82a4e4fe6ad0eef828be0759966d3783, type: 2}
+  - id: 11
+    sound: {fileID: 11400000, guid: ad6990f15b5249c5180a199be26d82cc, type: 2}
+  - id: 12
+    sound: {fileID: 11400000, guid: 523cf26c6f2da9fbb91e7482ee1d84c3, type: 2}
+  - id: 13
+    sound: {fileID: 11400000, guid: 3db6c07b36560583fb62204fa7856548, type: 2}
+  - id: 14
+    sound: {fileID: 11400000, guid: cc51ad0614113e93a8ec7adbe39594b6, type: 2}
+  - id: 15
+    sound: {fileID: 11400000, guid: 0ea7665e2dd0a9da980c8df1901ad8a3, type: 2}
+  - id: 16
+    sound: {fileID: 11400000, guid: 5f74aa0fdd9340e57803848a02cf246d, type: 2}
+  - id: 17
+    sound: {fileID: 11400000, guid: a5ce4923ae167feb08632b67c5f12d23, type: 2}
+  - id: 18
+    sound: {fileID: 11400000, guid: 71491b9b807cd4eb9ac4e34f5292ff9c, type: 2}
+  - id: 19
+    sound: {fileID: 11400000, guid: 3f20d61d00712cc369f01aeb7253ced2, type: 2}
+  - id: 20
+    sound: {fileID: 11400000, guid: 545bf1dd268d15e4b89580967f96469f, type: 2}
+  - id: 21
+    sound: {fileID: 11400000, guid: a5ab45e4b48ded7d69c61fa95f9e3cfc, type: 2}
+  - id: 22
+    sound: {fileID: 11400000, guid: e04e29cc8f2d51f4c9cc56df848bdaef, type: 2}
+  - id: 23
+    sound: {fileID: 11400000, guid: ce1672d09d016affe80af0f015e79e83, type: 2}
+  - id: 24
+    sound: {fileID: 11400000, guid: c7184ad71005b0fed9c717f664003e5d, type: 2}
+  - id: 25
+    sound: {fileID: 11400000, guid: 3eb023f23fc103c67a1d179470c2f8e2, type: 2}
+  - id: 26
+    sound: {fileID: 11400000, guid: afa0803720b2a70da82652e457ca3e72, type: 2}
+  - id: 27
+    sound: {fileID: 11400000, guid: b724dc4b9e07efa1d837b7eafaf4233a, type: 2}
+  - id: 28
+    sound: {fileID: 11400000, guid: ce05b963fbce57aa7be46f5c5f71e6eb, type: 2}
+  - id: 29
+    sound: {fileID: 11400000, guid: 6ddde76995e6a9d7cbdcc99ac6f5259a, type: 2}
+  levels:
+  - scene: L1_BrokenLine_Playable_L
+    explore:
+    - {fileID: 8300000, guid: 3d4ea93c1aa2e50c6b0232e5a436dbc7, type: 3}
+    - {fileID: 8300000, guid: 27ca51863f88f2950b13a4e10c6aa798, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 1
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.3
+    fireVolume: 0.5
+  - scene: L2_HollowVillage
+    explore:
+    - {fileID: 8300000, guid: 3d4ea93c1aa2e50c6b0232e5a436dbc7, type: 3}
+    - {fileID: 8300000, guid: 27ca51863f88f2950b13a4e10c6aa798, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 0
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.2
+    fireVolume: 0.5
+  - scene: L3_FallowFields
+    explore:
+    - {fileID: 8300000, guid: 3d4ea93c1aa2e50c6b0232e5a436dbc7, type: 3}
+    - {fileID: 8300000, guid: 27ca51863f88f2950b13a4e10c6aa798, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 1
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.35
+    fireVolume: 0.5
+  - scene: L4_BurningGate
+    explore:
+    - {fileID: 8300000, guid: a91cd39723872943bac50654d75cc2fe, type: 3}
+    - {fileID: 8300000, guid: 318fa8878dc4e7fd892d8b89f5be6311, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 0
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.3
+    fireVolume: 0.5
+  - scene: L5_ThroneRoom
+    explore:
+    - {fileID: 8300000, guid: a91cd39723872943bac50654d75cc2fe, type: 3}
+    - {fileID: 8300000, guid: 318fa8878dc4e7fd892d8b89f5be6311, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 0
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.15
+    fireVolume: 0.5
+  - scene: Arena_S
+    explore:
+    - {fileID: 8300000, guid: 3d4ea93c1aa2e50c6b0232e5a436dbc7, type: 3}
+    - {fileID: 8300000, guid: 27ca51863f88f2950b13a4e10c6aa798, type: 3}
+    combat:
+    - {fileID: 8300000, guid: c991389f2de449b4bb546d0f90da0bda, type: 3}
+    - {fileID: 8300000, guid: ade0e1c455b3515a19d48a7e84c685fc, type: 3}
+    ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
+    fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
+    surface: 0
+    exploreVolume: 0.35
+    combatVolume: 0.55
+    ambienceVolume: 0.25
+    fireVolume: 0.5
