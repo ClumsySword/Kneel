@@ -766,11 +766,17 @@ namespace Kneel.EditorTools
                     EditorUtility.SetDirty(marker);
                 }
 
-                // The courtyard Husk carries the tribunal key on his belt.
-                if (e.Encounter == "E3" && e.Id == "N02")
+                // The Iron Husk isn't in the game yet: his stand-ins are placed switched off (shown, they're figures
+                // that never move or fight). The courtyard Husk is meant to carry the tribunal key on his belt, so
+                // until he exists the key lies on the ground where he stands. When he does, give it back to him.
+                if (e.Id == "N02")
                 {
-                    var key = Put("M04", go.transform, new Vector3(0.28f, 1.02f, 0.12f), 0f);
-                    key.name = "TribunalKey";
+                    go.SetActive(false);
+                    if (e.Encounter == "E3")
+                    {
+                        var key = Put("M04", parent, e.Position + new Vector3(0f, 0.03f, 0f), e.Yaw);
+                        key.name = "TribunalKey";
+                    }
                 }
 
                 count++;
