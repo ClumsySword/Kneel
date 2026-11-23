@@ -32,10 +32,10 @@ MonoBehaviour:
   looks:
   - scene: L1_BrokenLine_Playable
     grade: {fileID: 11400000, guid: cb777566cd3a2454a9db0055551e6bcf, type: 2}
-    fogColor: {r: 0.23137255, g: 0.24313726, b: 0.27450982, a: 1}
-    ambientSky: {r: 0.3890196, g: 0.46431375, b: 0.57725495, a: 1.6}
-    ambientEquator: {r: 0.26980394, g: 0.3011765, b: 0.36392158, a: 1.6}
-    ambientGround: {r: 0.16313726, g: 0.15058824, b: 0.13803922, a: 1.6}
+    fogColor: {r: 0.3, g: 0.36, b: 0.46, a: 1}
+    ambientSky: {r: 0.45, g: 0.54, b: 0.70199996, a: 0.9}
+    ambientEquator: {r: 0.306, g: 0.35999998, b: 0.46799996, a: 0.9}
+    ambientGround: {r: 0.153, g: 0.162, b: 0.189, a: 0.9}
   - scene: L2_HollowVillage
     grade: {fileID: 11400000, guid: e53ed7afcf782514d92df29f49e42381, type: 2}
     fogColor: {r: 0.07450981, g: 0.09803922, b: 0.13333334, a: 1}

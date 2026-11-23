@@ -26,12 +26,19 @@ namespace Kneel.EditorTools
 
         public struct Capsule
         {
+            public string Name;
             public Vector2 A;
             public Vector2 B;
             public float HalfWidth;
 
             public Capsule(float ax, float az, float bx, float bz, float halfWidth)
+                : this(null, ax, az, bx, bz, halfWidth)
             {
+            }
+
+            public Capsule(string name, float ax, float az, float bx, float bz, float halfWidth)
+            {
+                Name = name;
                 A = new Vector2(ax, az);
                 B = new Vector2(bx, bz);
                 HalfWidth = halfWidth;
@@ -52,6 +59,9 @@ namespace Kneel.EditorTools
             new Circle("TentNook", -2f, 257f, 4f),
             new Circle("E5", 0f, 290f, 10f, true),
             new Circle("LastStand", 4f, 334f, 7f),          // the rearguard's last stand, before the exit
+            // The monastery's round sanctuary (L1Monastery.Hall): inside the ring of pillars. Behind the pillars the
+            // ambulatory is closed up-screen and open on the camera side, where the pillars are stumps.
+            new Circle("Sanctuary", 0f, -52.5f, 15.2f),
         };
 
         public static readonly Capsule[] Capsules =
@@ -66,10 +76,34 @@ namespace Kneel.EditorTools
             new Capsule(6, 266, 0, 275, 6f), new Capsule(0, 275, 0, 281, 6f),
             new Capsule(0, 299, -6, 312, 6f), new Capsule(-6, 312, 4, 327, 6f),
             new Capsule(4, 334, 4, 350, 5f), new Capsule(4, 350, 4, 374, 3.5f),
+
+            // The monastery south of Start (L1Monastery): Kael wakes in the flooded round sanctuary (the circle
+            // above, 38 m across inside its wall, centred on (0, -52.5)), walks out through the inner door and the
+            // corridor, and leaves by the main door onto Start. The corridor x +-2.25 and the vestibule x +-3.25 at
+            // z -32.5..-28; doors 2.5 m wide at x 0, z -33 and z -10.
+            new Capsule("SanctuaryDoor", 0, -37.5f, 0, -30.5f, 1.25f),
+            new Capsule("MonasteryCorridor", 0, -31.5f, 0, -11f, 1.4f),
+            new Capsule("MonasteryExit", 0, -11.5f, 0, -5f, 1.25f),
         };
 
         // The toppled ram splits the plaza; nothing else may be placed on it.
         public static readonly Rect RamFootprint = new Rect(-3.2f, 122.5f, 6.4f, 15f);
+
+        // The monastery's altar (the broken relic's basin) in the middle of the sanctuary; nothing may stand on it.
+        public static readonly Vector2 AltarCentre = new Vector2(0f, -52.5f);
+        public static readonly Rect AltarFootprint = new Rect(-2.3f, -54.8f, 4.6f, 4.6f);
+
+        // The monastery's outer walls: the round sanctuary (centre and radius to the wall's outer face) and the
+        // corridor wing's blocks (x, z min and size). The ground is cut away under them and lowered to the floor
+        // round them (L1MonasteryScene).
+        public static readonly Vector2 MonasteryHallCentre = new Vector2(0f, -52.5f);
+        public const float MonasteryHallRadius = 20.1f;
+
+        public static readonly Rect[] MonasteryBlocks =
+        {
+            new Rect(-4.25f, -33.4f, 8.5f, 5.4f),
+            new Rect(-3.25f, -28f, 6.5f, 18.5f),
+        };
 
         // Ground mesh / layout texture extents.
         public const float GroundMinX = -52f;

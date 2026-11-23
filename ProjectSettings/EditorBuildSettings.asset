@@ -12,6 +12,9 @@ EditorBuildSettings:
     path: Assets/Kneel/UI/Scenes/MainMenu.unity
     guid: 4692fce07bdf8cf46ad4db82ce51d267
   - enabled: 1
+    path: Assets/Kneel/UI/Scenes/Intro.unity
+    guid: 760273453192e394aa76367cfebd18e5
+  - enabled: 1
     path: Assets/Kneel/Scenes/Levels/L1_BrokenLine_Playable.unity
     guid: afa83bf8d9a4b6feeae3319434e670cb
   - enabled: 1

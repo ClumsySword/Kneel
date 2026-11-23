@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc492a5adf6379d4dbfe53c9488ceec6, type: 3}
+  m_Name: L1_FootstepWater
+  m_EditorClassIdentifier: Assembly-CSharp::Kneel.Audio.SoundEvent
+  clips:
+  - {fileID: 8300000, guid: e8497f0a852d2d04db7d598e723b6768, type: 3}
+  - {fileID: 8300000, guid: 166dca96189c8f0438c4bdcce7d2d230, type: 3}
+  - {fileID: 8300000, guid: 2d3f2e652c492eb489b5ade02f801cc5, type: 3}
+  - {fileID: 8300000, guid: c0a342e52862b1e459abee4e5226e17c, type: 3}
+  - {fileID: 8300000, guid: 1f7d2c9372f833645b04e8e794e30b58, type: 3}
+  - {fileID: 8300000, guid: 791bf5cf39bc7394dafd193b90b2b963, type: 3}
+  - {fileID: 8300000, guid: 8b55a1d399fd89647a504a33ee7dbe6c, type: 3}
+  - {fileID: 8300000, guid: 14d0b72c5d7d2664f943418deeeb9f23, type: 3}
+  - {fileID: 8300000, guid: 6df19b28aa463054185db568c29cb470, type: 3}
+  - {fileID: 8300000, guid: 47211bc7f63ae2042a46e8231eeaa064, type: 3}
+  volume: 0.6
+  volumeSpread: 0.12
+  pitch: 1
+  pitchSpread: 0.1
+  group: 0
+  spatial: 0.9
+  minDistance: 2
+  maxDistance: 18
+  cooldown: 0

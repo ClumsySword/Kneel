@@ -32,7 +32,8 @@ namespace Kneel.UI
         }
 
         private const string PrefabName = "PauseMenu";
-        private static readonly string[] MenuScenes = { "Splash", "MainMenu" };
+        // No pause menu in these. The Intro reads Esc as its skip.
+        private static readonly string[] MenuScenes = { "Splash", "MainMenu", "Intro" };
 
         private static readonly KeyHintBar.Hint SelectHint = new KeyHintBar.Hint("ENTER", "A", "SELECT");
         private static readonly KeyHintBar.Hint ResumeHint = new KeyHintBar.Hint("ESC", "B", "RESUME");
