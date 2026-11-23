@@ -826391,6 +826391,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 864621436504808004, guid: 96953ad8fcd577f40aa061d82cfab540, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1395753452}
     - targetCorrespondingSourceObject: {fileID: 7312904953666837206, guid: 96953ad8fcd577f40aa061d82cfab540, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1833394527}
@@ -826400,6 +826403,30 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2020103342450332879, guid: 96953ad8fcd577f40aa061d82cfab540, type: 3}
   m_PrefabInstance: {fileID: 1395753449}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1395753451 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 864621436504808004, guid: 96953ad8fcd577f40aa061d82cfab540, type: 3}
+  m_PrefabInstance: {fileID: 1395753449}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1395753452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395753451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7967ccb48d3bf84d8fbeb51fdf7b095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineRest
+  flag: L2.Shrine
+  reach: 3.6305013
+  kneelTime: 2.2
+  refillPotions: 0
+  respawnOut: 3.2305012
+  respawnFacing: {x: 0.92847675, y: 0, z: -0.3713907}
+  labelFormat: '{0} to Rest'
 --- !u!1001 &1396109009
 PrefabInstance:
   m_ObjectHideFlags: 0
