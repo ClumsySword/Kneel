@@ -1,9 +1,12 @@
+using Kneel.Audio;
 using UnityEngine;
 using UnityEngine.Audio;
 
 // The boss fight's score (The Master.md §10, open call 6): four slots on the Music mixer group, crossfaded as the
-// fight moves on. Phase 1 and Phase 2 loop; the transition's and the finisher's held notes don't. Every slot is empty
-// until the real tracks arrive, and an empty slot is silence (the previous track fades out under it).
+// fight moves on. Phase 1 and Phase 2 loop; the transition's and the finisher's held notes don't. An empty slot is
+// silence (the previous track fades out under it).
+// A phase's score (phase1Score / phase2Score: an intro, then a loop body) takes precedence over its single clip; the
+// level's LevelAudio fills both from the SoundBank, and lends the combat drums to any slot still empty.
 public class MusicDirector : MonoBehaviour
 {
     public enum Slot { None, Phase1, Transition, Phase2, Finisher }
@@ -12,34 +15,25 @@ public class MusicDirector : MonoBehaviour
     public AudioClip transitionNote;
     public AudioClip phase2;
     public AudioClip finisherNote;
+    public MusicTrack phase1Score = new MusicTrack();
+    public MusicTrack phase2Score = new MusicTrack();
     public float volume = 0.8f;
     public float crossfade = 1.5f;
 
     public Slot Current { get; private set; } = Slot.None;
 
-    private AudioSource a;
-    private AudioSource b;
-    private bool aActive;
-    private float fadeStart = -1f;
+    // Three voices, so a change of slot in the middle of a crossfade (a skipped Unmaking) never cuts the track still
+    // fading out: the new track takes the quietest voice.
+    private readonly ScoreVoice[] voices = new ScoreVoice[3];
+    private int current = -1;
 
     private void Awake()
     {
-        a = MakeSource("MusicA");
-        b = MakeSource("MusicB");
-    }
-
-    private AudioSource MakeSource(string sourceName)
-    {
-        var source = new GameObject(sourceName).AddComponent<AudioSource>();
-        source.transform.SetParent(transform, false);
-        source.playOnAwake = false;
-        source.spatialBlend = 0f;
-        source.volume = 0f;
         var mixer = Resources.Load<AudioMixer>("KneelMixer");
         AudioMixerGroup[] music = mixer != null ? mixer.FindMatchingGroups("Music") : null;
-        if (music != null && music.Length > 0)
-            source.outputAudioMixerGroup = music[0];
-        return source;
+        AudioMixerGroup group = music != null && music.Length > 0 ? music[0] : null;
+        for (int i = 0; i < voices.Length; i++)
+            voices[i] = new ScoreVoice(transform, "Music" + (char)('A' + i), group);
     }
 
     public void Play(Slot slot)
@@ -47,32 +41,50 @@ public class MusicDirector : MonoBehaviour
         if (slot == Current)
             return;
         Current = slot;
-        AudioClip clip = slot == Slot.Phase1 ? phase1 : slot == Slot.Transition ? transitionNote : slot == Slot.Phase2 ? phase2 : slot == Slot.Finisher ? finisherNote : null;
-        AudioSource next = aActive ? b : a;
-        aActive = !aActive;
-        next.Stop();
-        next.clip = clip;
-        next.loop = slot == Slot.Phase1 || slot == Slot.Phase2;
-        if (clip != null)
-            next.Play();
-        fadeStart = Time.unscaledTime;
+        int next = -1;
+        for (int i = 0; i < voices.Length; i++)
+        {
+            if (i != current && (next < 0 || voices[i].Volume < voices[next].Volume))
+                next = i;
+        }
+
+        current = next;
+        voices[next].Volume = 0f;
+        voices[next].Play(TrackFor(slot));
     }
 
     public void Stop() => Play(Slot.None);
 
+    private MusicTrack TrackFor(Slot slot)
+    {
+        switch (slot)
+        {
+            case Slot.Phase1:
+                return phase1Score != null && phase1Score.IsSet ? phase1Score : MusicTrack.Looping(phase1);
+            case Slot.Phase2:
+                return phase2Score != null && phase2Score.IsSet ? phase2Score : MusicTrack.Looping(phase2);
+            case Slot.Transition:
+                return MusicTrack.Once(transitionNote);
+            case Slot.Finisher:
+                return MusicTrack.Once(finisherNote);
+            default:
+                return null;
+        }
+    }
+
+    // The current voice fades up to volume and every other one down, over crossfade seconds; a silent one stops.
     private void Update()
     {
-        if (fadeStart < 0f)
-            return;
-        float t = Mathf.Clamp01((Time.unscaledTime - fadeStart) / Mathf.Max(crossfade, 0.01f));
-        AudioSource now = aActive ? a : b;
-        AudioSource old = aActive ? b : a;
-        now.volume = volume * t;
-        old.volume = Mathf.Min(old.volume, volume * (1f - t));
-        if (t >= 1f)
+        float step = volume * Time.unscaledDeltaTime / Mathf.Max(crossfade, 0.01f);
+        for (int i = 0; i < voices.Length; i++)
         {
-            old.Stop();
-            fadeStart = -1f;
+            ScoreVoice voice = voices[i];
+            voice.Tick();
+            if (voice.Track == null)
+                continue;
+            voice.Volume = Mathf.MoveTowards(voice.Volume, i == current ? volume : 0f, step);
+            if (i != current && voice.Volume <= 0f)
+                voice.Stop();
         }
     }
 }

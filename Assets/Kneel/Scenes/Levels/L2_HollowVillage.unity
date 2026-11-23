@@ -1241116,7 +1241116,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffafa833db302f240bb6d61e7de02bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Kneel.Core.LevelArrival
-  fromScene: L1_BrokenLine_Playable_L
+  fromScene: L1_BrokenLine_Playable
   start: {fileID: 808105535}
   walkPath:
   - {fileID: 211861860}

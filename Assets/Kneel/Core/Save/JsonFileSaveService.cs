@@ -25,7 +25,7 @@ namespace Kneel.Core
 
             try
             {
-                return JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath));
+                return JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath))?.Upgraded();
             }
             catch (Exception e)
             {

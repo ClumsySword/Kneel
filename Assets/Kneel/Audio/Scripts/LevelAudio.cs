@@ -4,9 +4,9 @@ using UnityEngine.SceneManagement;
 
 namespace Kneel.Audio
 {
-    // The level's music and ambience, from its LevelSound in the SoundBank: an exploration bed, combat drums that fade
-    // in while any enemy is hunting the player (the ten-pager: "Combat music fades in on aggression"), an ambience
-    // bed, and a crackle at the level's fires. One object for the whole game, following the active scene, so a level
+    // The level's music and ambience, from its LevelSound in the SoundBank: the level's score (intro once, then its
+    // loop), or without one an exploration bed and combat drums that fade in while any enemy is hunting the player
+    // (the ten-pager: "Combat music fades in on aggression"); an ambience bed, and a crackle at the level's fires. One object for the whole game, following the active scene, so a level
     // preloaded for a transition never doubles the music. The boss hall's MusicDirector takes over while it plays.
     public class LevelAudio : MonoBehaviour
     {
@@ -17,6 +17,9 @@ namespace Kneel.Audio
         private const float FadeIn = 1.5f;
         private const float FadeOut = 4f;
         private const float BedFade = 3f;
+        // Seconds for the score to fade out (leaving the level, or giving way to the boss's score) and back in.
+        private const float ScoreFadeOut = 2.5f;
+        private const float ScoreFadeIn = 3f;
         private const int MaxFires = 40;
         private const float FireSpacing = 6f;
 
@@ -30,12 +33,14 @@ namespace Kneel.Audio
         private AudioSource explore;
         private AudioSource combat;
         private AudioSource ambience;
+        private ScoreVoice score;
         private LevelSound level;
         private string sceneName;
         private float lastFight = -100f;
         private float nextScan;
         private readonly List<Enemy> enemies = new List<Enemy>();
         private MusicDirector director;
+        private bool findDirector;
         private PlayerCombat playerCombat;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -57,6 +62,7 @@ namespace Kneel.Audio
             explore = MakeSource("Explore", SoundGroup.Music);
             combat = MakeSource("Combat", SoundGroup.Music);
             ambience = MakeSource("Ambience", SoundGroup.Ambience);
+            score = new ScoreVoice(transform, "Score", Sfx.Group(SoundGroup.Music));
             SceneManager.sceneLoaded += OnSceneLoaded;
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
@@ -86,33 +92,69 @@ namespace Kneel.Audio
             return source;
         }
 
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => AddFires(scene);
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            AddFires(scene);
+            // A reload of the same level (a death) doesn't change the scene's name, but it does replace the boss
+            // hall's MusicDirector: find the new one and give it its score.
+            findDirector = true;
+        }
 
         private void Update()
         {
+            // Not while SceneLoader is loading: a load that discards a waiting preload lets that next level through (and
+            // active) for a moment first, which would start its music, and restart the reloaded level's.
             Scene active = SceneManager.GetActiveScene();
-            if (active.name != sceneName)
+            if (active.name != sceneName && Kneel.UI.SceneLoader.IsLoading == false)
             {
                 sceneName = active.name;
                 EnterLevel(SoundBank.Current != null ? SoundBank.Current.ForScene(sceneName) : null);
             }
 
+            if (findDirector)
+            {
+                FindDirector();
+            }
+
             UpdateFight();
 
             bool bossScore = director != null && director.Current != MusicDirector.Slot.None;
-            float exploreTarget = level == null || bossScore ? 0f : (InCombat ? level.exploreVolume * 0.4f : level.exploreVolume);
-            float combatTarget = level == null || bossScore || InCombat == false ? 0f : level.combatVolume;
+            bool hasScore = level != null && level.score.IsSet;
+            float exploreTarget = level == null || bossScore || hasScore ? 0f : (InCombat ? level.exploreVolume * 0.4f : level.exploreVolume);
+            float combatTarget = level == null || bossScore || hasScore || InCombat == false ? 0f : level.combatVolume;
             float ambienceTarget = level != null ? level.ambienceVolume : 0f;
 
             Fade(explore, exploreTarget, InCombat ? FadeIn : FadeOut);
             Fade(combat, combatTarget, InCombat ? FadeIn : FadeOut);
             Fade(ambience, ambienceTarget, BedFade);
+            UpdateScore(hasScore && bossScore == false ? level.scoreVolume : 0f);
+        }
+
+        private void UpdateScore(float target)
+        {
+            score.Tick();
+            if (score.Track == null)
+            {
+                return;
+            }
+
+            float full = Mathf.Max(0.01f, level != null ? level.scoreVolume : score.Volume);
+            float seconds = target > score.Volume ? ScoreFadeIn : ScoreFadeOut;
+            score.Volume = Mathf.MoveTowards(score.Volume, target, full * Time.unscaledDeltaTime / seconds);
+
+            // Faded right out with nothing to come back for (the level has no score, or a different one): let it go,
+            // so coming back starts the score from its beginning.
+            bool wanted = level != null && level.score.IsSet && level.score.Same(score.Track);
+            if (score.Volume <= 0f && wanted == false)
+            {
+                score.Stop();
+            }
         }
 
         private void EnterLevel(LevelSound next)
         {
             level = next;
-            director = FindAnyObjectByType<MusicDirector>();
+            FindDirector();
             InCombat = false;
             lastFight = -100f;
             enemies.Clear();
@@ -122,19 +164,49 @@ namespace Kneel.Audio
                 return;
             }
 
-            Switch(explore, Pick(level.explore));
-            Switch(combat, Pick(level.combat));
+            bool hasScore = level.score.IsSet;
+            Switch(explore, hasScore ? null : Pick(level.explore));
+            Switch(combat, hasScore ? null : Pick(level.combat));
             Switch(ambience, level.ambience);
 
-            // The boss hall's score has empty slots until its real tracks arrive: lend it the drums.
-            if (director != null && level.combat.Length > 0)
+            // A new score, or this one after it faded out, starts from its first note at full volume (the level's
+            // arrival fades the Music group in); the same score still sounding carries on, so a death doesn't restart it.
+            if (hasScore && (level.score.Same(score.Track) == false || score.IsPlaying == false || score.Volume <= 0f))
             {
-                if (director.phase1 == null)
+                score.Play(level.score);
+                score.Volume = level.scoreVolume;
+            }
+        }
+
+        // The active level's MusicDirector (the boss hall's), with its score from the bank; any phase without one
+        // borrows the combat drums.
+        private void FindDirector()
+        {
+            findDirector = false;
+            director = FindAnyObjectByType<MusicDirector>();
+            if (director == null || level == null)
+            {
+                return;
+            }
+
+            if (level.bossPhase1.IsSet && director.phase1Score.IsSet == false)
+            {
+                director.phase1Score = level.bossPhase1;
+            }
+
+            if (level.bossPhase2.IsSet && director.phase2Score.IsSet == false)
+            {
+                director.phase2Score = level.bossPhase2;
+            }
+
+            if (level.combat.Length > 0)
+            {
+                if (director.phase1 == null && director.phase1Score.IsSet == false)
                 {
                     director.phase1 = level.combat[0];
                 }
 
-                if (director.phase2 == null)
+                if (director.phase2 == null && director.phase2Score.IsSet == false)
                 {
                     director.phase2 = level.combat[level.combat.Length - 1];
                 }

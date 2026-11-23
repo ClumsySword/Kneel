@@ -18,6 +18,7 @@ namespace Kneel.EditorTools
         private const string EventsFolder = Root + "/Events";
         private const string BankPath = Root + "/Resources/SoundBank.asset";
         private const string MixerPath = Root + "/Resources/KneelMixer.mixer";
+        private const string ScoreFolder = Root + "/Music/Score";
 
         // volume, spatial (0 flat .. 1 3D), pitch spread, max distance, cooldown
         private static readonly Dictionary<SfxId, (float volume, float spatial, float pitchSpread, float maxDistance, float cooldown)> Defaults =
@@ -107,12 +108,21 @@ namespace Kneel.EditorTools
 
             // The levels' music lines (vault, 02-Design/Levels): L1 a low drone, no percussion; L2 the drone deepens with
             // a distant crackle of fire; L4 oppressive and smoke-muffled; L5 has the composed score (MusicDirector).
-            Level(bank, "L1_BrokenLine_Playable_L", explore, combat, wind, fire, FootSurface.Earth, 0.3f);
+            // These beds are the fallback for a level without a score (below).
+            Level(bank, "L1_BrokenLine_Playable", explore, combat, wind, fire, FootSurface.Earth, 0.3f);
             Level(bank, "L2_HollowVillage", explore, combat, fire, fire, FootSurface.Stone, 0.2f);
             Level(bank, "L3_FallowFields", explore, combat, wind, fire, FootSurface.Earth, 0.35f);
             Level(bank, "L4_BurningGate", dark, combat, fire, fire, FootSurface.Stone, 0.3f);
             Level(bank, "L5_ThroneRoom", dark, combat, wind, fire, FootSurface.Stone, 0.15f);
             Level(bank, "Arena_S", explore, combat, wind, fire, FootSurface.Stone, 0.25f);
+
+            // Each level's own score (Music/Score/<track>_intro.ogg and _loop.ogg, cut for a seamless loop from the
+            // composer's file). Under a score the level plays no exploration bed or drums.
+            Score(bank, "L1_BrokenLine_Playable", "L1_field_at_dusk");
+            Score(bank, "L2_HollowVillage", "L2_burning_village");
+            Score(bank, "L3_FallowFields", "L3_fallow_fields");
+            Score(bank, "L4_BurningGate", "L4_stronghold");
+            Score(bank, "L5_ThroneRoom", "L5_walkup", "L5_phase_one", "L5_phase_two");
 
             EditorUtility.SetDirty(bank);
             log.Add(AddAmbienceGroup());
@@ -135,6 +145,35 @@ namespace Kneel.EditorTools
             level.combat = combat;
             level.ambience = ambience;
             level.fire = fire;
+        }
+
+        // A level's score, and for the boss hall its two phases. Clips only: scoreVolume keeps its tuning.
+        private static void Score(SoundBank bank, string scene, string track, string bossPhase1 = null, string bossPhase2 = null)
+        {
+            LevelSound level = bank.levels.FirstOrDefault(l => l.scene == scene);
+            if (level == null)
+            {
+                return;
+            }
+
+            level.score = Track(track);
+            level.bossPhase1 = bossPhase1 != null ? Track(bossPhase1) : new MusicTrack();
+            level.bossPhase2 = bossPhase2 != null ? Track(bossPhase2) : new MusicTrack();
+        }
+
+        private static MusicTrack Track(string name)
+        {
+            var track = new MusicTrack
+            {
+                intro = AssetDatabase.LoadAssetAtPath<AudioClip>(ScoreFolder + "/" + name + "_intro.ogg"),
+                loop = AssetDatabase.LoadAssetAtPath<AudioClip>(ScoreFolder + "/" + name + "_loop.ogg"),
+            };
+            if (track.intro == null || track.loop == null)
+            {
+                Debug.LogWarning("[Audio] score " + name + " is missing its intro or loop in " + ScoreFolder);
+            }
+
+            return track;
         }
 
         private static AudioClip[] Clips(string folder)
@@ -179,6 +218,35 @@ namespace Kneel.EditorTools
                 settings.loadType = load;
                 settings.compressionFormat = AudioCompressionFormat.Vorbis;
                 settings.quality = quality;
+                importer.defaultSampleSettings = settings;
+                importer.SaveAndReimport();
+                changed++;
+            }
+
+            // Score: compressed in memory rather than streamed, so the loop's scheduled start and its wrap are
+            // sample-accurate; loaded when a level first plays it, not with the bank.
+            foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { ScoreFolder }))
+            {
+                if (!(AssetImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guid)) is AudioImporter importer))
+                {
+                    continue;
+                }
+
+                AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+                if (importer.forceToMono == false && importer.loadInBackground && settings.loadType == AudioClipLoadType.CompressedInMemory
+                    && settings.compressionFormat == AudioCompressionFormat.Vorbis && Mathf.Approximately(settings.quality, 0.8f)
+                    && settings.preloadAudioData == false && settings.sampleRateSetting == AudioSampleRateSetting.PreserveSampleRate)
+                {
+                    continue;
+                }
+
+                importer.forceToMono = false;
+                importer.loadInBackground = true;
+                settings.loadType = AudioClipLoadType.CompressedInMemory;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = 0.8f;
+                settings.preloadAudioData = false;
+                settings.sampleRateSetting = AudioSampleRateSetting.PreserveSampleRate;
                 importer.defaultSampleSettings = settings;
                 importer.SaveAndReimport();
                 changed++;

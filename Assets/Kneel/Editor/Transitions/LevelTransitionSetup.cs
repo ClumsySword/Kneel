@@ -23,7 +23,7 @@ namespace Kneel.EditorTools.Transitions
         // Drafts for the owner (rules in the transitions brief, section 4). One per seam, keyed by the level left.
         public static readonly (string scene, string line)[] DraftLines =
         {
-            ("L1_BrokenLine_Playable_L", "Thousands of bindings collapsed on that field. One running backwards was lost among them."),
+            ("L1_BrokenLine_Playable", "Thousands of bindings collapsed on that field. One running backwards was lost among them."),
             ("L2_HollowVillage", "Kael's unit burned these villages. The thralls he kills here are missed, and the loss is traced."),
             ("L3_FallowFields", "The carts went up the causeway and came back down. The search now follows this road."),
             ("L4_BurningGate", "The court knelt facing the doors. Beyond them, he knows exactly where Kael is."),

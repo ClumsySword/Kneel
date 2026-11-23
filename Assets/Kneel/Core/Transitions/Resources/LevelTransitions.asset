@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: LevelTransitions
   m_EditorClassIdentifier: Assembly-CSharp::Kneel.Core.LevelTransitionCatalog
   seams:
-  - fromScene: L1_BrokenLine_Playable_L
+  - fromScene: L1_BrokenLine_Playable
     art: {fileID: 2800000, guid: 690654f6418e4914aa38cdffc891aba8, type: 3}
     artIsPlaceholder: 1
     line: Thousands of bindings collapsed on that field. One running backwards was lost among them.
@@ -30,7 +30,7 @@ MonoBehaviour:
     artIsPlaceholder: 1
     line: The court knelt facing the doors. Beyond them, he knows exactly where Kael is.
   looks:
-  - scene: L1_BrokenLine_Playable_L
+  - scene: L1_BrokenLine_Playable
     grade: {fileID: 11400000, guid: cb777566cd3a2454a9db0055551e6bcf, type: 2}
     fogColor: {r: 0.23137255, g: 0.24313726, b: 0.27450982, a: 1}
     ambientSky: {r: 0.3890196, g: 0.46431375, b: 0.57725495, a: 1.6}
