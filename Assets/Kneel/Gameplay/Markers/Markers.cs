@@ -16,7 +16,7 @@ namespace Kneel.Markers
     public enum EnemyType
     {
         Footman,
-        Hound,
+        Hound, // retired: there are no hounds; kept so the values after it keep their meaning
         Brute,
 
         // L4 (appended so L3's serialized values keep their meaning)

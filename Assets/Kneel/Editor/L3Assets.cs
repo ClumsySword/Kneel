@@ -249,7 +249,7 @@ namespace Kneel.EditorTools
                     L3Build.Seat(root.transform, "A:SM_Prop_Cart_Wheel_01", new Vector3(0f, 0f, 90f), 1f, new Vector2(0.45f, 1.0f));
                 });
             Add("C15", "L3_Carcass", "Props", props, 2f, 1f, 0.6f, Col.None, L3Build.Unlayered, "BUILT", "Generated ox skeleton (L3Bones)",
-                "No animal models in the packs. A bare skeleton lying on its side, built the way L2 builds its human skeletons: bone only, no hide and nothing on the ground under it (owner's review). Used for the ox, the feeding carcass and the dead hound. No collider, as specified.",
+                "No animal models in the packs. A bare skeleton lying on its side, built the way L2 builds its human skeletons: bone only, no hide and nothing on the ground under it (owner's review). Used for the ox, the feeding carcass and the dead hound (a prop; there are no hound enemies). No collider, as specified.",
                 root => Bones(root.transform, "Skeleton", L3Bones.OxOnSide, Vector3.zero, 0f));
 
             // ---- 14.4 Hazards
@@ -386,18 +386,6 @@ namespace Kneel.EditorTools
                 Notes = "The existing enemy, used as it is (no L3 copy, no stand-in). It has a NavMeshAgent (radius 0.25, height 1.5) and no collider of its own.",
                 ExistingPath = "Assets/Kneel/Enemies/AshenFootman/AshenFootman.prefab",
             });
-            Add("E02", "L3_StandIn_Hound", "Enemies", enemies, 0.8f, 1.4f, 0.8f, Col.Custom, L3Build.Hittable, "BUILT", "Primitives",
-                "No hound in the project. Horizontal capsule 1.4 long, 0.8 tall, radius 0.4, on the Enemy layer, dark with a bone-white collar. Collider only.",
-                root =>
-                {
-                    var capsule = root.AddComponent<CapsuleCollider>();
-                    capsule.direction = 2;
-                    capsule.radius = 0.4f;
-                    capsule.height = 1.4f;
-                    capsule.center = new Vector3(0f, 0.4f, 0f);
-                    L3Build.Prim(root.transform, "Body", PrimitiveType.Capsule, new Vector3(0f, 0.4f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.8f, 0.7f, 0.8f), M("Hound"));
-                    L3Build.Prim(root.transform, "Collar", PrimitiveType.Cylinder, new Vector3(0f, 0.4f, 0.38f), new Vector3(90f, 0f, 0f), new Vector3(0.84f, 0.05f, 0.84f), M("Bone"));
-                });
             Add("E03", "L3_StandIn_Brute", "Enemies", enemies, 2f, 2f, 2.6f, Col.Capsule, L3Build.Hittable, "BUILT", "Primitives; generated ring mesh",
                 "No brute in the project. Capsule 2.6 tall, radius 1.0, on the Enemy layer, with a ground ring 4 m in radius as a child. Collider only.",
                 root =>

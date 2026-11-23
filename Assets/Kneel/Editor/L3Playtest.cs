@@ -31,7 +31,7 @@ namespace Kneel.EditorTools
         private static BrandStake westStake, eastStake;
         private static SluiceGate gate;
         private static GibbetAmbush gibbet;
-        private static HazardTestDummy houndInRow, footmanInRow, playerInLane, playerInMud, footmanInDitch;
+        private static HazardTestDummy footmanInWestRow, footmanInRow, playerInLane, playerInMud, footmanInDitch;
         private static Health playerHealth;
         private static Transform player;
         private static Vector3 playerHome;
@@ -69,7 +69,7 @@ namespace Kneel.EditorTools
             eastStake = Find<BrandStake>("BrandStake_East");
             gate = GameObject.Find("TestLane").GetComponentInChildren<SluiceGate>();
             gibbet = GameObject.Find("TestLane").GetComponentInChildren<GibbetAmbush>();
-            houndInRow = Find<HazardTestDummy>("Dummy_Hound_InRow");
+            footmanInWestRow = Find<HazardTestDummy>("Dummy_Footman_InWestRow");
             footmanInRow = Find<HazardTestDummy>("Dummy_Footman_InRow");
             playerInLane = Find<HazardTestDummy>("Dummy_Player_InLane");
             playerInMud = Find<HazardTestDummy>("Dummy_Player_InMud");
@@ -225,10 +225,10 @@ namespace Kneel.EditorTools
                 Check(footmanInRow.Log.Count == 0, "fire: dummy in the east row was touched (" + footmanInRow.Log.Count + " contacts)");
                 Check(playerInLane.Log.Count == 0, "fire: dummy in the lane between the rows was touched");
 
-                Check(houndInRow.Count(HazardKind.Smoulder) == 1 && houndInRow.Count(HazardKind.FireEnter) == 1, "fire: dummy in cell 4 should get one Smoulder and one FireEnter, got "
-                    + houndInRow.Count(HazardKind.Smoulder) + " and " + houndInRow.Count(HazardKind.FireEnter));
-                Check(houndInRow.Count(HazardKind.FireTick) >= 19 && houndInRow.Count(HazardKind.FireTick) <= 20, "fire: dummy in cell 4 should get a tick per second for 20 s, got " + houndInRow.Count(HazardKind.FireTick));
-                Notes.Add("fire: dummy in cell 4 got Smoulder x" + houndInRow.Count(HazardKind.Smoulder) + ", FireEnter x" + houndInRow.Count(HazardKind.FireEnter) + ", FireTick x" + houndInRow.Count(HazardKind.FireTick));
+                Check(footmanInWestRow.Count(HazardKind.Smoulder) == 1 && footmanInWestRow.Count(HazardKind.FireEnter) == 1, "fire: dummy in cell 4 should get one Smoulder and one FireEnter, got "
+                    + footmanInWestRow.Count(HazardKind.Smoulder) + " and " + footmanInWestRow.Count(HazardKind.FireEnter));
+                Check(footmanInWestRow.Count(HazardKind.FireTick) >= 19 && footmanInWestRow.Count(HazardKind.FireTick) <= 20, "fire: dummy in cell 4 should get a tick per second for 20 s, got " + footmanInWestRow.Count(HazardKind.FireTick));
+                Notes.Add("fire: dummy in cell 4 got Smoulder x" + footmanInWestRow.Count(HazardKind.Smoulder) + ", FireEnter x" + footmanInWestRow.Count(HazardKind.FireEnter) + ", FireTick x" + footmanInWestRow.Count(HazardKind.FireTick));
 
                 // Reset, then light the east row the way the sword would: a hit through IDamageable.
                 west.ResetToDry();

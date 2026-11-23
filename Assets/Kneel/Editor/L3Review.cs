@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 namespace Kneel.EditorTools
 {
     // Builds L3_AssetReview: every manifest prefab laid out in rows with its ID, name and status, plus a test
-    // lane where the hazards run as they will be used. It doubles as the metrics map (1 R bars, the hound run,
+    // lane where the hazards run as they will be used. It doubles as the metrics map (1 R bars,
     // the brute's ring). The scene is generated: rebuild it rather than editing it by hand.
     public static class L3Review
     {
@@ -129,15 +129,6 @@ namespace Kneel.EditorTools
             L3Build.Instance(L3Assets.Load("E03"), lane, new Vector3(86f, 0f, z0 + 22f));
             Label(labels, "Lane Brute", "Brute stand-in, ring radius 4 m (2 R)", new Vector3(86f, 0.03f, z0 + 16.8f), 3f, TextAlignmentOptions.Center, Color.white, 14f);
 
-            // The hound run: 14 m (7 R), which a hound at 7 m/s covers in 2 s.
-            const float runWest = 48f, runEast = 62f;
-            float runZ = z0 + 26f;
-            L3Build.Block(lane, "HoundRun_Line", new Vector3(14f, 0.02f, 0.15f), new Vector3((runWest + runEast) * 0.5f, 0.01f, runZ), L3Build.Mat("L3_GB_Lane"));
-            L3Build.Block(lane, "HoundRun_Start", new Vector3(0.2f, 1.2f, 0.2f), new Vector3(runWest, 0f, runZ + 0.8f), L3Build.Mat("L3_GB_MarkerSolid"));
-            L3Build.Block(lane, "HoundRun_End", new Vector3(0.2f, 1.2f, 0.2f), new Vector3(runEast, 0f, runZ + 0.8f), L3Build.Mat("L3_GB_MarkerSolid"));
-            L3Build.Instance(L3Assets.Load("E02"), lane, new Vector3(runWest, 0f, runZ), 90f);
-            Label(labels, "Lane Run", "14 m straight (7 R): a hound at 7 m/s covers it in 2.0 s", new Vector3((runWest + runEast) * 0.5f, 0.03f, runZ - 1.4f), 3f, TextAlignmentOptions.Center, Color.white, 22f);
-
             // The ditch: 6 m wide, 3 m deep, crossed by the bridge and the footway.
             const float ditchWest = 4f, ditchEast = 36f;
             float ditchSouth = z0 + 34f, ditchNorth = z0 + 40f, ditchZ = z0 + 37f;
@@ -159,7 +150,7 @@ namespace Kneel.EditorTools
                 new Vector3(20f, 0.03f, ditchSouth - 6.6f), 3f, TextAlignmentOptions.Center, Color.white, 30f);
 
             // Test dummies, one per kind of contact.
-            Dummy(lane, labels, "Dummy_Hound_InRow", HazardTestDummy.ActorKind.Hound, new Vector3(14f, 0f, z0 + 15f));
+            Dummy(lane, labels, "Dummy_Footman_InWestRow", HazardTestDummy.ActorKind.Footman, new Vector3(14f, 0f, z0 + 15f));
             Dummy(lane, labels, "Dummy_Footman_InRow", HazardTestDummy.ActorKind.Footman, new Vector3(24f, 0f, z0 + 9f));
             Dummy(lane, labels, "Dummy_Player_InLane", HazardTestDummy.ActorKind.Player, new Vector3(19f, 0f, z0 + 15f));
             Dummy(lane, labels, "Dummy_Player_InMud", HazardTestDummy.ActorKind.Player, new Vector3(38f, 0f, z0 + 12f));

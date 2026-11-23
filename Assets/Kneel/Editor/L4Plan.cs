@@ -515,7 +515,6 @@ namespace Kneel.EditorTools
             N('F', "E6a", "N01", 62f, 216f, 0f, 200f, "Standing"),
             N('F', "E6a", "N04", 44f, 228f, T1, 170f, "On the wall-walk west of the gate"),
             N('F', "E6b", "N06b", 54f, 233f, 0f, 180f, "Fills the passage"),
-            N('F', "E6c", "N06a", 41.2f, 250f, 0f, 90f, "In the west kennel"),
             N('F', "E6c", "N03", 51f, 253.5f, 0f, 180f, "At the stair foot"),
             N('F', "E6c", "N03", 57f, 253.5f, 0f, 180f, "At the stair foot"),
             new Enemy { Stage = 'F', Encounter = "B", Id = "N07", Position = new Vector3(54f, T1, 265.4f), Yaw = 160f, State = "Feeding the braziers", Threshold = true },
@@ -602,21 +601,15 @@ namespace Kneel.EditorTools
             new NavRule { Stage = 'F', Name = "Perch_E6aWalk", Agent = "Perch", Centre = new Vector3(44f, 5.5f, 233f), Size = new Vector3(8f, 2f, 14f) },
         };
 
-        // Not Walkable for one agent only: E3's Husk stops at the courtyard stairs' feet; the hound keeps off the
-        // grand stair; the kennel sills, so a hound's way out is the one-way link and it never goes back in.
+        // Not Walkable for one agent only: E3's Husk stops at the courtyard stairs' feet.
         public static readonly List<NavRule> Barred = new List<NavRule>
         {
             new NavRule { Stage = 'D', Name = "Husk_ShrineStair", Agent = "Husk", Centre = new Vector3(64f, 2.5f, 128.05f), Size = new Vector3(4.2f, 6f, 7.5f) },
             new NavRule { Stage = 'D', Name = "Husk_RampartStair", Agent = "Husk", Centre = new Vector3(74.25f, 2.5f, 126f), Size = new Vector3(7.5f, 6f, 4.2f) },
-            new NavRule { Stage = 'F', Name = "Hound_GrandStair", Agent = "Hound", Centre = new Vector3(54f, 3f, 258.9f), Size = new Vector3(16.4f, 8f, 7.8f) },
-            new NavRule { Stage = 'F', Name = "Hound_KennelSill_W", Agent = "Hound", Centre = new Vector3(42f, 0.5f, 250f), Size = new Vector3(0.8f, 3f, 3.6f) },
-            new NavRule { Stage = 'F', Name = "Hound_KennelSill_E", Agent = "Hound", Centre = new Vector3(66f, 0.5f, 250f), Size = new Vector3(0.8f, 3f, 3.6f) },
         };
 
         public static readonly List<NavLink> NavLinks = new List<NavLink>
         {
-            new NavLink { Stage = 'F', Name = "KennelOut_W", Agent = "Hound", Start = new Vector3(40.8f, 0f, 250f), End = new Vector3(43.4f, 0f, 250f), Width = 2f },
-            new NavLink { Stage = 'F', Name = "KennelOut_E", Agent = "Hound", Start = new Vector3(67.2f, 0f, 250f), End = new Vector3(64.6f, 0f, 250f), Width = 2f },
         };
     }
 }
