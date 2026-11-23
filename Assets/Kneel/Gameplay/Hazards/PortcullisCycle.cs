@@ -6,7 +6,8 @@ namespace Kneel.Hazards
 {
     // An iron portcullis in its slot. Every drop is told: the chain rattles and dust falls from the slot for 1.5 s.
     // The slot kills anything in it when the gate comes down (the brute included). Three modes:
-    //  OneShot: the barbican demo; up, then on Trigger it rattles, drops and stays down for good.
+    //  OneShot: the barbican demo; up, then on Trigger it rattles, drops and stays down for good (its trigger is past
+    //           the gate, so it closes behind the player).
     //  Cycle:   the gate passage; up 6 s, rattle 1.5, drop 0.3, down 4, rise 2.5, on its own clock. The murder
     //           holes in the passage fire during the down phase.
     //  Winch:   the west-lane gate; starts down, rises once when its winch is turned, stays up.

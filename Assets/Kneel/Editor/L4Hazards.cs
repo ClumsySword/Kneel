@@ -117,7 +117,7 @@ namespace Kneel.EditorTools
                 "The gate passage's cycling portcullis (E6b): 8 m grid, iron spikes along its foot, a 1 R slot that kills. Cycle mode. Dust and chain shudder while it rattles.",
                 root => Portcullis(root, 8f, PortcullisCycle.Mode.Cycle));
             Add("H04b", "L4_Portcullis_12", "Hazards", hazards, 12f, 2f, 6f, Col.Custom, hz, "BUILT", "As H04a, 5 x 2 panels",
-                "The barbican's outer arch (BA): one-shot demo; up until its DemoTrigger, then down for good.",
+                "The barbican's outer arch (BA): one-shot demo; up until the player is through (its DemoTrigger is 8 m inside), then down behind them for good.",
                 root => Portcullis(root, 12f, PortcullisCycle.Mode.OneShot));
             Add("H04c", "L4_Portcullis_6", "Hazards", hazards, 6f, 2f, 6f, Col.Custom, hz, "BUILT", "As H04a, 2 x 2 panels",
                 "The west-lane gate (decision 16): the same gate in Winch mode. Starts down; its winch raises it for good.",
@@ -480,7 +480,9 @@ namespace Kneel.EditorTools
             grid.localPosition = mode == PortcullisCycle.Mode.Winch ? Vector3.zero : new Vector3(0f, height, 0f);
             if (mode == PortcullisCycle.Mode.OneShot)
             {
-                var demo = L3Build.Child(t, "DemoTrigger", new Vector3(0f, 0f, -9f));
+                // On the far (+Z, passage) side: the gate slams down behind the player once they're through. In
+                // front of it (z -9, as first built) it dropped before they reached it, on the level's only route.
+                var demo = L3Build.Child(t, "DemoTrigger", new Vector3(0f, 0f, 8f));
                 demo.layer = L3Build.Layer(L3Build.Marker);
                 L3Build.StandingBox(demo, new Vector3(span + 8f, 3f, 4f), true);
                 var trigger = demo.AddComponent<DemoTrigger>();

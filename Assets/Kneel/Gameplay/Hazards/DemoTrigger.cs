@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Kneel.Hazards
 {
     // A volume that plays a one-time demonstration when the player first walks into it: the barbican
-    // portcullis slamming down (0:30), the rampart-stair scaffold collapsing (5:30). Demos never replay
+    // portcullis slamming down behind the player (0:30), the rampart-stair scaffold collapsing (5:30). Demos never replay
     // (decision 3), so this does not reset.
     [RequireComponent(typeof(BoxCollider))]
     public class DemoTrigger : MonoBehaviour
