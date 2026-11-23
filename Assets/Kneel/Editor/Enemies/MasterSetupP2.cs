@@ -490,6 +490,7 @@ namespace Kneel.EditorTools
                 var rest = Ensure<ShrineRest>(shrine);
                 rest.flag = "L5.ShrineC";
                 rest.respawnFacing = Vector3.forward;
+                rest.refillPotions = true;
                 EditorUtility.SetDirty(rest);
                 shrineLog = "rest at " + shrine.transform.position.ToString("F1") + ", Kael back at " + rest.RespawnPoint.ToString("F1");
             }

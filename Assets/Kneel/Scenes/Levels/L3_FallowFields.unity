@@ -18511,6 +18511,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4575850780121305233, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 571443636}
     - targetCorrespondingSourceObject: {fileID: 2028758518972146211, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 222939016}
@@ -46633,6 +46636,30 @@ MonoBehaviour:
   m_IgnoreFromBuild: 0
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffffi
+--- !u!1 &571443635 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4575850780121305233, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
+  m_PrefabInstance: {fileID: 222939009}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &571443636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 571443635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7967ccb48d3bf84d8fbeb51fdf7b095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineRest
+  flag: L3.ShrineA
+  reach: 3.9
+  kneelTime: 2.2
+  refillPotions: 0
+  respawnOut: 3.5
+  respawnFacing: {x: 0.04734057, y: 0, z: 0.99887884}
+  labelFormat: '{0} to Rest'
 --- !u!1001 &573302679
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -105793,6 +105820,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4575850780121305233, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1550468428}
     - targetCorrespondingSourceObject: {fileID: 2028758518972146211, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1286878858}
@@ -126333,6 +126363,30 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.05, y: 3, z: 1}
   m_Center: {x: 0, y: 1.5, z: 0}
+--- !u!1 &1550468427 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4575850780121305233, guid: 9ef01e60b94ee154c82deab60733612c, type: 3}
+  m_PrefabInstance: {fileID: 1286878851}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1550468428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1550468427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7967ccb48d3bf84d8fbeb51fdf7b095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShrineRest
+  flag: L3.ShrineB
+  reach: 3.9
+  kneelTime: 2.2
+  refillPotions: 0
+  respawnOut: 3.5
+  respawnFacing: {x: -0.2911601, y: 0, z: 0.95667434}
+  labelFormat: '{0} to Rest'
 --- !u!1 &1551697060
 GameObject:
   m_ObjectHideFlags: 0

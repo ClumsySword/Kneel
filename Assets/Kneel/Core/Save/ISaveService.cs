@@ -19,6 +19,9 @@ namespace Kneel.Core
         public int ashHintsSeen;
         // One-time story beats already seen, and checkpoints reached (see SaveFlags).
         public System.Collections.Generic.List<string> flags = new System.Collections.Generic.List<string>();
+        // The flag of the shrine rested at last ("L3.ShrineB"): a reload of its level puts the player there, not at
+        // another shrine of that level rested at earlier. Empty in saves from before it existed.
+        public string lastShrine;
 
         // What the player carried into entry.scene (the level transition writes it; a checkpoint that refills the
         // player, like L5's Last Shrine, updates it). Applied whenever that level is loaded from the save.

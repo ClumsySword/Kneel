@@ -3,16 +3,19 @@ using Kneel.Core;
 using TMPro;
 using UnityEngine;
 
-// A shrine Kael can rest at (L5's Shrine C, the Last Shrine, The Master.md §11): within reach, "E to Rest" over it;
-// Interact kneels him for a moment, heals him, refills his potions, saves the shrine (SaveFlags "<level>.<id>"), and
-// puts the level's resettable things back. Once it's been rested at, a reload of the level (the death screen's
-// Restart, Continue) puts Kael in front of it instead of at the level's start.
+// A shrine Kael can rest at (every level's shrines): within reach, "E to Rest" over it; Interact kneels him for a
+// moment, heals him, saves the shrine (SaveFlags "<level>.<id>", and SaveData.lastShrine), and puts the level's
+// resettable things back. Only the Last Shrine (L5's Shrine C, The Master.md §11) also refills his potions: the
+// others are checkpoints, and potions are found in the world. Once it's the last shrine rested at, a reload of the
+// level (the death screen's Restart, Continue) puts Kael in front of it instead of at the level's start.
 public class ShrineRest : MonoBehaviour
 {
     // The flag saved when rested at ("L5.ShrineC").
     public string flag = "L5.ShrineC";
     public float reach = 2.6f;
     public float kneelTime = 2.2f;
+    // Fill the belt on resting. Only the Last Shrine does.
+    public bool refillPotions = false;
     // Where Kael stands when he comes back here: this far from it along respawnFacing (world), facing that way.
     public float respawnOut = 2.2f;
     public Vector3 respawnFacing = Vector3.forward;
@@ -49,8 +52,29 @@ public class ShrineRest : MonoBehaviour
     {
         player = FindAnyObjectByType<PlayerCombat>();
         // Arriving through the seam from the level before, he stays where the seam put him.
-        if (player != null && SaveFlags.Has(flag) && LevelTransition.IsArriving == false)
+        if (player != null && IsRespawnShrine() && LevelTransition.IsArriving == false)
             PlaceAtShrine(player);
+    }
+
+    // Rested at, and the last shrine rested at (a level can have two). A save from before lastShrine existed only
+    // has the flag. The dev tools' flag sandbox never writes lastShrine, so there the flag alone decides.
+    private bool IsRespawnShrine()
+    {
+        if (SaveFlags.Has(flag) == false)
+            return false;
+        if (SaveFlags.Sandbox != null)
+            return true;
+        string last = SaveServices.Current.Load()?.lastShrine;
+        return string.IsNullOrEmpty(last) || last == flag;
+    }
+
+    // Makes this the shrine a reload puts Kael at (the flag and lastShrine), without the rest itself. Rest calls it;
+    // public for scripted tests.
+    public void SaveAsRespawn()
+    {
+        SaveFlags.Set(flag);
+        if (SaveFlags.Sandbox == null)
+            SaveServices.Update(data => data.lastShrine = flag);
     }
 
     // Kael beside the shrine, facing on (into the hall he came back for).
@@ -85,13 +109,13 @@ public class ShrineRest : MonoBehaviour
         if (health != null)
             health.SetMax(health.Max, true);
         var potions = player.GetComponent<PlayerPotions>();
-        while (potions != null && potions.TryAdd())
+        while (refillPotions && potions != null && potions.TryAdd())
         {
         }
 
-        SaveFlags.Set(flag);
-        // The rest refilled him: that is what he now comes back here with (the level's rule over the state he
-        // carried into it).
+        SaveAsRespawn();
+        // The rest healed him: that (and the potions he has now) is what he comes back here with (the level's rule
+        // over the state he carried into it).
         string scene = gameObject.scene.name;
         CarriedState rested = CarriedStates.Capture(player.gameObject, scene);
         if (SaveServices.Current.Load() != null)
