@@ -162,6 +162,7 @@ The player is `Assets/Kneel/Player/Player.prefab`: a `CharacterController`, `Pla
 - **`TargetDummy`** is a Synty `Character_Dummy_Male_01` humanoid playing the Mixamo impact/kick clips via `AC_TargetDummy`.
   - Its "attacks" toggle (in the F1 overlay) makes it telegraph (red tint), turn and kick, with an overlap sphere against the `Player` layer.
   - Being parried staggers it, and hits on a staggered dummy are critical.
+- **No hounds**: they aren't part of the plan. Their stand-ins and spawns (L3, L4's E6c kennel), the Hound NavMesh agent type with its baked data and NavMesh rules, and the review-lane hound fixtures are gone from the scenes and the L3/L4 build tools; `L3Plan.Spawns` lists L3's Fools and Crossbowmen in their place. `EnemyType.Hound` and `HazardTestDummy.ActorKind.Hound` stay as retired enum entries, since scenes store those enums as numbers. The dead-hound props (L3's carcass, L4's east kennel) are dressing and stay.
 - **Ashen Footman** (Olivia's, `Kneel/Enemies/AshenFootman`, base `Kneel/Enemies/AI/Enemy.cs`):
   - It's a plain-C# state machine: one `EnemyState` subclass per behaviour, and each state sets an animator **bool** of the same name.
   - The controller follows one pattern: Entry → state when its bool is true, state → Exit when it's false. Add new states the same way.

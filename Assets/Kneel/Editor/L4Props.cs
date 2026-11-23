@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Kneel.EditorTools
 {
     // The cover, props and dressing figures of the L4 manifest (14.3). Cover stands 1.2-1.8 m: it blocks bolts
-    // and hounds but never hides the player.
+    // but never hides the player.
     public static partial class L4Assets
     {
         private const string Corpses = "Assets/Kneel/Levels/L1/Prefabs/Corpses/";

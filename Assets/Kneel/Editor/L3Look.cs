@@ -56,7 +56,6 @@ namespace Kneel.EditorTools
             StripPalette("L3_Palette_Stone", new[] { "#5C5852", "#67625B", "#514D48", "#46423D", "#716B63", "#7B746B", "#242120", "#3D3934" }, 0.12f);
             L3Crops.Materials();
             L3Hedges.Materials();
-            L3Build.Flat("L3_Hound", "#191716", 0.15f);
             L3Build.Flat("L3_Brute", "#3B2A22", 0.1f);
             L3Build.Flat("L3_BruteRing", "#3A1C10", 0.05f, "#C4521E", 1.2f);
             L3Build.Flat("L3_BrandTip", "#3A1A0C", 0.05f, "#FF7A1E", 3f);

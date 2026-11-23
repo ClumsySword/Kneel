@@ -25,7 +25,7 @@ namespace Kneel.EditorTools
 
         public static readonly (string name, float radius, float height)[] Agents =
         {
-            ("Thrall", 0.5f, 2f), ("Husk", 0.6f, 2.2f), ("Brute", 1f, 2.6f), ("Hound", 0.4f, 0.9f),
+            ("Thrall", 0.5f, 2f), ("Husk", 0.6f, 2.2f), ("Brute", 1f, 2.6f),
         };
 
         [MenuItem("Kneel/L4/Build/Level (replaces the scene)")]
@@ -718,7 +718,6 @@ namespace Kneel.EditorTools
                 case "N03": return EnemyType.CursedTwin;
                 case "N04": return EnemyType.Crossbowman;
                 case "N05": return EnemyType.Fool;
-                case "N06a": return EnemyType.Hound;
                 case "N06b": return EnemyType.Brute;
                 default: return EnemyType.Steward;
             }
@@ -1138,12 +1137,7 @@ namespace Kneel.EditorTools
 
             if (stage >= 'F')
             {
-                Expect("Hound out of the west kennel", "Hound", new Vector3(40.6f, 0f, 250f), new Vector3(50f, 0f, 246f), true);
-                Expect("Hound back into the west kennel", "Hound", new Vector3(50f, 0f, 246f), new Vector3(40.6f, 0f, 250f), false);
-                Expect("Hound out of the east kennel", "Hound", new Vector3(67.4f, 0f, 250f), new Vector3(58f, 0f, 246f), true);
-                Expect("Hound back into the east kennel", "Hound", new Vector3(58f, 0f, 246f), new Vector3(67.4f, 0f, 250f), false);
                 Expect("Thrall into the west kennel", "Thrall", new Vector3(50f, 0f, 246f), new Vector3(40.8f, 0f, 250f), true);
-                Expect("Hound up the grand stair", "Hound", new Vector3(54f, 0f, 247f), new Vector3(54f, L4Plan.T1, 265f), false);
                 Expect("Thrall up the grand stair", "Thrall", new Vector3(54f, 0f, 247f), new Vector3(54f, L4Plan.T1, 265f), true);
                 Expect("Perch on the E6a walk", "Perch", new Vector3(44f, L4Plan.T1, 228f), new Vector3(44f, L4Plan.T1, 238f), true);
                 Expect("Perch off the E6a walk", "Perch", new Vector3(44f, L4Plan.T1, 228f), new Vector3(54f, 0f, 216f), false);

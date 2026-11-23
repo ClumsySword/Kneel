@@ -219,7 +219,7 @@ namespace Kneel.EditorTools
             var brazier = Put(lane, "H03c", new Vector3(-12f, 0f, -0.6f));
             L3Build.Set(brazier.GetComponent<HangingLight>(), "slick", slickB);
             Dummy(lane, labels, "Dummy_Oil", HazardTestDummy.ActorKind.Player, new Vector3(-24f, 0f, 2.5f));
-            Dummy(lane, labels, "Dummy_OilHound", HazardTestDummy.ActorKind.Hound, new Vector3(-12f, 0f, 2.5f));
+            Dummy(lane, labels, "Dummy_OilFootman", HazardTestDummy.ActorKind.Footman, new Vector3(-12f, 0f, 2.5f));
             Label(labels, "Lane Oil", "Strike the post or the brazier: 1.8 s swing, then the slick burns 6 s.", new Vector3(-18f, 0.03f, -3.5f), 2.4f, TextAlignmentOptions.Center, Color.white, 22f);
 
             // 3. The gate passage: the cycling portcullis with its two murder holes.
