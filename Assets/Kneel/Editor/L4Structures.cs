@@ -1069,6 +1069,39 @@ namespace Kneel.EditorTools
             var marker = root.AddComponent<PickupMarker>();
             marker.kind = PickupKind.Key;
             marker.id = "TribunalKey";
+
+            // Takeable (Interact), with a faint warm glow so it reads in the smoke.
+            var glow = L3Build.Child(root.transform, "Glow", new Vector3(0f, 0.25f, 0f)).AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.72f, 0.35f);
+            glow.range = 1.4f;
+            glow.intensity = 0.6f;
+            glow.shadows = LightShadows.None;
+            var pickup = root.AddComponent<KeyPickup>();
+            L3Build.Set(pickup, "keyId", "TribunalKey");
+            L3Build.Set(pickup, "glow", glow);
+        }
+
+        // The rampart stair's courtyard side (E3). The KeyGrille shuts the stair's foot, but the stair runs along the open
+        // courtyard: its side was low enough to jump onto, and the grille's leaf left a half-metre slot at either end.
+        // A wall up its north side to a parapet over the rampart (from the grille to the landing), and a pier in the
+        // slot between the grille and the curtain wall, leave the grille the only way up.
+        public static void RampartStairSide(Transform parent)
+        {
+            var side = L3Build.Child(parent, "Stair_Rampart_Side").transform;
+            WallRun(side, new Vector3(69.6f, 0f, 127.9f), Vector3.right, 8.5f, 6.2f, 0.8f, Stone);
+            L3Build.Fit(side, "K:SM_Bld_Castle_Wall_01", 90, new Vector3(0.6f, 3.4f, 0.6f), new Vector2(70f, 124.25f), 0f, Stone);
+            var pier = L3Build.Child(side, "PierCollider", new Vector3(70f, 0f, 124.25f));
+            L3Build.StandingBox(pier, new Vector3(0.6f, 3.4f, 0.6f));
+            int obstacles = LayerMask.NameToLayer("Obstacles");
+            foreach (var t in side.GetComponentsInChildren<Transform>(true))
+            {
+                t.gameObject.layer = obstacles;
+            }
+
+            // It stands between the camera and a player in the courtyard just north of it: fade it then, as L4's other
+            // tall walls do (after the layers, so its probes keep theirs).
+            L4Build.AddFade(side.gameObject);
         }
 
         private static void Gate(GameObject root, OneTimeGate.Lock kind)

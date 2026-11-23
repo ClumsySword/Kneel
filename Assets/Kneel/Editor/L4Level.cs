@@ -316,7 +316,12 @@ namespace Kneel.EditorTools
             foreach (var s in L4Plan.Stairs)
             {
                 var area = L4Plan.At(new Vector2(s.Centre.x, s.Centre.z));
-                Put("W09a", Group(root, "Stairs", area != null ? area.Area : "Misc"), s.Centre, s.Yaw).name = s.Name;
+                var group = Group(root, "Stairs", area != null ? area.Area : "Misc");
+                Put("W09a", group, s.Centre, s.Yaw).name = s.Name;
+                if (s.Name == "Stair_Rampart")
+                {
+                    L4Assets.RampartStairSide(group);
+                }
             }
 
             return L4Plan.Stairs.Count + " stairs";
