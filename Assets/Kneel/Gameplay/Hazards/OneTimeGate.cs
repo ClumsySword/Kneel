@@ -26,6 +26,10 @@ namespace Kneel.Hazards
         }
 
         public static void Clear() => keys.Clear();
+
+        // Statics outlive Play mode in this project (no domain reload): a key from the last run mustn't open a gate now.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => keys.Clear();
     }
 
     // A gate that opens once and stays open: never reset by deaths or rests (decision 3).
