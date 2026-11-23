@@ -326,7 +326,7 @@ namespace Kneel.EditorTools
             // ---- Stage D: E1-E3 and Shrine A
             P('D', "Markers", "S", "M10a", "PlayerSpawn", 60f, -114f),
             P('D', "Hazards", "BA", "H04b", "OuterPortcullis", 60f, -19f),
-            P('D', "Markers", "BA", "M13", "Demo_OuterPortcullis", 60f, -29f),
+            P('D', "Markers", "BA", "M13", "Demo_OuterPortcullis", 62f, -11f),
             P('D', "Props", "E1", "F04", "GateCaptain", 56f, -14f, 0f, 30f),
             P('D', "Markers", "E1", "M03", "HeavyWeapon", 56.6f, -13.7f, 0.35f, 30f),
             P('D', "Props", "E1", "C15a", "Barricade_Out", 62f, -15.5f),
