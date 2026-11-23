@@ -3,7 +3,7 @@
 // pauses. Optionally zooms the camera and spawns a prop in front of the player (runtime only, the scene is
 // never saved). Poll for Temp/meshy_cap_ready.txt + EditorApplication.isPaused before taking screenshots.
 // Kneel enters Play without a domain reload, which is what lets this update callback survive into Play.
-const string SCENE = "Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity";  // EDIT if needed (never save it)
+const string SCENE = "Assets/Kneel/Scenes/Levels/L1_BrokenLine_Playable.unity";  // EDIT if needed (never save it)
 const float CAM_DISTANCE = 0f;          // EDIT: 0 = default 8.5 m follow camera; 3.1681416f = closest zoom
 const string SPAWN = "";                // EDIT: prefab or model path to place in front of the player ("" = none)
 const float SPAWN_AHEAD = 1.5f;         // EDIT: metres in front of the player

@@ -74,7 +74,7 @@ MonoBehaviour:
   - id: 29
     sound: {fileID: 11400000, guid: 6ddde76995e6a9d7cbdcc99ac6f5259a, type: 2}
   levels:
-  - scene: L1_BrokenLine_Playable_L
+  - scene: L1_BrokenLine_Playable
     explore:
     - {fileID: 8300000, guid: 3d4ea93c1aa2e50c6b0232e5a436dbc7, type: 3}
     - {fileID: 8300000, guid: 27ca51863f88f2950b13a4e10c6aa798, type: 3}
@@ -84,6 +84,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 1
+    score:
+      intro: {fileID: 8300000, guid: 352fae20854fef249989b21b8eee3603, type: 3}
+      loop: {fileID: 8300000, guid: 4ef1f84a11b7ccf4193138d77b2a58e7, type: 3}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    bossPhase2:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.3
@@ -98,6 +108,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 0
+    score:
+      intro: {fileID: 8300000, guid: 1ed88aaecd6a5a646ae114f72aee7be3, type: 3}
+      loop: {fileID: 8300000, guid: c4204afd0b53a95418dfaf402b1c25ae, type: 3}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    bossPhase2:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.2
@@ -112,6 +132,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 1
+    score:
+      intro: {fileID: 8300000, guid: b0d74c77918fbd242803d553edd2d216, type: 3}
+      loop: {fileID: 8300000, guid: 8731a265aa31c7e469fd7ec9a55bc948, type: 3}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    bossPhase2:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.35
@@ -126,6 +156,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 0
+    score:
+      intro: {fileID: 8300000, guid: fd80c36b739fa6e40850fad905398c59, type: 3}
+      loop: {fileID: 8300000, guid: e17a50b19e5e39c439de1a21f59de83b, type: 3}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    bossPhase2:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.3
@@ -140,6 +180,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 0
+    score:
+      intro: {fileID: 8300000, guid: 4105f56406abe0c4f8d73db50b989833, type: 3}
+      loop: {fileID: 8300000, guid: a2bbc0758297768468b1cbca54516317, type: 3}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 8300000, guid: 0bb5fe3e287a51449ae069e7389479c2, type: 3}
+      loop: {fileID: 8300000, guid: aec41e30bbffb344fbf4b204538662a3, type: 3}
+    bossPhase2:
+      intro: {fileID: 8300000, guid: e8c21e5fe36cdb043ba99bcfafece544, type: 3}
+      loop: {fileID: 8300000, guid: b3717b3468be36940ba7b450276e6017, type: 3}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.15
@@ -154,6 +204,16 @@ MonoBehaviour:
     ambience: {fileID: 8300000, guid: 01d1a7a1551bcd2b2806e699438129ae, type: 3}
     fire: {fileID: 8300000, guid: d2bb40ae8c03f7c2cbd153a5f076dfda, type: 3}
     surface: 0
+    score:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    scoreVolume: 0.5
+    bossPhase1:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
+    bossPhase2:
+      intro: {fileID: 0}
+      loop: {fileID: 0}
     exploreVolume: 0.35
     combatVolume: 0.55
     ambienceVolume: 0.25

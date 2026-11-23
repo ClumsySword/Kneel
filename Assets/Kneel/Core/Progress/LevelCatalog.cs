@@ -24,7 +24,7 @@ namespace Kneel.Core
 
         public static readonly IReadOnlyList<Level> Levels = new[]
         {
-            new Level("I", "The Broken Line", "L1_BrokenLine_Playable_L"),
+            new Level("I", "The Broken Line", "L1_BrokenLine_Playable"),
             new Level("II", "The Hollow Village", "L2_HollowVillage"),
             new Level("III", "The Fallow Fields", "L3_FallowFields"),
             new Level("IV", "The Burning Gate", "L4_BurningGate"),

@@ -47,7 +47,7 @@ namespace Kneel.EditorTools
 
         private static readonly string[] GameScenes =
         {
-            "Assets/Kneel/Scenes/L1_BrokenLine_Playable_L.unity",
+            "Assets/Kneel/Scenes/Levels/L1_BrokenLine_Playable.unity",
             "Assets/Kneel/Scenes/Levels/L2_HollowVillage.unity",
             "Assets/Kneel/Scenes/Levels/L3_FallowFields.unity",
             "Assets/Kneel/Scenes/Levels/L4_BurningGate.unity",

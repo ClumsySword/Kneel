@@ -11,7 +11,7 @@ namespace Kneel.EditorTools.Transitions
     // idempotent (a wall segment switched off, a door's single mesh hidden behind two leaves).
     public static class SeamBuilders
     {
-        public const string L1 = "L1_BrokenLine_Playable_L";
+        public const string L1 = "L1_BrokenLine_Playable";
         public const string L2 = "L2_HollowVillage";
         public const string L3 = "L3_FallowFields";
         public const string L4 = "L4_BurningGate";

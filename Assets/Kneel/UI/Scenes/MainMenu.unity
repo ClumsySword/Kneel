@@ -1056,7 +1056,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95f3d7332802a96448f0d0f8fd7d4f46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Kneel.UI.MainMenuController
-  newGameScene: L1_BrokenLine_Playable_L
+  newGameScene: L1_BrokenLine_Playable
   leaveFadeTime: 1.2
   arriveFadeTime: 0.8
   introDelay: 0.3

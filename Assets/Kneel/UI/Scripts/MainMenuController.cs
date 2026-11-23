@@ -23,7 +23,7 @@ namespace Kneel.UI
         }
 
         [Header("Scenes")]
-        [SerializeField] private string newGameScene = "L1_BrokenLine_Playable_L";
+        [SerializeField] private string newGameScene = "L1_BrokenLine_Playable";
         [SerializeField] private float leaveFadeTime = 1.2f;
         [SerializeField] private float arriveFadeTime = 0.8f;
 

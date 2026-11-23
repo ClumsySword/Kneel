@@ -9,18 +9,29 @@ namespace Kneel.Audio
         Earth,
     }
 
-    // A level's sound: an exploration bed, combat drums that fade in while enemies hunt the player, an ambience bed,
-    // what fire sounds like, and what the ground is made of.
+    // A level's sound: its score (or, without one, an exploration bed and combat drums that fade in while enemies hunt
+    // the player), an ambience bed, what fire sounds like, and what the ground is made of.
     [System.Serializable]
     public class LevelSound
     {
-        // The scene's name (L1_BrokenLine_Playable_L, L2_HollowVillage, ...).
+        // The scene's name (L1_BrokenLine_Playable, L2_HollowVillage, ...).
         public string scene;
         public AudioClip[] explore = new AudioClip[0];
         public AudioClip[] combat = new AudioClip[0];
         public AudioClip ambience;
         public AudioClip fire;
         public FootSurface surface = FootSurface.Stone;
+
+        // The level's own score (Audio/Music/Score). When set it is the level's music in place of the exploration bed
+        // and the combat drums, and plays through fights: the drums don't share its key or tempo.
+        public MusicTrack score = new MusicTrack();
+
+        [Range(0f, 1f)]
+        public float scoreVolume = 0.5f;
+
+        // The boss fight's score, lent to the level's MusicDirector (L5).
+        public MusicTrack bossPhase1 = new MusicTrack();
+        public MusicTrack bossPhase2 = new MusicTrack();
 
         [Range(0f, 1f)]
         public float exploreVolume = 0.35f;

@@ -26,6 +26,32 @@ namespace Kneel.Core
         // What the player carried into entry.scene (the level transition writes it; a checkpoint that refills the
         // player, like L5's Last Shrine, updates it). Applied whenever that level is loaded from the save.
         public CarriedState entry = new CarriedState();
+
+        // Level scenes renamed since a save could have been written: old name -> current name. (L1 lost its owner's
+        // suffix when the levels became unowned, 2026-11-23.)
+        private static readonly (string from, string to)[] RenamedScenes =
+        {
+            ("L1_BrokenLine_Playable_L", "L1_BrokenLine_Playable"),
+        };
+
+        // Points a save written under an old scene name at the scene's current name, so Continue still finds it.
+        public SaveData Upgraded()
+        {
+            foreach ((string from, string to) in RenamedScenes)
+            {
+                if (sceneName == from)
+                {
+                    sceneName = to;
+                }
+
+                if (entry != null && entry.scene == from)
+                {
+                    entry.scene = to;
+                }
+            }
+
+            return this;
+        }
     }
 
     // Named once-per-save facts: "L5.Reveal" (the throne hall's reveal played), "L5.MasterMet" (the boss's long intro
