@@ -117,6 +117,7 @@ Packages/packages-lock.json linguist-generated
 *.mpeg                  lfs
 *.mpg                   lfs
 *.ogv                   lfs
+*.webm                  lfs
 *.wmv                   lfs
 
 # Images
