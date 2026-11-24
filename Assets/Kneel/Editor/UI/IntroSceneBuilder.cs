@@ -20,7 +20,9 @@ namespace Kneel.EditorTools
     public static class IntroSceneBuilder
     {
         private const string ScenePath = "Assets/Kneel/UI/Scenes/Intro.unity";
-        private const string FilmPath = "Assets/Kneel/UI/Video/kneel_intro.mp4";
+        // WebM (VP8/Vorbis): the one format Unity imports and plays on every platform. An H.264 .mp4 does not import
+        // in the Linux Editor at all ("format 0 not supported"), and the film silently went missing.
+        private const string FilmPath = "Assets/Kneel/UI/Video/kneel_intro.webm";
         private const string BodyFont = "Assets/Kneel/UI/Fonts/CormorantGaramond-Medium SDF.asset";
 
         // The menu's palette (MenuScenesBuilder).
