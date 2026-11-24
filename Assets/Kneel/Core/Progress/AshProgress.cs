@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Kneel.Core
 {
@@ -25,29 +24,19 @@ namespace Kneel.Core
 
         public static bool Practice { get; private set; }
 
-        // The F1 overlay's switch: the meter works in L1 too.
-        public static bool DebugGrant { get; set; }
-
         // What a save records: the campaign's values, even during a practice run.
         public static int SavedUses => Practice ? campaignUses : Uses;
 
         public static int SavedHintsSeen => Practice ? campaignHintsSeen : HintsSeen;
 
-        // Granted in Level 2. Scenes that aren't one of the five levels (test arenas) have it too.
-        public static bool MeterGranted
-        {
-            get
-            {
-                int level = LevelCatalog.IndexOf(SceneManager.GetActiveScene().name);
-                return DebugGrant || level != 0;
-            }
-        }
+        // Granted from the start, in every level (it used to wait for Level 2). Kept as the one switch should a
+        // level ever need it withheld again.
+        public static bool MeterGranted => true;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Load()
         {
             Practice = false;
-            DebugGrant = false;
             LoadFrom(SaveServices.Current.Load());
         }
 

@@ -561,10 +561,11 @@ public class AshenSwordFlames : MonoBehaviour
 
         float rampIn = Mathf.Clamp01((Time.time - litAt) / RampIn);
         float fade = Mathf.Clamp01((endAt - Time.time) / FadeOut);
-        float strength = rampIn * fade;
-        SetStrength(strength);
+        SetStrength(rampIn * fade);
 
-        if (strength <= 0f)
+        // Out only once the burn has ended. Not on zero strength: the ramp-in is zero on the frame of the cast
+        // itself (Ignite runs from the key press, before this Update), which put a fresh burn out at once.
+        if (Time.time >= endAt)
         {
             fire.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             wrap.Stop(true, ParticleSystemStopBehavior.StopEmitting);

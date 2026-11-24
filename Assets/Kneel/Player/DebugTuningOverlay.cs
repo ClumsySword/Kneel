@@ -416,7 +416,6 @@ public class DebugTuningOverlay : MonoBehaviour
             ash.SetUses(newUses);
         }
 
-        Kneel.Core.AshProgress.DebugGrant = GUILayout.Toggle(Kneel.Core.AshProgress.DebugGrant, " Meter in L1 too");
         AshMeter.DummyGivesAsh = GUILayout.Toggle(AshMeter.DummyGivesAsh, " Dummy gives Ash when felled");
 
         showAshTuning = GUILayout.Toggle(showAshTuning, " Tuning");

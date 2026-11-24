@@ -5,7 +5,7 @@ using UnityEngine;
 
 // The Ash meter: the Master's power, stolen down the channel. Kills release most of it, parries and rolls through
 // attacks skim a little, blocking gives nothing. It holds a full meter at most, every ability spends all of it, and
-// it empties on death. The value lives in AshProgress so it carries from level to level. Granted in Level 2.
+// it empties on death. The value lives in AshProgress so it carries from level to level. Granted from Level 1.
 [RequireComponent(typeof(PlayerCombat))]
 public class AshMeter : MonoBehaviour
 {
