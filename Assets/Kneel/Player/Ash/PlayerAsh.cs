@@ -189,6 +189,11 @@ public class PlayerAsh : MonoBehaviour
             combat.DrawWeapon();
             requestWindow += combat.DrawTime;
         }
+        else if (ability == Ability.AshenSword && combat.State == PlayerCombat.CombatState.Drawing)
+        {
+            // Mid-draw: wait it out too, or the buffer lapses before the sword is in hand and the press is lost.
+            requestWindow += combat.DrawTime;
+        }
     }
 
     // Called by PlayerCombat each frame, after a buffered roll has had its chance.
